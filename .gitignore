@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Vite cache
+.vite/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment files
+.env
+.env.*
+
+# OS files
+.DS_Store
+Thumbs.db

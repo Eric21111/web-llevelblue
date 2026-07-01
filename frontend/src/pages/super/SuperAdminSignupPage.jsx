@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Shield, Key, Mail, Lock, User, AlertTriangle, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Shield, Key, Mail, Lock, User, AlertTriangle, ArrowLeft, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import FontImports from "../../components/FontImports";
+import PasswordStrengthIndicator, { isPasswordStrong } from "../../components/PasswordStrengthIndicator";
 import { COLORS } from "../../constants/colors";
 
 const inputWrapStyle = {
@@ -27,6 +28,8 @@ export default function SuperAdminSignupPage({ onComplete }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [securityKey, setSecurityKey] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -38,6 +41,11 @@ export default function SuperAdminSignupPage({ onComplete }) {
 
     if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim() || !securityKey.trim()) {
       setError("First name, last name, email, password, and security key are required.");
+      return;
+    }
+
+    if (!isPasswordStrong(password)) {
+      setError("Password does not meet all strength requirements.");
       return;
     }
 
@@ -196,9 +204,12 @@ export default function SuperAdminSignupPage({ onComplete }) {
                   <div style={inputWrapStyle}>
                     <Lock size={14} color={COLORS.sub} />
                     <input
-                      type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••"
+                      type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••"
                       style={inputStyle}
                     />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }}>
+                      {showPassword ? <EyeOff size={14} color={COLORS.sub} /> : <Eye size={14} color={COLORS.sub} />}
+                    </button>
                   </div>
                 </div>
                 <div>
@@ -206,12 +217,17 @@ export default function SuperAdminSignupPage({ onComplete }) {
                   <div style={inputWrapStyle}>
                     <Lock size={14} color={COLORS.sub} />
                     <input
-                      type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required placeholder="••••••••"
+                      type={showConfirm ? "text" : "password"} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required placeholder="••••••••"
                       style={inputStyle}
                     />
+                    <button type="button" onClick={() => setShowConfirm(!showConfirm)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }}>
+                      {showConfirm ? <EyeOff size={14} color={COLORS.sub} /> : <Eye size={14} color={COLORS.sub} />}
+                    </button>
                   </div>
                 </div>
               </div>
+
+              <PasswordStrengthIndicator password={password} />
 
               <div>
                 <label style={labelStyle}>Security Key *</label>

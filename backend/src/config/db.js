@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const MONGO_URI = "mongodb+srv://levelblue122_db_user:y46sdm7MrNPNzwOr@cluster0.t2diook.mongodb.net/levelblue?appName=Cluster0";
+const MONGO_URI = "mongodb://levelblue122_db_user:48F0AxqKEECQNKxG@ac-9u3wmmo-shard-00-00.t2diook.mongodb.net:27017,ac-9u3wmmo-shard-00-01.t2diook.mongodb.net:27017,ac-9u3wmmo-shard-00-02.t2diook.mongodb.net:27017/?ssl=true&replicaSet=atlas-12ryng-shard-0&authSource=admin&appName=Cluster0";
 
 export const connectDB = async () => {
   try {

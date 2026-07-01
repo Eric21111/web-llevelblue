@@ -18,10 +18,9 @@ const userSchema = new mongoose.Schema(
 );
 
 // Pre-save hook to compute the full name field dynamically
-userSchema.pre("save", function (next) {
+userSchema.pre("save", function () {
   const mi = this.middleInitial ? ` ${this.middleInitial.toUpperCase().replace(/\./g, "")}.` : "";
   this.name = `${this.firstName}${mi} ${this.lastName}`;
-  next();
 });
 
 const User = mongoose.model("User", userSchema);

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, X } from "lucide-react";
+import { Plus, Trash2, X, Eye, EyeOff } from "lucide-react";
 import Panel from "../../components/Panel";
+import PasswordStrengthIndicator, { isPasswordStrong } from "../../components/PasswordStrengthIndicator";
 import { COLORS } from "../../constants/colors";
 
 const inputStyle = {
@@ -25,6 +26,7 @@ export default function TeacherManagement() {
   const [middleInitial, setMiddleInitial] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -45,6 +47,11 @@ export default function TeacherManagement() {
     e.preventDefault();
     if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim()) {
       setFormError("First name, last name, email, and password are required");
+      return;
+    }
+
+    if (!isPasswordStrong(password)) {
+      setFormError("Password does not meet all strength requirements");
       return;
     }
 
@@ -206,11 +213,18 @@ export default function TeacherManagement() {
 
               <div>
                 <label style={labelStyle}>Password *</label>
-                <input
-                  type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••"
-                  style={inputStyle}
-                />
+                <div style={{ display: "flex", alignItems: "center", gap: 8, background: COLORS.panelAlt, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "0 12px 0 0" }}>
+                  <input
+                    type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••"
+                    style={{ ...inputStyle, border: "none", background: "transparent" }}
+                  />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", flexShrink: 0 }}>
+                    {showPassword ? <EyeOff size={14} color={COLORS.sub} /> : <Eye size={14} color={COLORS.sub} />}
+                  </button>
+                </div>
               </div>
+
+              <PasswordStrengthIndicator password={password} />
 
               {formError && (
                 <div style={{ color: COLORS.coral, fontSize: 12, fontWeight: 600, textAlign: "center" }}>{formError}</div>
