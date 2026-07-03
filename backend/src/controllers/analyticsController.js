@@ -1,15 +1,30 @@
-import Student from "../models/Student.js";
+import { supabase } from "../config/db.js";
 
 export const getAnalytics = async (req, res) => {
   try {
-    const students = await Student.find({});
+    const { data: rows, error } = await supabase.from("students").select("*");
+    if (error) throw error;
+
+    const students = rows || [];
     const SKILLS = ["Phishing", "Smishing", "Vishing", "Pretexting", "Baiting"];
+
+    // Map flat mastery columns to object for easier computation
+    const studentsWithMastery = students.map((s) => ({
+      ...s,
+      mastery: {
+        Phishing: s.mastery_phishing,
+        Smishing: s.mastery_smishing,
+        Vishing: s.mastery_vishing,
+        Pretexting: s.mastery_pretexting,
+        Baiting: s.mastery_baiting,
+      },
+    }));
 
     // 1. Dynamic classMasteryRadar
     const classMasteryRadar = SKILLS.map((skill) => {
       let sum = 0;
       let count = 0;
-      students.forEach((s) => {
+      studentsWithMastery.forEach((s) => {
         if (s.mastery && s.mastery[skill] !== undefined) {
           sum += s.mastery[skill];
           count++;
@@ -38,7 +53,7 @@ export const getAnalytics = async (req, res) => {
       return {
         section: secName.includes(" - ") ? secName.split(" - ")[1] : secName,
         gain: avgGain,
-        teacher: "T. Climaco"
+        teacher: "T. Climaco",
       };
     });
 
@@ -52,7 +67,7 @@ export const getAnalytics = async (req, res) => {
       const postSum = list.reduce((sum, s) => sum + s.post, 0);
       return {
         pre: Math.round(preSum / list.length),
-        post: Math.round(postSum / list.length)
+        post: Math.round(postSum / list.length),
       };
     };
 
@@ -61,7 +76,7 @@ export const getAnalytics = async (req, res) => {
 
     const technicalVsNon = [
       { group: "Technical Users", pre: techStats.pre, post: techStats.post },
-      { group: "Non-Technical Users", pre: nonTechStats.pre, post: nonTechStats.post }
+      { group: "Non-Technical Users", pre: nonTechStats.pre, post: nonTechStats.post },
     ];
 
     // 5. Dynamic masteryGrowthOverTime
@@ -73,7 +88,7 @@ export const getAnalytics = async (req, res) => {
       { week: "Wk 5", Phishing: 68, Smishing: 55, Vishing: 47, Pretexting: 62, Baiting: 56 },
       { week: "Wk 6", Phishing: 78, Smishing: 62, Vishing: 54, Pretexting: 71, Baiting: 68 },
     ];
-    
+
     const masteryGrowthOverTime = baseGrowth.map((g, idx) => {
       const scale = (idx + 1) / 6;
       const item = { week: g.week };
@@ -108,7 +123,7 @@ export const getAnalytics = async (req, res) => {
     const dailyWeight = { Mon: 0.15, Tue: 0.18, Wed: 0.16, Thu: 0.22, Fri: 0.19, Sat: 0.07, Sun: 0.03 };
     const engagementTrend = Object.entries(dailyWeight).map(([day, weight]) => ({
       day,
-      sessions: Math.round(totalSessions * weight) || 0
+      sessions: Math.round(totalSessions * weight) || 0,
     }));
 
     // 9. bktHealth
@@ -130,10 +145,65 @@ export const getAnalytics = async (req, res) => {
       quizTypeAccuracy,
       slipPatterns,
       engagementTrend,
-      bktHealth
+      bktHealth,
     });
   } catch (error) {
     console.error("Get analytics error:", error);
     res.status(500).json({ error: "Server error calculating analytics metrics" });
+  }
+};
+
+// Dedicated at-risk endpoint — polls students below mastery threshold
+export const getAtRisk = async (req, res) => {
+  try {
+    const MASTERY_THRESHOLD = 0.5; // below 50% mastery is considered at-risk
+
+    const { data: rows, error } = await supabase
+      .from("students")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+
+    const SKILLS = ["Phishing", "Smishing", "Vishing", "Pretexting", "Baiting"];
+    const skillColumns = {
+      Phishing: "mastery_phishing",
+      Smishing: "mastery_smishing",
+      Vishing: "mastery_vishing",
+      Pretexting: "mastery_pretexting",
+      Baiting: "mastery_baiting",
+    };
+
+    const atRisk = [];
+
+    (rows || []).forEach((student) => {
+      const failingSkills = SKILLS.filter(
+        (skill) => (student[skillColumns[skill]] ?? 1) < MASTERY_THRESHOLD
+      );
+
+      if (failingSkills.length >= 1) {
+        atRisk.push({
+          id: student.id,
+          name: student.name,
+          section: student.section,
+          status: student.status,
+          sessions: student.sessions,
+          lastActive: student.last_active,
+          failingSkills,
+          mastery: {
+            Phishing: student.mastery_phishing,
+            Smishing: student.mastery_smishing,
+            Vishing: student.mastery_vishing,
+            Pretexting: student.mastery_pretexting,
+            Baiting: student.mastery_baiting,
+          },
+        });
+      }
+    });
+
+    res.json(atRisk);
+  } catch (error) {
+    console.error("Get at-risk error:", error);
+    res.status(500).json({ error: "Server error fetching at-risk students" });
   }
 };

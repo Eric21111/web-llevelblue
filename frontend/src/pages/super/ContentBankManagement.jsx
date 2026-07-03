@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Plus, X } from "lucide-react";
 import Panel from "../../components/Panel";
 import { COLORS } from "../../constants/colors";
+import { apiFetch } from "../../utils/api";
 
 export default function ContentBankManagement() {
   const [contentBank, setContentBank] = useState([]);
@@ -15,17 +16,19 @@ export default function ContentBankManagement() {
   const [addValidated, setAddValidated] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchContentBank = () => {
-    setLoading(true);
-    fetch("/api/content-bank")
+  const fetchContentBank = (silent = false) => {
+    if (!silent) setLoading(true);
+    apiFetch("/api/content-bank")
       .then((res) => res.json())
       .then((data) => setContentBank(data || []))
       .catch((err) => console.error("Error loading content bank:", err))
-      .finally(() => setLoading(false));
+      .finally(() => { if (!silent) setLoading(false); });
   };
 
   useEffect(() => {
     fetchContentBank();
+    const interval = setInterval(() => fetchContentBank(true), 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleUpdateContent = async (e) => {
@@ -33,7 +36,7 @@ export default function ContentBankManagement() {
     setSubmitting(true);
 
     try {
-      const res = await fetch("/api/content-bank", {
+      const res = await apiFetch("/api/content-bank", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

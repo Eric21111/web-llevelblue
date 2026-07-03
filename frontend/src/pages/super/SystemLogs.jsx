@@ -1,17 +1,25 @@
 import { useState, useEffect } from "react";
 import Panel from "../../components/Panel";
 import { COLORS } from "../../constants/colors";
+import { apiFetch } from "../../utils/api";
 
 export default function SystemLogs() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetch("/api/system-logs")
+  const fetchLogs = (silent = false) => {
+    if (!silent) setLoading(true);
+    apiFetch("/api/system-logs")
       .then((res) => res.json())
       .then((data) => setLogs(data || []))
       .catch((err) => console.error("Error loading system logs:", err))
-      .finally(() => setLoading(false));
+      .finally(() => { if (!silent) setLoading(false); });
+  };
+
+  useEffect(() => {
+    fetchLogs();
+    const interval = setInterval(() => fetchLogs(true), 5000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -40,7 +48,7 @@ export default function SystemLogs() {
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                     <span style={{ fontFamily: "Inter", fontWeight: 600, fontSize: 13, color: COLORS.text }}>{l.action}</span>
                     <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11.5, color: COLORS.sub }}>
-                      {new Date(l.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {new Date(l.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                      {new Date(l.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {new Date(l.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                     </span>
                   </div>
                   <div style={{ fontFamily: "Inter", fontSize: 12, color: COLORS.sub, marginTop: 2 }}>

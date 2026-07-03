@@ -1,11 +1,39 @@
-import Student from "../models/Student.js";
-import User from "../models/User.js";
-import Log from "../models/Log.js";
+import { supabase } from "../config/db.js";
+
+// Helper: map a Supabase student row to the frontend-expected shape
+function mapStudent(row) {
+  return {
+    _id: row.id,
+    name: row.name,
+    section: row.section,
+    pre: row.pre,
+    post: row.post,
+    sessions: row.sessions,
+    points: row.points,
+    lastActive: row.last_active,
+    technical: row.technical,
+    status: row.status,
+    mastery: {
+      Phishing: row.mastery_phishing,
+      Smishing: row.mastery_smishing,
+      Vishing: row.mastery_vishing,
+      Pretexting: row.mastery_pretexting,
+      Baiting: row.mastery_baiting,
+    },
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
 
 export const getStudents = async (req, res) => {
   try {
-    const students = await Student.find({}).sort({ createdAt: -1 });
-    res.json(students);
+    const { data: students, error } = await supabase
+      .from("students")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    res.json(students.map(mapStudent));
   } catch (error) {
     console.error("Get students error:", error);
     res.status(500).json({ error: "Server error fetching students" });
@@ -37,47 +65,48 @@ export const addStudent = async (req, res) => {
       Smishing: Number((postVal / 100 * (0.7 + Math.random() * 0.2)).toFixed(2)),
       Vishing: Number((postVal / 100 * (0.6 + Math.random() * 0.2)).toFixed(2)),
       Pretexting: Number((postVal / 100 * (0.75 + Math.random() * 0.2)).toFixed(2)),
-      Baiting: Number((postVal / 100 * (0.68 + Math.random() * 0.2)).toFixed(2))
+      Baiting: Number((postVal / 100 * (0.68 + Math.random() * 0.2)).toFixed(2)),
     };
 
-    const newStudent = new Student({
-      name,
-      section,
-      pre: preVal,
-      post: postVal,
-      sessions: sessionsVal,
-      points: pointsVal,
-      technical: techVal,
-      status: calcStatus,
-      mastery: defaultMastery
-    });
+    const { data: inserted, error: insertError } = await supabase
+      .from("students")
+      .insert({
+        name,
+        section,
+        pre: preVal,
+        post: postVal,
+        sessions: sessionsVal,
+        points: pointsVal,
+        technical: techVal,
+        status: calcStatus,
+        mastery_phishing: defaultMastery.Phishing,
+        mastery_smishing: defaultMastery.Smishing,
+        mastery_vishing: defaultMastery.Vishing,
+        mastery_pretexting: defaultMastery.Pretexting,
+        mastery_baiting: defaultMastery.Baiting,
+      })
+      .select()
+      .single();
 
-    await newStudent.save();
+    if (insertError) throw insertError;
 
-    // Update teacher counts in MongoDB
-    const studentsList = await Student.find({});
-    const uniqueSections = new Set(studentsList.map(s => s.section));
-    
-    // Update all users who are teachers
-    await User.updateMany(
-      { role: "admin" },
-      { 
-        $set: { 
-          students: studentsList.length,
-          sections: uniqueSections.size
-        } 
-      }
-    );
+    // Update teacher counts
+    const { data: allStudents } = await supabase.from("students").select("section");
+    const uniqueSections = new Set(allStudents.map((s) => s.section));
+
+    await supabase
+      .from("users")
+      .update({ students: allStudents.length, sections: uniqueSections.size })
+      .eq("role", "admin");
 
     // Audit log
-    const auditLog = new Log({
+    await supabase.from("logs").insert({
       user: "Teacher",
       action: "Add Student",
       details: `Added student ${name} to ${section}`,
     });
-    await auditLog.save();
 
-    res.status(201).json(newStudent);
+    res.status(201).json(mapStudent(inserted));
   } catch (error) {
     console.error("Add student error:", error);
     res.status(500).json({ error: "Server error creating student" });
@@ -87,34 +116,39 @@ export const addStudent = async (req, res) => {
 export const deleteStudent = async (req, res) => {
   try {
     const { id } = req.params;
-    const student = await Student.findById(id);
-    if (!student) {
+
+    const { data: student, error: findError } = await supabase
+      .from("students")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (findError || !student) {
       return res.status(404).json({ error: "Student not found" });
     }
 
-    await Student.findByIdAndDelete(id);
+    const { error: deleteError } = await supabase
+      .from("students")
+      .delete()
+      .eq("id", id);
 
-    // Update teacher counts in MongoDB
-    const studentsList = await Student.find({});
-    const uniqueSections = new Set(studentsList.map(s => s.section));
-    
-    await User.updateMany(
-      { role: "admin" },
-      { 
-        $set: { 
-          students: studentsList.length,
-          sections: uniqueSections.size
-        } 
-      }
-    );
+    if (deleteError) throw deleteError;
+
+    // Update teacher counts
+    const { data: allStudents } = await supabase.from("students").select("section");
+    const uniqueSections = new Set(allStudents.map((s) => s.section));
+
+    await supabase
+      .from("users")
+      .update({ students: allStudents.length, sections: uniqueSections.size })
+      .eq("role", "admin");
 
     // Audit log
-    const auditLog = new Log({
+    await supabase.from("logs").insert({
       user: "Teacher",
       action: "Delete Student",
       details: `Removed student ${student.name}`,
     });
-    await auditLog.save();
 
     res.json({ message: "Student deleted successfully" });
   } catch (error) {

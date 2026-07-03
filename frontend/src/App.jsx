@@ -1,27 +1,34 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense, lazy } from "react";
 import {
   LayoutDashboard, Users, BookOpen, Activity, ClipboardList,
-  UserCog, Database, ServerCog, ChevronRight,
+  UserCog, Database, ServerCog, ChevronRight, Settings, GraduationCap
 } from "lucide-react";
 import FontImports from "./components/FontImports";
 import Sidebar from "./components/Sidebar";
 import LoginPage from "./pages/LoginPage";
-import TeacherHome from "./pages/teacher/TeacherHome";
-import ClassRoster from "./pages/teacher/ClassRoster";
-import SkillAnalytics from "./pages/teacher/SkillAnalytics";
-import EngagementReports from "./pages/teacher/EngagementReports";
-import UsabilityFeedback from "./pages/teacher/UsabilityFeedback";
-import SuperAdminHome from "./pages/super/SuperAdminHome";
-import TeacherManagement from "./pages/super/TeacherManagement";
-import ContentBankManagement from "./pages/super/ContentBankManagement";
-import SystemLogs from "./pages/super/SystemLogs";
 import SuperAdminSignupPage from "./pages/super/SuperAdminSignupPage";
+import ForcePasswordChangeModal from "./components/ForcePasswordChangeModal";
 import { COLORS } from "./constants/colors";
+import ErrorBoundary from "./components/ErrorBoundary";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 
-export default function App() {
-  const [authed, setAuthed] = useState(false);
-  const [role, setRole] = useState("admin");
-  const [page, setPage] = useState(0);
+// Lazy load pages for code splitting and faster initial load
+const TeacherHome = lazy(() => import("./pages/teacher/TeacherHome"));
+const ClassRoster = lazy(() => import("./pages/teacher/ClassRoster"));
+const SkillAnalytics = lazy(() => import("./pages/teacher/SkillAnalytics"));
+const EngagementReports = lazy(() => import("./pages/teacher/EngagementReports"));
+const UsabilityFeedback = lazy(() => import("./pages/teacher/UsabilityFeedback"));
+const TeacherSettings = lazy(() => import("./pages/teacher/TeacherSettings"));
+const SectionsManagement = lazy(() => import("./pages/teacher/SectionsManagement"));
+
+const SuperAdminHome = lazy(() => import("./pages/super/SuperAdminHome"));
+const TeacherManagement = lazy(() => import("./pages/super/TeacherManagement"));
+const ContentBankManagement = lazy(() => import("./pages/super/ContentBankManagement"));
+const SystemLogs = lazy(() => import("./pages/super/SystemLogs"));
+const SuperAdminSettings = lazy(() => import("./pages/super/SuperAdminSettings"));
+
+function AppContent() {
+  const { authed, role, user, setUser, loadingSession, login, logout } = useAuth();
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
 
   useEffect(() => {
@@ -32,16 +39,27 @@ export default function App() {
     return () => window.removeEventListener("popstate", handleLocationChange);
   }, []);
 
-  const handleLogin = (r) => {
-    setRole(r);
-    setPage(0);
-    setAuthed(true);
+  const handleLogin = (r, loginResponse) => {
+    login(loginResponse);
+    if (currentPath === "/" || currentPath === "/login") {
+      window.history.pushState({}, "", "/dashboard");
+      setCurrentPath("/dashboard");
+    }
   };
 
   const handleLogout = () => {
-    setAuthed(false);
-    setPage(0);
+    logout();
+    window.history.pushState({}, "", "/");
+    setCurrentPath("/");
   };
+
+  if (loadingSession) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", background: COLORS.bg, color: COLORS.sub, fontFamily: "Inter, sans-serif" }}>
+        Restoring secure session...
+      </div>
+    );
+  }
 
   if (currentPath === "/create-super-admin") {
     return (
@@ -55,31 +73,54 @@ export default function App() {
   }
 
   if (!authed) {
-    return <LoginPage onLogin={handleLogin} />;}
+    return <LoginPage onLogin={handleLogin} />;
+  }
+
+  // Force password change on first login
+  if (user?.status === "Invited") {
+    return (
+      <ForcePasswordChangeModal 
+        user={user} 
+        onComplete={(updatedUser) => setUser(updatedUser)} 
+      />
+    );
+  }
 
   const adminPages = [
-    { label: "Dashboard", icon: LayoutDashboard, component: TeacherHome },
-    { label: "Class Roster", icon: Users, component: ClassRoster },
-    { label: "Skill Analytics", icon: BookOpen, component: SkillAnalytics },
-    { label: "Engagement", icon: Activity, component: EngagementReports },
-    { label: "Usability Survey", icon: ClipboardList, component: UsabilityFeedback },
+    { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard, component: TeacherHome },
+    { label: "Class Roster", path: "/roster", icon: Users, component: ClassRoster },
+    { label: "Sections", path: "/sections", icon: GraduationCap, component: SectionsManagement },
+    { label: "Skill Analytics", path: "/analytics", icon: BookOpen, component: SkillAnalytics },
+    { label: "Engagement", path: "/engagement", icon: Activity, component: EngagementReports },
+    { label: "Usability Survey", path: "/survey", icon: ClipboardList, component: UsabilityFeedback },
+    { label: "Settings", path: "/settings", icon: Settings, component: TeacherSettings },
   ];
 
   const superPages = [
-    { label: "Dashboard", icon: LayoutDashboard, component: SuperAdminHome },
-    { label: "Teacher Accounts", icon: UserCog, component: TeacherManagement },
-    { label: "Content Bank", icon: Database, component: ContentBankManagement },
-    { label: "System Logs", icon: ServerCog, component: SystemLogs },
+    { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard, component: SuperAdminHome },
+    { label: "Teacher Accounts", path: "/teachers", icon: UserCog, component: TeacherManagement },
+    { label: "Content Bank", path: "/content", icon: Database, component: ContentBankManagement },
+    { label: "System Logs", path: "/logs", icon: ServerCog, component: SystemLogs },
+    { label: "Settings", path: "/settings", icon: Settings, component: SuperAdminSettings },
   ];
 
   const pages = role === "admin" ? adminPages : superPages;
-  const Active = pages[page]?.component || pages[0].component;
-  const pageMeta = pages[page] || pages[0];
+  let pageIndex = pages.findIndex(p => p.path === currentPath);
+  if (pageIndex === -1) pageIndex = 0;
+
+  const Active = pages[pageIndex].component;
+  const pageMeta = pages[pageIndex];
+
+  const handleSetPage = (index) => {
+    const targetPath = pages[index]?.path || "/dashboard";
+    window.history.pushState({}, "", targetPath);
+    setCurrentPath(targetPath);
+  };
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: COLORS.bg, color: COLORS.text }}>
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: COLORS.bg, color: COLORS.text }}>
       <FontImports />
-      <Sidebar role={role} page={page} setPage={setPage} pages={pages} onLogout={handleLogout} />
+      <Sidebar role={role} user={user} page={pageIndex} setPage={handleSetPage} pages={pages} onLogout={handleLogout} />
       <div style={{ flex: 1, padding: "26px 32px", overflowY: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
           <div>
@@ -94,8 +135,25 @@ export default function App() {
             <span style={{ fontFamily: "Inter", fontSize: 12, color: COLORS.sub }}>WMSU-ILS · S.Y. 2025-2026</span>
           </div>
         </div>
-        <Active />
+        <Suspense fallback={
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%", color: COLORS.sub, fontFamily: "Inter, sans-serif" }}>
+            Loading...
+          </div>
+        }>
+          <ErrorBoundary>
+            <Active user={user} setUser={setUser} />
+          </ErrorBoundary>
+        </Suspense>
       </div>
     </div>
   );
 }
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+}
+

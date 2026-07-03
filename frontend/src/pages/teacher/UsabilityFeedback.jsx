@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Panel from "../../components/Panel";
 import { COLORS } from "../../constants/colors";
+import { apiFetch } from "../../utils/api";
 
 export default function UsabilityFeedback() {
   const [submissions, setSubmissions] = useState([]);
@@ -16,16 +17,19 @@ export default function UsabilityFeedback() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchFeedback = () => {
-    fetch("/api/usability-feedback")
+  const fetchFeedback = (silent = false) => {
+    if (!silent) setLoading(true);
+    apiFetch("/api/usability-feedback")
       .then((res) => res.json())
       .then((data) => setSubmissions(data || []))
       .catch((err) => console.error("Error loading usability data:", err))
-      .finally(() => setLoading(false));
+      .finally(() => { if (!silent) setLoading(false); });
   };
 
   useEffect(() => {
     fetchFeedback();
+    const interval = setInterval(() => fetchFeedback(true), 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleSubmit = async (e) => {
@@ -35,7 +39,7 @@ export default function UsabilityFeedback() {
     const averageRating = Number(((q1 + q2 + q3 + q4 + q5) / 5).toFixed(1));
 
     try {
-      const res = await fetch("/api/usability-feedback", {
+      const res = await apiFetch("/api/usability-feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

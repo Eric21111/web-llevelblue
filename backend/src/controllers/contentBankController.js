@@ -1,25 +1,41 @@
-import ContentBank from "../models/ContentBank.js";
-import Log from "../models/Log.js";
+import { supabase } from "../config/db.js";
 
 const DEFAULT_SKILLS = [
   { skill: "Phishing", authored: 0, validated: 0, target: 40 },
   { skill: "Smishing", authored: 0, validated: 0, target: 40 },
   { skill: "Vishing", authored: 0, validated: 0, target: 40 },
   { skill: "Pretexting", authored: 0, validated: 0, target: 40 },
-  { skill: "Baiting", authored: 0, validated: 0, target: 40 }
+  { skill: "Baiting", authored: 0, validated: 0, target: 40 },
 ];
+
+// Helper: map row to frontend shape
+function mapItem(row) {
+  return {
+    _id: row.id,
+    skill: row.skill,
+    authored: row.authored,
+    validated: row.validated,
+    target: row.target,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
 
 export const getContentBank = async (req, res) => {
   try {
-    let items = await ContentBank.find({});
-    
+    let { data: items, error } = await supabase.from("content_bank").select("*");
+    if (error) throw error;
+
     // Seed default skills if empty
-    if (items.length === 0) {
-      await ContentBank.insertMany(DEFAULT_SKILLS);
-      items = await ContentBank.find({});
+    if (!items || items.length === 0) {
+      const { error: seedError } = await supabase.from("content_bank").insert(DEFAULT_SKILLS);
+      if (seedError) throw seedError;
+
+      const { data: seeded } = await supabase.from("content_bank").select("*");
+      items = seeded;
     }
-    
-    res.json(items);
+
+    res.json(items.map(mapItem));
   } catch (error) {
     console.error("Get content bank error:", error);
     res.status(500).json({ error: "Server error fetching content bank stats" });
@@ -33,32 +49,43 @@ export const addContentBankItem = async (req, res) => {
       return res.status(400).json({ error: "Skill is required" });
     }
 
-    const item = await ContentBank.findOne({ skill: { $regex: new RegExp(`^${skill}$`, "i") } });
-    if (item) {
-      item.authored += authored !== undefined ? Number(authored) : 0;
-      item.validated += validated !== undefined ? Number(validated) : 0;
-      if (target !== undefined) item.target = Number(target);
-      await item.save();
+    // Case-insensitive search for existing skill
+    const { data: existing } = await supabase
+      .from("content_bank")
+      .select("*")
+      .ilike("skill", skill)
+      .single();
+
+    if (existing) {
+      const newAuthored = existing.authored + (authored !== undefined ? Number(authored) : 0);
+      const newValidated = existing.validated + (validated !== undefined ? Number(validated) : 0);
+      const newTarget = target !== undefined ? Number(target) : existing.target;
+
+      const { error: updateError } = await supabase
+        .from("content_bank")
+        .update({ authored: newAuthored, validated: newValidated, target: newTarget })
+        .eq("id", existing.id);
+
+      if (updateError) throw updateError;
     } else {
-      const newItem = new ContentBank({
+      const { error: insertError } = await supabase.from("content_bank").insert({
         skill,
         authored: authored ? Number(authored) : 0,
         validated: validated ? Number(validated) : 0,
-        target: target ? Number(target) : 40
+        target: target ? Number(target) : 40,
       });
-      await newItem.save();
+      if (insertError) throw insertError;
     }
 
     // Audit log
-    const auditLog = new Log({
+    await supabase.from("logs").insert({
       user: "Super Admin",
       action: "Update Content Bank",
       details: `Updated items for skill ${skill}`,
     });
-    await auditLog.save();
 
-    const updatedBank = await ContentBank.find({});
-    res.json(updatedBank);
+    const { data: updatedBank } = await supabase.from("content_bank").select("*");
+    res.json(updatedBank.map(mapItem));
   } catch (error) {
     console.error("Add content bank item error:", error);
     res.status(500).json({ error: "Server error updating content bank" });

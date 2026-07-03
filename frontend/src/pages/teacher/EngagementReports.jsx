@@ -2,23 +2,31 @@ import { useState, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import Panel from "../../components/Panel";
 import { COLORS } from "../../constants/colors";
+import { apiFetch } from "../../utils/api";
 
 export default function EngagementReports() {
   const [students, setStudents] = useState([]);
   const [engagementTrend, setEngagementTrend] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchData = (silent = false) => {
+    if (!silent) setLoading(true);
     Promise.all([
-      fetch("/api/students").then((res) => res.json()),
-      fetch("/api/analytics").then((res) => res.json())
+      apiFetch("/api/students").then((res) => res.json()),
+      apiFetch("/api/analytics").then((res) => res.json())
     ])
       .then(([studentsData, analyticsData]) => {
         setStudents(studentsData || []);
         setEngagementTrend(analyticsData.engagementTrend || []);
       })
       .catch((err) => console.error("Error loading engagement reports:", err))
-      .finally(() => setLoading(false));
+      .finally(() => { if (!silent) setLoading(false); });
+  };
+
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(() => fetchData(true), 5000);
+    return () => clearInterval(interval);
   }, []);
 
   if (loading) {

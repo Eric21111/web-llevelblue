@@ -3,6 +3,7 @@ import { Shield, Key, Mail, Lock, User, AlertTriangle, ArrowLeft, CheckCircle2, 
 import FontImports from "../../components/FontImports";
 import PasswordStrengthIndicator, { isPasswordStrong } from "../../components/PasswordStrengthIndicator";
 import { COLORS } from "../../constants/colors";
+import { apiFetch } from "../../utils/api";
 
 const inputWrapStyle = {
   display: "flex", alignItems: "center", gap: 9,
@@ -58,7 +59,7 @@ export default function SuperAdminSignupPage({ onComplete }) {
     setError("");
 
     try {
-      const res = await fetch("/api/auth/register-super-admin", {
+      const res = await apiFetch("/api/auth/register-super-admin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

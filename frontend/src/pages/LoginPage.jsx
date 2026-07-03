@@ -9,6 +9,7 @@ import {
 import FontImports from "../components/FontImports";
 import { useEffect } from "react";
 import { COLORS } from "../constants/colors";
+import { apiFetch } from "../utils/api";
 
 const defaultRadar = [
   { skill: "Phishing", mastery: 0, target: 70 },
@@ -27,7 +28,7 @@ export default function LoginPage({ onLogin }) {
   const [classMasteryRadar, setClassMasteryRadar] = useState(defaultRadar);
 
   useEffect(() => {
-    fetch("/api/analytics")
+    apiFetch("/api/analytics")
       .then((res) => {
         if (res.ok) return res.json();
         throw new Error("Failed to load analytics preview");
@@ -53,7 +54,7 @@ export default function LoginPage({ onLogin }) {
     setError("");
 
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await apiFetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), password }),
@@ -64,7 +65,7 @@ export default function LoginPage({ onLogin }) {
         throw new Error(data.error || "Login failed");
       }
 
-      onLogin(data.role);
+      onLogin(data.user.role, data);
     } catch (err) {
       setError(err.message || "Email or password is incorrect.");
     } finally {

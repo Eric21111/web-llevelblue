@@ -4,6 +4,7 @@ import Panel from "../../components/Panel";
 import StatusPill from "../../components/StatusPill";
 import MiniRadar from "../../components/MiniRadar";
 import { COLORS } from "../../constants/colors";
+import { apiFetch } from "../../utils/api";
 
 export default function ClassRoster() {
   const [students, setStudents] = useState([]);
@@ -21,17 +22,19 @@ export default function ClassRoster() {
   const [newTechnical, setNewTechnical] = useState(false);
   const [formError, setFormError] = useState("");
 
-  const fetchStudents = () => {
-    setLoading(true);
-    fetch("/api/students")
+  const fetchStudents = (silent = false) => {
+    if (!silent) setLoading(true);
+    apiFetch("/api/students")
       .then((res) => res.json())
       .then((data) => setStudents(data || []))
       .catch((err) => console.error("Error loading roster:", err))
-      .finally(() => setLoading(false));
+      .finally(() => { if (!silent) setLoading(false); });
   };
 
   useEffect(() => {
     fetchStudents();
+    const interval = setInterval(() => fetchStudents(true), 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleAddStudent = async (e) => {
@@ -42,7 +45,7 @@ export default function ClassRoster() {
     }
 
     try {
-      const res = await fetch("/api/students", {
+      const res = await apiFetch("/api/students", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -82,7 +85,7 @@ export default function ClassRoster() {
   const handleDeleteStudent = async (id) => {
     if (!window.confirm("Are you sure you want to remove this student?")) return;
     try {
-      const res = await fetch(`/api/students/${id}`, {
+      const res = await apiFetch(`/api/students/${id}`, {
         method: "DELETE",
       });
       if (res.ok) {

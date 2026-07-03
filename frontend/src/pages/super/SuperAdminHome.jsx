@@ -7,6 +7,7 @@ import { Users, GraduationCap, TrendingUp, Zap } from "lucide-react";
 import StatCard from "../../components/StatCard";
 import Panel from "../../components/Panel";
 import { COLORS } from "../../constants/colors";
+import { apiFetch } from "../../utils/api";
 
 export default function SuperAdminHome() {
   const [teachers, setTeachers] = useState([]);
@@ -14,11 +15,12 @@ export default function SuperAdminHome() {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchData = (silent = false) => {
+    if (!silent) setLoading(true);
     Promise.all([
-      fetch("/api/teachers").then((res) => res.json()),
-      fetch("/api/students").then((res) => res.json()),
-      fetch("/api/analytics").then((res) => res.json())
+      apiFetch("/api/teachers").then((res) => res.json()),
+      apiFetch("/api/students").then((res) => res.json()),
+      apiFetch("/api/analytics").then((res) => res.json())
     ])
       .then(([teachersData, studentsData, analyticsData]) => {
         setTeachers(teachersData || []);
@@ -26,7 +28,13 @@ export default function SuperAdminHome() {
         setAnalytics(analyticsData);
       })
       .catch((err) => console.error("Error loading super admin dashboard:", err))
-      .finally(() => setLoading(false));
+      .finally(() => { if (!silent) setLoading(false); });
+  };
+
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(() => fetchData(true), 5000);
+    return () => clearInterval(interval);
   }, []);
 
   if (loading || !analytics) {

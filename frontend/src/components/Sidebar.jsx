@@ -1,11 +1,12 @@
 import { Shield, LogOut } from "lucide-react";
 import { COLORS } from "../constants/colors";
 
-export default function Sidebar({ role, page, setPage, pages, onLogout }) {
+export default function Sidebar({ role, user, page, setPage, pages, onLogout }) {
   return (
     <div style={{
       width: 232, background: "#0B1220", borderRight: `1px solid ${COLORS.border}`,
       display: "flex", flexDirection: "column", padding: "20px 16px", flexShrink: 0,
+      overflow: "hidden",
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28, padding: "0 4px" }}>
         <div style={{
@@ -43,16 +44,20 @@ export default function Sidebar({ role, page, setPage, pages, onLogout }) {
           <div style={{
             width: 30, height: 30, borderRadius: "50%", background: COLORS.panelAlt,
             display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Space Grotesk', sans-serif",
-            fontSize: 12, fontWeight: 700, color: COLORS.teal, flexShrink: 0,
+            fontSize: 12, fontWeight: 700, color: COLORS.teal, flexShrink: 0, overflow: "hidden",
           }}>
-            {role === "admin" ? "JC" : "WM"}
+            {user?.imageUrl ? (
+              <img src={user.imageUrl} alt="Profile" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ) : (
+              ((user?.firstName?.[0] || "").toUpperCase() + (user?.lastName?.[0] || "").toUpperCase()) || (role === "admin" ? "T" : "SA")
+            )}
           </div>
           <div style={{ overflow: "hidden", flex: 1 }}>
-            <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12.5, fontWeight: 600, color: COLORS.text, whiteSpace: "nowrap" }}>
-              {role === "admin" ? "J. Climaco" : "WMSU-ILS Dept."}
+            <div style={{ fontFamily: "Inter, sans-serif", fontSize: 12.5, fontWeight: 600, color: COLORS.text, whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden" }} title={user?.name || "User"}>
+              {user?.name || "User"}
             </div>
             <div style={{ fontFamily: "Inter, sans-serif", fontSize: 11, color: COLORS.sub }}>
-              {role === "admin" ? "Grade 10 Teacher" : "Department Head"}
+              {role === "admin" ? "Teacher" : (user?.roleLabel || "Department Head")}
             </div>
           </div>
           <button onClick={onLogout} title="Sign out" style={{

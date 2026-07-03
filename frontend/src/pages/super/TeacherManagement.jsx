@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, X, Eye, EyeOff } from "lucide-react";
+import { Plus, Trash2, X, Copy, CheckCircle } from "lucide-react";
 import Panel from "../../components/Panel";
-import PasswordStrengthIndicator, { isPasswordStrong } from "../../components/PasswordStrengthIndicator";
 import { COLORS } from "../../constants/colors";
+import { apiFetch } from "../../utils/api";
 
 const inputStyle = {
   width: "100%", padding: "10px 12px", background: COLORS.panelAlt,
@@ -25,33 +25,31 @@ export default function TeacherManagement() {
   const [lastName, setLastName] = useState("");
   const [middleInitial, setMiddleInitial] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  
+  const [generatedPassword, setGeneratedPassword] = useState("");
+  const [showGeneratedPasswordModal, setShowGeneratedPasswordModal] = useState(false);
 
-  const fetchTeachers = () => {
-    setLoading(true);
-    fetch("/api/teachers")
+  const fetchTeachers = (silent = false) => {
+    if (!silent) setLoading(true);
+    apiFetch("/api/teachers")
       .then((res) => res.json())
       .then((data) => setTeachers(data || []))
       .catch((err) => console.error("Error loading teachers:", err))
-      .finally(() => setLoading(false));
+      .finally(() => { if (!silent) setLoading(false); });
   };
 
   useEffect(() => {
     fetchTeachers();
+    const interval = setInterval(() => fetchTeachers(true), 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleCreateTeacher = async (e) => {
     e.preventDefault();
-    if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim()) {
-      setFormError("First name, last name, email, and password are required");
-      return;
-    }
-
-    if (!isPasswordStrong(password)) {
-      setFormError("Password does not meet all strength requirements");
+    if (!firstName.trim() || !lastName.trim() || !email.trim()) {
+      setFormError("First name, last name, and email are required");
       return;
     }
 
@@ -59,29 +57,34 @@ export default function TeacherManagement() {
     setFormError("");
 
     try {
-      const res = await fetch("/api/teachers", {
+      const res = await apiFetch("/api/teachers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           firstName: firstName.trim(),
           lastName: lastName.trim(),
           middleInitial: middleInitial.trim(),
-          email: email.trim(),
-          password: password.trim()
+          email: email.trim()
         }),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create teacher account");
+        throw new Error(data.error || "Failed to create teacher account");
       }
 
       setFirstName("");
       setLastName("");
       setMiddleInitial("");
       setEmail("");
-      setPassword("");
       setShowCreateModal(false);
+      
+      if (data.generatedPassword) {
+        setGeneratedPassword(data.generatedPassword);
+        setShowGeneratedPasswordModal(true);
+      }
+      
       fetchTeachers();
     } catch (err) {
       setFormError(err.message);
@@ -93,7 +96,7 @@ export default function TeacherManagement() {
   const handleDeleteTeacher = async (id) => {
     if (!window.confirm("Are you sure you want to delete this teacher account? This will also revoke their login access.")) return;
     try {
-      const res = await fetch(`/api/teachers/${id}`, {
+      const res = await apiFetch(`/api/teachers/${id}`, {
         method: "DELETE",
       });
       if (res.ok) {
@@ -211,21 +214,6 @@ export default function TeacherManagement() {
                 />
               </div>
 
-              <div>
-                <label style={labelStyle}>Password *</label>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, background: COLORS.panelAlt, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "0 12px 0 0" }}>
-                  <input
-                    type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••"
-                    style={{ ...inputStyle, border: "none", background: "transparent" }}
-                  />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", flexShrink: 0 }}>
-                    {showPassword ? <EyeOff size={14} color={COLORS.sub} /> : <Eye size={14} color={COLORS.sub} />}
-                  </button>
-                </div>
-              </div>
-
-              <PasswordStrengthIndicator password={password} />
-
               {formError && (
                 <div style={{ color: COLORS.coral, fontSize: 12, fontWeight: 600, textAlign: "center" }}>{formError}</div>
               )}
@@ -245,6 +233,52 @@ export default function TeacherManagement() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Generated Password Modal */}
+      {showGeneratedPasswordModal && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center",
+          background: "rgba(11, 18, 32, 0.75)", backdropFilter: "blur(4px)", fontFamily: "Inter, sans-serif"
+        }}>
+          <div style={{
+            background: COLORS.panel, border: `1px solid ${COLORS.border}`, borderRadius: 16,
+            width: "100%", maxWidth: 460, padding: 28, boxShadow: "0 20px 50px rgba(0,0,0,0.5)"
+          }}>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+              <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(61,214,196,0.12)", border: "1px solid rgba(61,214,196,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <CheckCircle size={24} color={COLORS.teal} />
+              </div>
+            </div>
+            <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 700, margin: "0 0 8px 0", color: COLORS.teal, textAlign: "center" }}>
+              Account Created Successfully
+            </h3>
+            <p style={{ fontFamily: "Inter", fontSize: 13.5, color: COLORS.sub, marginBottom: 20, lineHeight: 1.6, textAlign: "center" }}>
+              Share this temporary password with the teacher. They will be required to change it upon their first login.
+            </p>
+            <div style={{
+              background: COLORS.panelAlt, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "16px 20px",
+              display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, gap: 12
+            }}>
+              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 22, fontWeight: 700, color: COLORS.text, letterSpacing: 3 }}>
+                {generatedPassword}
+              </span>
+              <button
+                onClick={() => { navigator.clipboard.writeText(generatedPassword); }}
+                title="Copy to clipboard"
+                style={{ background: "transparent", border: `1px solid ${COLORS.border}`, borderRadius: 7, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, color: COLORS.sub, fontFamily: "Inter", fontSize: 12 }}
+              >
+                <Copy size={14} /> Copy
+              </button>
+            </div>
+            <button
+              onClick={() => setShowGeneratedPasswordModal(false)}
+              style={{ width: "100%", padding: "12px 0", background: COLORS.teal, border: "none", borderRadius: 8, color: "#0B1220", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}
+            >
+              Done
+            </button>
           </div>
         </div>
       )}
