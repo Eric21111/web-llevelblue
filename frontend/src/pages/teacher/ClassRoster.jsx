@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, Trash2, X, Copy, CheckCircle, UserPlus } from "lucide-react";
+import { Search, Plus, Trash2, X, Copy, CheckCircle, UserPlus, UserMinus, Eye } from "lucide-react";
 import Panel from "../../components/Panel";
 import StatusPill from "../../components/StatusPill";
 import MiniRadar from "../../components/MiniRadar";
@@ -38,6 +38,10 @@ export default function ClassRoster() {
   const [assignedMentors, setAssignedMentors] = useState({});
   const [toastMessage, setToastMessage] = useState("");
 
+  // View mentorship details modal state
+  const [showViewMentorModal, setShowViewMentorModal] = useState(false);
+  const [viewingBounty, setViewingBounty] = useState(null);
+
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(""), 4000);
@@ -52,9 +56,30 @@ export default function ClassRoster() {
       .finally(() => { if (!silent) setLoading(false); });
   };
 
+  const fetchBounties = () => {
+    apiFetch("/api/bounties")
+      .then((res) => res.json())
+      .then((data) => {
+        const mapping = {};
+        if (Array.isArray(data)) {
+          data.forEach((b) => {
+            if (b.status === "PENDING" || b.status === "AWAITING_LINK" || b.status === "ACCEPTED") {
+              mapping[b.mentee_id] = b;
+            }
+          });
+        }
+        setAssignedMentors(mapping);
+      })
+      .catch((err) => console.error("Error loading bounties:", err));
+  };
+
   useEffect(() => {
     fetchStudents();
-    const interval = setInterval(() => fetchStudents(true), 5000);
+    fetchBounties();
+    const interval = setInterval(() => {
+      fetchStudents(true);
+      fetchBounties();
+    }, 5000);
 
     // Fetch dynamic sections
     apiFetch("/api/sections")
@@ -162,6 +187,39 @@ export default function ClassRoster() {
     }
   };
 
+  const handleCancelMentorship = async (studentId) => {
+    const bounty = assignedMentors[studentId];
+    if (!bounty) return;
+    if (!window.confirm("Are you sure you want to cancel the mentorship for this student?")) return;
+
+    try {
+      const res = await apiFetch(`/api/bounties/${bounty.id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setAssignedMentors((prev) => {
+          const next = { ...prev };
+          delete next[studentId];
+          return next;
+        });
+        showToast("SUCCESS: Mentorship cancelled successfully.");
+      } else {
+        alert("Failed to cancel mentorship.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to cancel mentorship. Check connection.");
+    }
+  };
+
+  const handleViewMentorship = (studentId) => {
+    const bounty = assignedMentors[studentId];
+    if (bounty) {
+      setViewingBounty(bounty);
+      setShowViewMentorModal(true);
+    }
+  };
+
   const filtered = students.filter(s => s.name.toLowerCase().includes(query.toLowerCase()));
   const totalStudents = students.length;
   const sections = [...new Set(students.map((s) => s.section))];
@@ -232,10 +290,20 @@ export default function ClassRoster() {
                   </div>
                   <StatusPill status={s.status} />
                   <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end" }}>
-                    {s.status === "At-Risk" && (
-                      <button onClick={() => handleAssignMentor(s)} title="Assign Peer Mentor" style={{ background: "rgba(61,214,196,0.12)", border: "none", cursor: "pointer", display: "flex", justifyContent: "center", padding: 6, borderRadius: 6 }}>
-                        <UserPlus size={14} color={COLORS.teal} />
+                    {assignedMentors[s._id || s.id] ? (
+                      <button 
+                        onClick={() => handleViewMentorship(s._id || s.id)} 
+                        title="View Mentorship" 
+                        style={{ background: "rgba(61,214,196,0.12)", border: "none", cursor: "pointer", display: "flex", justifyContent: "center", padding: 6, borderRadius: 6 }}
+                      >
+                        <Eye size={14} color={COLORS.teal} />
                       </button>
+                    ) : (
+                      s.status === "At-Risk" && (
+                        <button onClick={() => handleAssignMentor(s)} title="Assign Peer Mentor" style={{ background: "rgba(61,214,196,0.12)", border: "none", cursor: "pointer", display: "flex", justifyContent: "center", padding: 6, borderRadius: 6 }}>
+                          <UserPlus size={14} color={COLORS.teal} />
+                        </button>
+                      )
                     )}
                     <button onClick={() => handleDeleteStudent(s.id)} style={{ background: "transparent", border: "none", cursor: "pointer", display: "flex", justifyContent: "center", padding: 6 }}>
                       <Trash2 size={14} color={COLORS.coral} style={{ opacity: 0.7 }} />
@@ -435,10 +503,28 @@ export default function ClassRoster() {
                       </div>
                     </div>
                     <button
-                      onClick={() => {
-                        setAssignedMentors(prev => ({ ...prev, [mentoringStudent._id || mentoringStudent.id]: mentor }));
-                        setShowMentorModal(false);
-                        showToast("SUCCESS: Bounty dispatched to Mentor's Threat Log.");
+                      onClick={async () => {
+                        try {
+                          const res = await apiFetch("/api/bounties", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              mentor_id: mentor.id,
+                              mentee_id: mentoringStudent.id || mentoringStudent._id,
+                              topics: mentor.topics
+                            })
+                          });
+                          if (!res.ok) {
+                            const err = await res.json();
+                            alert(err.error || "Failed to dispatch bounty");
+                            return;
+                          }
+                          setAssignedMentors(prev => ({ ...prev, [mentoringStudent._id || mentoringStudent.id]: data }));
+                          setShowMentorModal(false);
+                          showToast("SUCCESS: Bounty dispatched to Mentor's Threat Log.");
+                        } catch (err) {
+                          alert("Failed to assign mentor. Check connection.");
+                        }
                       }}
                       style={{ background: COLORS.teal, color: "#0B1220", border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}
                     >
@@ -452,6 +538,75 @@ export default function ClassRoster() {
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 20 }}>
               <button
                 onClick={() => setShowMentorModal(false)}
+                style={{ padding: "10px 18px", background: "transparent", border: `1px solid ${COLORS.border}`, borderRadius: 8, color: COLORS.text, fontWeight: 600, fontSize: 13.5, cursor: "pointer" }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Mentorship Details Modal */}
+      {showViewMentorModal && viewingBounty && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center",
+          background: "rgba(11, 18, 32, 0.75)", backdropFilter: "blur(4px)", fontFamily: "Inter, sans-serif"
+        }}>
+          <div style={{
+            background: COLORS.panel, border: `1px solid ${COLORS.border}`, borderRadius: 16,
+            width: "100%", maxWidth: 450, padding: 24, boxShadow: "0 20px 50px rgba(0,0,0,0.5)"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: 10, color: COLORS.teal }}>
+                <Eye size={20} color={COLORS.teal} />
+                Active Mentorship Details
+              </h3>
+              <button onClick={() => setShowViewMentorModal(false)} style={{ background: "transparent", border: "none", cursor: "pointer", color: COLORS.sub }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 24 }}>
+              <div>
+                <span style={{ fontSize: 12, color: COLORS.sub }}>MENTEE</span>
+                <div style={{ fontSize: 15, fontWeight: 600, color: COLORS.text }}>{viewingBounty.mentee?.name}</div>
+                <div style={{ fontSize: 12, color: COLORS.sub }}>Section: {viewingBounty.mentee?.section}</div>
+              </div>
+              
+              <div>
+                <span style={{ fontSize: 12, color: COLORS.sub }}>ASSIGNED MENTOR</span>
+                <div style={{ fontSize: 15, fontWeight: 600, color: COLORS.teal }}>{viewingBounty.mentor?.name}</div>
+                <div style={{ fontSize: 12, color: COLORS.sub }}>Section: {viewingBounty.mentor?.section}</div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <span style={{ fontSize: 12, color: COLORS.sub }}>TOPIC FOCUS</span>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: COLORS.text }}>{viewingBounty.topic}</div>
+                </div>
+                <div>
+                  <span style={{ fontSize: 12, color: COLORS.sub }}>HANDSHAKE STATUS</span>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: viewingBounty.status === "ACCEPTED" ? COLORS.teal : COLORS.amber }}>
+                    {viewingBounty.status === "ACCEPTED" ? "Verified" : 
+                     viewingBounty.status === "AWAITING_LINK" ? "Awaiting Code" : "Pending Accept"}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+              <button
+                onClick={async () => {
+                  await handleCancelMentorship(viewingBounty.mentee_id);
+                  setShowViewMentorModal(false);
+                }}
+                style={{ padding: "10px 18px", background: "rgba(239,91,91,0.12)", border: `1px solid ${COLORS.coral}40`, borderRadius: 8, color: COLORS.coral, fontWeight: 600, fontSize: 13.5, cursor: "pointer" }}
+              >
+                Cancel Mentorship
+              </button>
+              <button
+                onClick={() => setShowViewMentorModal(false)}
                 style={{ padding: "10px 18px", background: "transparent", border: `1px solid ${COLORS.border}`, borderRadius: 8, color: COLORS.text, fontWeight: 600, fontSize: 13.5, cursor: "pointer" }}
               >
                 Close
