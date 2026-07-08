@@ -22,6 +22,7 @@ import feedbackRoutes from "./src/routes/feedbackRoutes.js";
 import analyticsRoutes from "./src/routes/analyticsRoutes.js";
 import settingsRoutes from "./src/routes/settingsRoutes.js";
 import sectionsRoutes from "./src/routes/sectionsRoutes.js";
+import bountyRoutes from "./src/routes/bountyRoutes.js";
 import { authMiddleware } from "./src/middleware/auth.js";
 
 const app = express();
@@ -53,6 +54,7 @@ app.use("/api/usability-feedback", authMiddleware, feedbackRoutes);
 app.use("/api/analytics", authMiddleware, analyticsRoutes);
 app.use("/api/settings", authMiddleware, settingsRoutes);
 app.use("/api/sections", authMiddleware, sectionsRoutes);
+app.use("/api/bounties", authMiddleware, bountyRoutes);
 
 app.listen(PORT, () => {
   console.log(`Backend server running on http://localhost:${PORT}`);
