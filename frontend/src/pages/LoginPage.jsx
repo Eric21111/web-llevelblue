@@ -121,7 +121,7 @@ export default function LoginPage({ onLogin }) {
             </div>
 
             <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 26, fontWeight: 600, lineHeight: 1.25, margin: "0 0 14px", letterSpacing: -0.3 }}>
-              Track how WMSU-ILS<br />learns to spot a threat.
+              Track how your students<br />learns to spot a threat.
             </h2>
             <p style={{ fontFamily: "Inter, sans-serif", fontSize: 13.5, color: COLORS.sub, lineHeight: 1.6, maxWidth: 340 }}>
               Sign in to monitor mastery, review pre/post-test gains, and keep your social engineering awareness training on track.
