@@ -291,23 +291,13 @@ export default function ClassRoster() {
                   <StatusPill status={s.status} />
                   <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end" }}>
                     {assignedMentors[s._id || s.id] ? (
-                      assignedMentors[s._id || s.id].status === "ACCEPTED" ? (
-                        <button 
-                          onClick={() => handleViewMentorship(s._id || s.id)} 
-                          title="View Mentorship" 
-                          style={{ background: "rgba(61,214,196,0.12)", border: "none", cursor: "pointer", display: "flex", justifyContent: "center", padding: 6, borderRadius: 6 }}
-                        >
-                          <Eye size={14} color={COLORS.teal} />
-                        </button>
-                      ) : (
-                        <button 
-                          onClick={() => handleCancelMentorship(s._id || s.id)} 
-                          title="Cancel Mentorship" 
-                          style={{ background: "rgba(239,91,91,0.12)", border: "none", cursor: "pointer", display: "flex", justifyContent: "center", padding: 6, borderRadius: 6 }}
-                        >
-                          <UserMinus size={14} color={COLORS.coral} />
-                        </button>
-                      )
+                      <button 
+                        onClick={() => handleViewMentorship(s._id || s.id)} 
+                        title="View Mentorship" 
+                        style={{ background: "rgba(61,214,196,0.12)", border: "none", cursor: "pointer", display: "flex", justifyContent: "center", padding: 6, borderRadius: 6 }}
+                      >
+                        <Eye size={14} color={COLORS.teal} />
+                      </button>
                     ) : (
                       s.status === "At-Risk" && (
                         <button onClick={() => handleAssignMentor(s)} title="Assign Peer Mentor" style={{ background: "rgba(61,214,196,0.12)", border: "none", cursor: "pointer", display: "flex", justifyContent: "center", padding: 6, borderRadius: 6 }}>
@@ -597,14 +587,24 @@ export default function ClassRoster() {
                 </div>
                 <div>
                   <span style={{ fontSize: 12, color: COLORS.sub }}>HANDSHAKE STATUS</span>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: COLORS.teal }}>
-                    Verified
+                  <div style={{ fontSize: 14, fontWeight: 600, color: viewingBounty.status === "ACCEPTED" ? COLORS.teal : COLORS.amber }}>
+                    {viewingBounty.status === "ACCEPTED" ? "Verified" : 
+                     viewingBounty.status === "AWAITING_LINK" ? "Awaiting Code" : "Pending Accept"}
                   </div>
                 </div>
               </div>
             </div>
 
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+              <button
+                onClick={async () => {
+                  await handleCancelMentorship(viewingBounty.mentee_id);
+                  setShowViewMentorModal(false);
+                }}
+                style={{ padding: "10px 18px", background: "rgba(239,91,91,0.12)", border: `1px solid ${COLORS.coral}40`, borderRadius: 8, color: COLORS.coral, fontWeight: 600, fontSize: 13.5, cursor: "pointer" }}
+              >
+                Cancel Mentorship
+              </button>
               <button
                 onClick={() => setShowViewMentorModal(false)}
                 style={{ padding: "10px 18px", background: "transparent", border: `1px solid ${COLORS.border}`, borderRadius: 8, color: COLORS.text, fontWeight: 600, fontSize: 13.5, cursor: "pointer" }}
