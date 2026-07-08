@@ -132,7 +132,7 @@ function AppContent() {
             </h1>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontFamily: "Inter", fontSize: 12, color: COLORS.sub }}>WMSU-ILS · S.Y. 2025-2026</span>
+            <span style={{ fontFamily: "Inter", fontSize: 12, color: COLORS.sub }}>ZCSPC · S.Y. 2025-2026</span>
           </div>
         </div>
         <Suspense fallback={
