@@ -16,83 +16,126 @@ export const login = async (req, res) => {
       return res.status(400).json({ error: "Email and password are required" });
     }
 
-    const { data: user, error } = await supabase
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // ── 1. Check teachers/admins in the users table ─────────────────────────
+    const { data: user } = await supabase
       .from("users")
       .select("*")
-      .eq("email", email.toLowerCase().trim())
+      .eq("email", normalizedEmail)
       .single();
 
-    if (error || !user) {
-      return res.status(401).json({ error: "Invalid email or password" });
-    }
+    if (user) {
+      // Passwords security match (supports plain-text auto-migration)
+      const isBcrypt = user.password && (user.password.startsWith("$2a$") || user.password.startsWith("$2b$"));
+      let isMatch = false;
 
-    // Passwords security match (supports plain-text auto-migration)
-    const isBcrypt = user.password && (user.password.startsWith("$2a$") || user.password.startsWith("$2b$"));
-    let isMatch = false;
-
-    if (isBcrypt) {
-      isMatch = await bcrypt.compare(password, user.password);
-    } else {
-      isMatch = user.password === password;
-      // Auto-migrate to bcrypt hash if plain-text password matches
-      if (isMatch) {
-        try {
-          const hashedPassword = await bcrypt.hash(password, 10);
-          await supabase
-            .from("users")
-            .update({ password: hashedPassword })
-            .eq("id", user.id);
-          console.log(`Auto-migrated password to bcrypt hash for user: ${email}`);
-        } catch (migrationErr) {
-          console.error("Failed to migrate plain text password:", migrationErr);
+      if (isBcrypt) {
+        isMatch = await bcrypt.compare(password, user.password);
+      } else {
+        isMatch = user.password === password;
+        if (isMatch) {
+          try {
+            const hashedPassword = await bcrypt.hash(password, 10);
+            await supabase.from("users").update({ password: hashedPassword }).eq("id", user.id);
+            console.log(`Auto-migrated password to bcrypt hash for user: ${normalizedEmail}`);
+          } catch (migrationErr) {
+            console.error("Failed to migrate plain text password:", migrationErr);
+          }
         }
       }
+
+      if (!isMatch) {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+
+      const token = jwt.sign(
+        {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          roleLabel: user.role_label,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          middleInitial: user.middle_initial,
+          imageUrl: user.image_url,
+          status: user.status,
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+
+      await supabase.from("logs").insert({
+        user: user.name,
+        action: "Logged in",
+        details: `Role: ${user.role_label}`,
+      });
+
+      const { password: _, ...userObj } = user;
+      userObj._id = userObj.id;
+      userObj.roleLabel = userObj.role_label;
+      userObj.firstName = userObj.first_name;
+      userObj.lastName = userObj.last_name;
+      userObj.middleInitial = userObj.middle_initial;
+      userObj.createdAt = userObj.created_at;
+      userObj.updatedAt = userObj.updated_at;
+
+      return res.json({ token, user: userObj });
     }
 
-    if (!isMatch) {
-      return res.status(401).json({ error: "Invalid email or password" });
+    // ── 2. Fallback: check students table for mobile game login ──────────────
+    const { data: student } = await supabase
+      .from("students")
+      .select("*")
+      .eq("email", normalizedEmail)
+      .maybeSingle();
+
+    if (student) {
+      const isBcrypt = student.password && (student.password.startsWith("$2a$") || student.password.startsWith("$2b$"));
+      const isMatch = isBcrypt
+        ? await bcrypt.compare(password, student.password)
+        : student.password === password;
+
+      if (!isMatch) {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+
+      // Sign a student-scoped JWT
+      const token = jwt.sign(
+        {
+          id: student.id,
+          email: student.email,
+          role: "student",
+          roleLabel: "Student",
+          name: student.name,
+          section: student.section,
+          status: student.status,
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+
+      await supabase.from("logs").insert({
+        user: student.name,
+        action: "Logged in",
+        details: "Role: Student (mobile)",
+      });
+
+      const { password: __, ...studentObj } = student;
+      studentObj._id = studentObj.id;
+
+      return res.json({ token, user: { ...studentObj, role: "student", roleLabel: "Student" } });
     }
 
-    // Sign JWT token with extended payload to avoid DB lookups in middleware
-    const token = jwt.sign(
-      { 
-        id: user.id, 
-        email: user.email,
-        role: user.role,
-        roleLabel: user.role_label,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        middleInitial: user.middle_initial,
-        imageUrl: user.image_url,
-        status: user.status
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    // ── 3. No match found in either table ────────────────────────────────────
+    return res.status(401).json({ error: "Invalid email or password" });
 
-    // Write login audit log
-    await supabase.from("logs").insert({
-      user: user.name,
-      action: "Logged in",
-      details: `Role: ${user.role_label}`,
-    });
-
-    // Remove password and map id → _id for frontend compatibility
-    const { password: _, ...userObj } = user;
-    userObj._id = userObj.id;
-    userObj.roleLabel = userObj.role_label;
-    userObj.firstName = userObj.first_name;
-    userObj.lastName = userObj.last_name;
-    userObj.middleInitial = userObj.middle_initial;
-    userObj.createdAt = userObj.created_at;
-    userObj.updatedAt = userObj.updated_at;
-
-    res.json({ token, user: userObj });
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ error: "Server error during login" });
   }
 };
+
 
 // Hidden Super Admin Signup controller
 export const registerSuperAdmin = async (req, res) => {
