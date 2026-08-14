@@ -51,7 +51,7 @@ export default function ClassRoster() {
     if (!silent) setLoading(true);
     apiFetch("/api/students")
       .then((res) => res.json())
-      .then((data) => setStudents(data || []))
+      .then((data) => setStudents(Array.isArray(data) ? data : []))
       .catch((err) => console.error("Error loading roster:", err))
       .finally(() => { if (!silent) setLoading(false); });
   };
@@ -220,9 +220,9 @@ export default function ClassRoster() {
     }
   };
 
-  const filtered = students.filter(s => s.name.toLowerCase().includes(query.toLowerCase()));
+  const filtered = students.filter(s => (s.name || "").toLowerCase().includes(query.toLowerCase()));
   const totalStudents = students.length;
-  const sections = [...new Set(students.map((s) => s.section))];
+  const sections = [...new Set(students.map((s) => s.section).filter(Boolean))];
 
   return (
     <>
@@ -260,25 +260,30 @@ export default function ClassRoster() {
               <div>Student</div><div>Section</div><div>Mastery</div><div>Skill Radar</div><div>Pre→Post</div><div>Sessions</div><div>Points</div><div>BKT P(L)</div><div>Status</div><div></div>
             </div>
             {filtered.map(s => {
-              const avg = Math.round(Object.values(s.mastery).reduce((a, b) => a + b, 0) / 5 * 100);
+              const studentId = s._id || s.id;
+              const mastery = s.mastery || {};
+              const masteryVals = Object.values(mastery).map((v) => Number(v) || 0);
+              const avg = Math.round((masteryVals.reduce((a, b) => a + b, 0) / 5) * 100) || 0;
+              const points = Number(s.points) || 0;
+              const section = s.section || "";
               return (
-                <div key={s.id} style={{ display: "grid", gridTemplateColumns: "2fr 1.2fr 0.8fr 1.2fr 1fr 0.8fr 0.8fr 0.9fr 0.8fr 0.6fr", gap: 8, alignItems: "center", padding: "11px 12px", borderBottom: `1px solid ${COLORS.border}` }}>
+                <div key={studentId} style={{ display: "grid", gridTemplateColumns: "2fr 1.2fr 0.8fr 1.2fr 1fr 0.8fr 0.8fr 0.9fr 0.8fr 0.6fr", gap: 8, alignItems: "center", padding: "11px 12px", borderBottom: `1px solid ${COLORS.border}` }}>
                   <div style={{ fontFamily: "Inter", fontWeight: 600, fontSize: 13, color: COLORS.text, display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
                     {s.name}
                     {s.technical && <span style={{ fontSize: 9, color: COLORS.teal, fontWeight: 700, background: "rgba(61,214,196,0.12)", padding: "2px 5px", borderRadius: 4 }}>TECH</span>}
-                    {assignedMentors[s._id || s.id] && (
+                    {assignedMentors[studentId] && (
                       <span style={{ fontSize: 9, color: COLORS.amber, fontWeight: 700, background: "rgba(242,169,59,0.12)", padding: "2px 6px", borderRadius: 12, border: `1px solid ${COLORS.amber}40`, display: "flex", alignItems: "center", gap: 4 }}>
                         <span style={{ width: 4, height: 4, borderRadius: "50%", background: COLORS.amber, display: "inline-block" }}></span>
                         MENTOR PENDING
                       </span>
                     )}
                   </div>
-                  <div style={{ fontFamily: "Inter", fontSize: 12, color: COLORS.sub }}>{s.section.includes(" - ") ? s.section.split(" - ")[1] : s.section}</div>
+                  <div style={{ fontFamily: "Inter", fontSize: 12, color: COLORS.sub }}>{section.includes(" - ") ? section.split(" - ")[1] : section}</div>
                   <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 700, color: avg >= 70 ? COLORS.teal : avg >= 50 ? COLORS.amber : COLORS.coral }}>{avg}%</div>
-                  <MiniRadar data={s.mastery} />
-                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5, color: COLORS.sub }}>{s.pre} → <span style={{ color: COLORS.text, fontWeight: 700 }}>{s.post}</span></div>
-                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5, color: COLORS.sub }}>{s.sessions}</div>
-                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5, fontWeight: 700, color: COLORS.text }}>{s.points.toLocaleString()}</div>
+                  <MiniRadar data={mastery} />
+                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5, color: COLORS.sub }}>{s.pre ?? 0} → <span style={{ color: COLORS.text, fontWeight: 700 }}>{s.post ?? 0}</span></div>
+                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5, color: COLORS.sub }}>{s.sessions ?? 0}</div>
+                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5, fontWeight: 700, color: COLORS.text }}>{points.toLocaleString()}</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                     <span style={{
                       fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 700,
@@ -290,9 +295,9 @@ export default function ClassRoster() {
                   </div>
                   <StatusPill status={s.status} />
                   <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end" }}>
-                    {assignedMentors[s._id || s.id] ? (
+                    {assignedMentors[studentId] ? (
                       <button 
-                        onClick={() => handleViewMentorship(s._id || s.id)} 
+                        onClick={() => handleViewMentorship(studentId)} 
                         title="View Mentorship" 
                         style={{ background: "rgba(61,214,196,0.12)", border: "none", cursor: "pointer", display: "flex", justifyContent: "center", padding: 6, borderRadius: 6 }}
                       >
@@ -305,7 +310,7 @@ export default function ClassRoster() {
                         </button>
                       )
                     )}
-                    <button onClick={() => handleDeleteStudent(s.id)} style={{ background: "transparent", border: "none", cursor: "pointer", display: "flex", justifyContent: "center", padding: 6 }}>
+                    <button onClick={() => handleDeleteStudent(studentId)} style={{ background: "transparent", border: "none", cursor: "pointer", display: "flex", justifyContent: "center", padding: 6 }}>
                       <Trash2 size={14} color={COLORS.coral} style={{ opacity: 0.7 }} />
                     </button>
                   </div>

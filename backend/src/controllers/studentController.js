@@ -18,35 +18,36 @@ function computeBKT(row) {
   return Number(pL.toFixed(3));
 }
 
-// Helper: derive status from BKT P(L)
+// Helper: derive display status from BKT P(L) — API only, not written to DB.
 function deriveStatus(pL) {
-  if (pL < BKT_AT_RISK_THRESHOLD) return "At-Risk";
-  if (pL < BKT_EXCEL_THRESHOLD)  return "Average";
-  return "Excel";
+  if (pL < BKT_AT_RISK_THRESHOLD) return "At Risk";
+  if (pL < BKT_EXCEL_THRESHOLD) return "On Track";
+  return "On Track";
 }
 
 // Helper: map a Supabase student row to the frontend-expected shape
 function mapStudent(row) {
   const bkt = computeBKT(row);
+  const isFresh = Number(row.sessions ?? 0) === 0 && Number(row.pre ?? 0) === 0;
   return {
     _id: row.id,
     name: row.name,
     email: row.email || null,
     section: row.section,
-    pre: row.pre,
-    post: row.post,
-    sessions: row.sessions,
-    points: row.points,
+    pre: Number(row.pre) || 0,
+    post: Number(row.post) || 0,
+    sessions: Number(row.sessions) || 0,
+    points: Number(row.points) || 0,
     lastActive: row.last_active,
     technical: row.technical,
-    status: deriveStatus(bkt),
+    status: isFresh ? (row.status || "Needs Review") : deriveStatus(bkt),
     bkt,
     mastery: {
-      Phishing: row.mastery_phishing,
-      Smishing: row.mastery_smishing,
-      Vishing: row.mastery_vishing,
-      Pretexting: row.mastery_pretexting,
-      Baiting: row.mastery_baiting,
+      Phishing: Number(row.mastery_phishing) || 0,
+      Smishing: Number(row.mastery_smishing) || 0,
+      Vishing: Number(row.mastery_vishing) || 0,
+      Pretexting: Number(row.mastery_pretexting) || 0,
+      Baiting: Number(row.mastery_baiting) || 0,
     },
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -97,62 +98,37 @@ export const addStudent = async (req, res) => {
     const hashedPassword = await bcrypt.hash(generatedPassword, 10);
 
     const name = computeName(firstName, middleName, lastName);
-
-    // Define initial analytics/score fallback values
-    const preVal = Math.floor(Math.random() * 20) + 30;
-    const postVal = Math.floor(Math.random() * 30) + 60;
-    const sessionsVal = Math.floor(Math.random() * 15) + 5;
-    const pointsVal = Math.floor(Math.random() * 1000) + 500;
     const techVal = !!technical;
 
-    // Status will be recalculated dynamically via BKT in mapStudent
-    const calcStatus = "On Track"; // valid value for DB constraint
-
-    const defaultMastery = {
-      Phishing: Number((postVal / 100 * (0.8 + Math.random() * 0.2)).toFixed(2)),
-      Smishing: Number((postVal / 100 * (0.7 + Math.random() * 0.2)).toFixed(2)),
-      Vishing: Number((postVal / 100 * (0.6 + Math.random() * 0.2)).toFixed(2)),
-      Pretexting: Number((postVal / 100 * (0.75 + Math.random() * 0.2)).toFixed(2)),
-      Baiting: Number((postVal / 100 * (0.68 + Math.random() * 0.2)).toFixed(2)),
-    };
-
-    // Insert student record with credentials stored directly in the students table
+    // Fresh accounts start empty — no dummy scores or mastery.
+    // Pre-test on the mobile app writes real BKT P(L) and the pre score.
     const { data: inserted, error: insertError } = await supabase
       .from("students")
       .insert({
         name,
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        middle_initial: middleName ? middleName.trim().charAt(0).toUpperCase() : null,
         email: email.toLowerCase().trim(),
         password: hashedPassword,
+        requires_password_change: true,
         section,
-        pre: preVal,
-        post: postVal,
-        sessions: sessionsVal,
-        points: pointsVal,
+        pre: 0,
+        post: 0,
+        sessions: 0,
+        points: 0,
         technical: techVal,
-        status: calcStatus,
-        mastery_phishing: defaultMastery.Phishing,
-        mastery_smishing: defaultMastery.Smishing,
-        mastery_vishing: defaultMastery.Vishing,
-        mastery_pretexting: defaultMastery.Pretexting,
-        mastery_baiting: defaultMastery.Baiting,
+        status: "Needs Review",
+        mastery_phishing: 0,
+        mastery_smishing: 0,
+        mastery_vishing: 0,
+        mastery_pretexting: 0,
+        mastery_baiting: 0,
       })
       .select()
       .single();
 
     if (insertError) {
-      // Detect missing columns — guide user to run the SQL migration
-      if (insertError.code === "PGRST204" || (insertError.message && insertError.message.includes("email"))) {
-        return res.status(500).json({
-          error: "Database migration required. Run this SQL in your Supabase SQL Editor:",
-          migration: [
-            "ALTER TABLE students ADD COLUMN IF NOT EXISTS email TEXT UNIQUE;",
-            "ALTER TABLE students ADD COLUMN IF NOT EXISTS password TEXT;",
-            "ALTER TABLE students ADD COLUMN IF NOT EXISTS first_name TEXT;",
-            "ALTER TABLE students ADD COLUMN IF NOT EXISTS last_name TEXT;",
-            "ALTER TABLE students ADD COLUMN IF NOT EXISTS middle_initial TEXT;",
-          ].join("\n"),
-        });
-      }
       throw insertError;
     }
 

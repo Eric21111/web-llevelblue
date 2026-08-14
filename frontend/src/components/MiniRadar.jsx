@@ -4,7 +4,8 @@ import { COLORS } from "../constants/colors";
 const SKILLS = ["Phishing", "Smishing", "Vishing", "Pretexting", "Baiting"];
 
 export default function MiniRadar({ data }) {
-  const points = SKILLS.map(s => ({ skill: s.slice(0, 3), val: Math.round((data[s] || 0) * 100) }));
+  const safe = data || {};
+  const points = SKILLS.map(s => ({ skill: s.slice(0, 3), val: Math.round((Number(safe[s]) || 0) * 100) }));
   return (
     <ResponsiveContainer width={64} height={48}>
       <RadarChart data={points} outerRadius={20}>
