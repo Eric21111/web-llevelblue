@@ -1,10 +1,5 @@
 import React from "react";
 
-/**
- * ErrorBoundary
- * Catches JavaScript rendering errors anywhere in the child component tree,
- * logs them, and displays a graceful fallback UI instead of crashing the app.
- */
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
