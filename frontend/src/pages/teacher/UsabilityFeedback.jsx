@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import Panel from "../../components/Panel";
 import { COLORS } from "../../constants/colors";
 import { apiFetch } from "../../utils/api";
+import { useAuth } from "../../context/AuthContext";
 
 export default function UsabilityFeedback() {
+  const { user } = useAuth();
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -43,7 +45,6 @@ export default function UsabilityFeedback() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          teacherName: "John Lloyd Climaco", // Simulated logged in teacher
           rating: averageRating,
           comments,
           q1, q2, q3, q4, q5
@@ -127,7 +128,7 @@ export default function UsabilityFeedback() {
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                     <span style={{ fontSize: 12, fontWeight: 600, color: COLORS.teal }}>{sub.teacherName}</span>
                     <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: COLORS.sub }}>
-                      {new Date(sub.timestamp).toLocaleDateString()}
+                      {sub.createdAt ? new Date(sub.createdAt).toLocaleDateString() : ""}
                     </span>
                   </div>
                   <p style={{ fontSize: 12.5, color: COLORS.text, margin: 0, lineHeight: 1.5 }}>"{sub.comments}"</p>
@@ -138,7 +139,7 @@ export default function UsabilityFeedback() {
         </Panel>
       </div>
 
-      <Panel title="Submit Survey Response" sub="Rate the system's usability based on your testing session">
+      <Panel title="Submit Survey Response" sub={`Signed in as ${[user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.email || "your account"}`}>
         {submitted ? (
           <div style={{ textAlign: "center", padding: "30px 10px" }}>
             <h4 style={{ color: COLORS.teal, fontFamily: "'Space Grotesk', sans-serif", fontSize: 16, fontWeight: 700, margin: "0 0 10px" }}>Survey Submitted!</h4>

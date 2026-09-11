@@ -66,7 +66,7 @@ export default function ContentBankManagement() {
 
   return (
     <>
-      <Panel title="Content Bank Coverage" sub={`Items authored (${totalAuthored}) & validated (${totalValidated}) vs. target of 40 per skill`}
+      <Panel title="Content Bank Coverage" sub={`Live authored items from the game question bank (${totalAuthored}) · validated in console (${totalValidated})`}
         right={
           <button
             onClick={() => setShowUpdateModal(true)}

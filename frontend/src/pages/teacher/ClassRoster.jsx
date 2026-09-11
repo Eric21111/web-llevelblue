@@ -17,6 +17,7 @@ export default function ClassRoster() {
   const [lastName, setLastName] = useState("");
   const [middleName, setMiddleName] = useState("");
   const [newSection, setNewSection] = useState("");
+  const [newGradeLevel, setNewGradeLevel] = useState("Grade 12");
   const [email, setEmail] = useState("");
   const [newTechnical, setNewTechnical] = useState(false);
   const [formError, setFormError] = useState("");
@@ -97,8 +98,8 @@ export default function ClassRoster() {
 
   const handleAddStudent = async (e) => {
     e.preventDefault();
-    if (!firstName.trim() || !lastName.trim() || !email.trim() || !newSection) {
-      setFormError("First name, last name, email, and section are required.");
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !newSection || !newGradeLevel) {
+      setFormError("First name, last name, email, section, and grade level are required.");
       return;
     }
 
@@ -115,6 +116,7 @@ export default function ClassRoster() {
           middleName: middleName.trim(),
           email: email.trim(),
           section: newSection,
+          gradeLevel: newGradeLevel,
           technical: newTechnical,
         }),
       });
@@ -130,6 +132,7 @@ export default function ClassRoster() {
       setMiddleName("");
       setEmail("");
       setNewTechnical(false);
+      setNewGradeLevel("Grade 12");
       setFormError("");
       setShowAddModal(false);
 
@@ -278,7 +281,10 @@ export default function ClassRoster() {
                       </span>
                     )}
                   </div>
-                  <div style={{ fontFamily: "Inter", fontSize: 12, color: COLORS.sub }}>{section.includes(" - ") ? section.split(" - ")[1] : section}</div>
+                  <div style={{ fontFamily: "Inter", fontSize: 12, color: COLORS.sub }}>
+                    {section.includes(" - ") ? section.split(" - ")[1] : section}
+                    {s.gradeLevel ? ` · ${s.gradeLevel}` : ""}
+                  </div>
                   <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 700, color: avg >= 70 ? COLORS.teal : avg >= 50 ? COLORS.amber : COLORS.coral }}>{avg}%</div>
                   <MiniRadar data={mastery} />
                   <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5, color: COLORS.sub }}>{s.pre ?? 0} → <span style={{ color: COLORS.text, fontWeight: 700 }}>{s.post ?? 0}</span></div>
@@ -372,17 +378,29 @@ export default function ClassRoster() {
                 />
               </div>
 
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: COLORS.sub, display: "block", marginBottom: 5 }}>Section *</label>
-                <select
-                  value={newSection} onChange={e => setNewSection(e.target.value)} required
-                  style={{ width: "100%", padding: "10px 12px", background: COLORS.panelAlt, border: `1px solid ${COLORS.border}`, borderRadius: 8, color: COLORS.text, fontSize: 13, outline: "none" }}
-                >
-                  <option value="">Select Section</option>
-                  {sectionsList.map((sec) => (
-                    <option key={sec.id} value={sec.name}>{sec.name}</option>
-                  ))}
-                </select>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: COLORS.sub, display: "block", marginBottom: 5 }}>Grade Level *</label>
+                  <select
+                    value={newGradeLevel} onChange={e => setNewGradeLevel(e.target.value)} required
+                    style={{ width: "100%", padding: "10px 12px", background: COLORS.panelAlt, border: `1px solid ${COLORS.border}`, borderRadius: 8, color: COLORS.text, fontSize: 13, outline: "none" }}
+                  >
+                    <option value="Grade 12">Grade 12</option>
+                    <option value="Grade 11">Grade 11</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: COLORS.sub, display: "block", marginBottom: 5 }}>Section *</label>
+                  <select
+                    value={newSection} onChange={e => setNewSection(e.target.value)} required
+                    style={{ width: "100%", padding: "10px 12px", background: COLORS.panelAlt, border: `1px solid ${COLORS.border}`, borderRadius: 8, color: COLORS.text, fontSize: 13, outline: "none" }}
+                  >
+                    <option value="">Select Section</option>
+                    {sectionsList.map((sec) => (
+                      <option key={sec.id} value={sec.name}>{sec.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "6px 0" }}>

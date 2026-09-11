@@ -1,4 +1,5 @@
 import { supabase } from "../config/db.js";
+import { actorName } from "../utils/actor.js";
 
 // Get a setting by key
 export const getSetting = async (req, res) => {
@@ -54,7 +55,7 @@ export const updateSetting = async (req, res) => {
 
     // Log the change
     await supabase.from("logs").insert({
-      user: "Super Admin",
+      user: actorName(req, "Super Admin"),
       action: "Update Setting",
       details: `Updated setting for ${key}`,
     });

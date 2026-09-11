@@ -1,4 +1,5 @@
 import { supabase } from "../config/db.js";
+import { actorName } from "../utils/actor.js";
 
 // Map Database row to frontend shape
 function mapSection(row) {
@@ -17,14 +18,10 @@ export const getSections = async (req, res) => {
       .select("*")
       .order("created_at", { ascending: false });
 
-    // Fallback if table doesn't exist yet
     if (error) {
       if (error.code === "PGRST116" || error.code === "42P01" || (error.message && error.message.includes("does not exist"))) {
-        console.warn("Sections table does not exist. Returning mock data.");
-        return res.json([
-          { id: "1", name: "Grade 10 - Gold", subject: "Cybersecurity Basics", createdAt: new Date() },
-          { id: "2", name: "Grade 10 - Silver", subject: "Digital Literacy", createdAt: new Date() },
-        ]);
+        console.warn("Sections table does not exist. Returning an empty list.");
+        return res.json([]);
       }
       throw error;
     }
@@ -53,7 +50,7 @@ export const addSection = async (req, res) => {
 
     // Audit log
     await supabase.from("logs").insert({
-      user: "Teacher",
+      user: actorName(req, "Teacher"),
       action: "Create Section",
       details: `Created section/subject ${name} (${subject || "General Cybersecurity"})`,
     });
@@ -88,7 +85,7 @@ export const deleteSection = async (req, res) => {
 
     // Audit log
     await supabase.from("logs").insert({
-      user: "Teacher",
+      user: actorName(req, "Teacher"),
       action: "Delete Section",
       details: `Removed section ${existing.name}`,
     });

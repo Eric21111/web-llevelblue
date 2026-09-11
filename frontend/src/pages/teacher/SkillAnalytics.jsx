@@ -118,12 +118,12 @@ export default function SkillAnalytics() {
 
       {/* ── QUIZ TYPE ACCURACY ── */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-        <Panel title="Quiz Type Accuracy" sub="Correctness rate by question interaction type">
+        <Panel title="Skill Mastery Rate" sub="Live class-average BKT P(L) by skill">
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={quizTypeAccuracy} layout="vertical" margin={{ left: 10 }}>
               <CartesianGrid stroke={COLORS.grid} horizontal={false} />
               <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fill: COLORS.sub, fontSize: 11.5, fontFamily: "Inter" }} axisLine={false} tickLine={false} />
-              <YAxis type="category" dataKey="type" width={155} tick={{ fill: COLORS.text, fontSize: 12, fontFamily: "Inter" }} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="type" width={110} tick={{ fill: COLORS.text, fontSize: 12, fontFamily: "Inter" }} axisLine={false} tickLine={false} />
               <Tooltip formatter={(v) => [`${v}%`, "Accuracy"]} contentStyle={{ background: COLORS.panelAlt, border: `1px solid ${COLORS.border}`, borderRadius: 8, fontFamily: "Inter", fontSize: 12 }} />
               <ReferenceLine x={70} stroke={COLORS.amber} strokeDasharray="4 4" />
               <Bar dataKey="accuracy" radius={[0, 7, 7, 0]} barSize={28}>
@@ -135,16 +135,16 @@ export default function SkillAnalytics() {
           </ResponsiveContainer>
         </Panel>
 
-        <Panel title="Top Slip Patterns" sub="Attack types generating the most knowledge-gap events">
+        <Panel title="Students Below Mastery" sub="Count of learners with P(L) under 40% per skill">
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={slipPatterns} layout="vertical" margin={{ left: 10 }}>
               <CartesianGrid stroke={COLORS.grid} horizontal={false} />
               <XAxis type="number" tick={{ fill: COLORS.sub, fontSize: 11.5, fontFamily: "Inter" }} axisLine={false} tickLine={false} />
-              <YAxis type="category" dataKey="enemy" width={130} tick={{ fill: COLORS.text, fontSize: 12, fontFamily: "Inter" }} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="enemy" width={110} tick={{ fill: COLORS.text, fontSize: 12, fontFamily: "Inter" }} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={{ background: COLORS.panelAlt, border: `1px solid ${COLORS.border}`, borderRadius: 8, fontFamily: "Inter", fontSize: 12 }} />
               <Bar dataKey="slips" radius={[0, 7, 7, 0]} barSize={28}>
                 {(slipPatterns || []).map((d, i) => (
-                  <Cell key={i} fill={d.domain === "Technical" ? COLORS.teal : d.domain === "Physical" ? COLORS.amber : COLORS.coral} />
+                  <Cell key={i} fill={SKILL_COLORS[i % SKILL_COLORS.length]} />
                 ))}
               </Bar>
             </BarChart>

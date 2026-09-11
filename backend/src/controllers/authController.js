@@ -411,9 +411,8 @@ export const sendVerificationCode = async (req, res) => {
       .upsert({ email: email.toLowerCase().trim(), code, created_at: new Date() }, { onConflict: "email" });
 
     if (dbError) {
-      // If table doesn't exist yet, we will alert the user but mock send it
       if (dbError.code === "42P01" || (dbError.message && dbError.message.includes("does not exist"))) {
-        console.warn("email_verifications table not found. Operating in local mock mode.");
+        console.warn("email_verifications table not found. Code was generated but not stored.");
       } else {
         throw dbError;
       }
@@ -450,12 +449,10 @@ export const verifyCode = async (req, res) => {
       .single();
 
     if (dbError) {
-      // Graceful fallback for mock mode if table does not exist
-      if (dbError.message.includes("does not exist") || dbError.code === "PGRST116") {
-        // Just return true if they typed "123456" or any 6-digit code in mock mode
-        if (code.length === 6) {
-          return res.json({ verified: true, mock: true });
-        }
+      if (dbError.message?.includes("does not exist") || dbError.code === "42P01") {
+        return res.status(503).json({ error: "Email verification is not configured." });
+      }
+      if (dbError.code === "PGRST116") {
         return res.status(400).json({ error: "Invalid verification code" });
       }
       throw dbError;

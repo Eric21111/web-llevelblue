@@ -1,5 +1,6 @@
 import { supabase } from "../config/db.js";
 import bcrypt from "bcryptjs";
+import { actorName } from "../utils/actor.js";
 
 // Helper: map Supabase user row to frontend-expected shape
 function mapUser(row) {
@@ -91,7 +92,7 @@ export const addTeacher = async (req, res) => {
 
     // Audit log
     await supabase.from("logs").insert({
-      user: "Super Admin",
+      user: actorName(req, "Super Admin"),
       action: "Create Teacher Account",
       details: `Created teacher account for ${firstName} ${lastName} (${email})`,
     });
@@ -126,7 +127,7 @@ export const deleteTeacher = async (req, res) => {
 
     // Audit log
     await supabase.from("logs").insert({
-      user: "Super Admin",
+      user: actorName(req, "Super Admin"),
       action: "Delete Teacher Account",
       details: `Removed teacher account for ${teacher.name} (${teacher.email})`,
     });

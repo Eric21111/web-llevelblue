@@ -38,7 +38,7 @@ export default function EngagementReports() {
   }
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 16 }}>
-      <Panel title="Weekly Session Activity" sub="Number of play sessions logged per day, this week">
+      <Panel title="Weekly Session Activity" sub="Players who saved or were last active on each day this week">
         <ResponsiveContainer width="100%" height={250}>
           <BarChart data={engagementTrend}>
             <CartesianGrid stroke={COLORS.grid} vertical={false} />
@@ -50,19 +50,25 @@ export default function EngagementReports() {
         </ResponsiveContainer>
       </Panel>
 
-      <Panel title="Leaderboard (Top 5)" sub="Cloud-synced competitive ranking">
+      <Panel title="Leaderboard (Top 5)" sub="Live in-game points from cloud-synced student records">
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {[...students].sort((a, b) => b.post - a.post).slice(0, 5).map((s, i) => (
-            <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 10px", background: COLORS.panelAlt, borderRadius: 9 }}>
-              <div style={{
-                width: 24, height: 24, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center",
-                background: i === 0 ? COLORS.amber : COLORS.border, color: i === 0 ? "#0B1220" : COLORS.sub,
-                fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, fontSize: 12,
-              }}>{i + 1}</div>
-              <div style={{ flex: 1, fontFamily: "Inter", fontWeight: 600, fontSize: 13, color: COLORS.text }}>{s.name}</div>
-              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, fontSize: 13, color: COLORS.teal }}>{s.post * 10} pts</div>
+          {students.length === 0 ? (
+            <div style={{ color: COLORS.sub, fontSize: 12.5, textAlign: "center", padding: "16px 0", fontFamily: "Inter" }}>
+              No student scores yet.
             </div>
-          ))}
+          ) : (
+            [...students].sort((a, b) => (b.points || 0) - (a.points || 0)).slice(0, 5).map((s, i) => (
+              <div key={s._id || s.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 10px", background: COLORS.panelAlt, borderRadius: 9 }}>
+                <div style={{
+                  width: 24, height: 24, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center",
+                  background: i === 0 ? COLORS.amber : COLORS.border, color: i === 0 ? "#0B1220" : COLORS.sub,
+                  fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, fontSize: 12,
+                }}>{i + 1}</div>
+                <div style={{ flex: 1, fontFamily: "Inter", fontWeight: 600, fontSize: 13, color: COLORS.text }}>{s.name}</div>
+                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, fontSize: 13, color: COLORS.teal }}>{s.points || 0} pts</div>
+              </div>
+            ))
+          )}
         </div>
       </Panel>
     </div>

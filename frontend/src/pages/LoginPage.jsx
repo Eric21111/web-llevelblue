@@ -28,7 +28,7 @@ export default function LoginPage({ onLogin }) {
   const [classMasteryRadar, setClassMasteryRadar] = useState(defaultRadar);
 
   useEffect(() => {
-    apiFetch("/api/analytics")
+    apiFetch("/api/analytics/preview")
       .then((res) => {
         if (res.ok) return res.json();
         throw new Error("Failed to load analytics preview");

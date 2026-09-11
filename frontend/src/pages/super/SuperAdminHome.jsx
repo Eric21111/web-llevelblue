@@ -52,14 +52,21 @@ export default function SuperAdminHome() {
   const avgInstitutionGain = students.length > 0 
     ? Number((students.reduce((a, s) => a + (s.post - s.pre), 0) / students.length).toFixed(1)) 
     : 0;
-  const latestAuc = bktHealth.length > 0 ? bktHealth[bktHealth.length - 1].auc : 0.89;
+  const latestAuc = bktHealth.length > 0 ? bktHealth[bktHealth.length - 1].auc : null;
+  const previousAuc = bktHealth.length > 1 ? bktHealth[bktHealth.length - 2].auc : null;
+  const aucDelta = latestAuc !== null && previousAuc !== null
+    ? (latestAuc - previousAuc).toFixed(2)
+    : latestAuc !== null ? "Live" : "No data";
+  const aucDeltaUp = latestAuc !== null && previousAuc !== null
+    ? latestAuc >= previousAuc
+    : true;
   return (
     <>
       <div style={{ display: "flex", gap: 16, marginBottom: 20, flexWrap: "wrap" }}>
         <StatCard icon={Users} label="Active Teachers" value={activeTeachersCount} delta={`${teachers.filter(t => t.status === "Invited").length} invited`} deltaUp accent={COLORS.teal} />
         <StatCard icon={GraduationCap} label="Total Students" value={totalStudentsCount} delta={`${totalStudentsCount > 0 ? "Live" : "Empty"}`} deltaUp accent={COLORS.teal2} />
         <StatCard icon={TrendingUp} label="Institution Avg. Gain" value={avgInstitutionGain} suffix=" pts" delta="Live stats" deltaUp accent={COLORS.amber} />
-        <StatCard icon={Zap} label="BKT Model AUC" value={latestAuc} delta="0.03" deltaUp accent={COLORS.coral} />
+        <StatCard icon={Zap} label="BKT Model AUC" value={latestAuc !== null ? latestAuc : "—"} delta={aucDelta} deltaUp={aucDeltaUp} accent={COLORS.coral} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 16, marginBottom: 16 }}>

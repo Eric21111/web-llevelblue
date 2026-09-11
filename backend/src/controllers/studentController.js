@@ -1,5 +1,6 @@
 import { supabase } from "../config/db.js";
 import bcrypt from "bcryptjs";
+import { actorName } from "../utils/actor.js";
 
 // BKT threshold constants
 const BKT_AT_RISK_THRESHOLD = 0.40;  // P(L) below this → At-Risk
@@ -34,6 +35,7 @@ function mapStudent(row) {
     name: row.name,
     email: row.email || null,
     section: row.section,
+    gradeLevel: row.grade_level || null,
     pre: Number(row.pre) || 0,
     post: Number(row.post) || 0,
     sessions: Number(row.sessions) || 0,
@@ -77,9 +79,15 @@ export const getStudents = async (req, res) => {
 
 export const addStudent = async (req, res) => {
   try {
-    const { firstName, lastName, middleName, email, section, technical } = req.body;
+    const { firstName, lastName, middleName, email, section, gradeLevel, technical } = req.body;
     if (!firstName || !lastName || !email || !section) {
       return res.status(400).json({ error: "First name, last name, email, and section are required" });
+    }
+
+    const GRADE_LEVELS = ["Grade 11", "Grade 12"];
+    const normalizedGrade = GRADE_LEVELS.includes(gradeLevel) ? gradeLevel : null;
+    if (!normalizedGrade) {
+      return res.status(400).json({ error: "Grade level must be Grade 11 or Grade 12" });
     }
 
     // Check for duplicate email in students table
@@ -102,9 +110,7 @@ export const addStudent = async (req, res) => {
 
     // Fresh accounts start empty — no dummy scores or mastery.
     // Pre-test on the mobile app writes real BKT P(L) and the pre score.
-    const { data: inserted, error: insertError } = await supabase
-      .from("students")
-      .insert({
+    const studentRow = {
         name,
         first_name: firstName.trim(),
         last_name: lastName.trim(),
@@ -113,6 +119,7 @@ export const addStudent = async (req, res) => {
         password: hashedPassword,
         requires_password_change: true,
         section,
+        grade_level: normalizedGrade,
         pre: 0,
         post: 0,
         sessions: 0,
@@ -124,9 +131,20 @@ export const addStudent = async (req, res) => {
         mastery_vishing: 0,
         mastery_pretexting: 0,
         mastery_baiting: 0,
-      })
+    };
+
+    let { data: inserted, error: insertError } = await supabase
+      .from("students")
+      .insert(studentRow)
       .select()
       .single();
+
+    if (insertError && (insertError.code === "PGRST204" || (insertError.message && insertError.message.includes("grade_level")))) {
+      delete studentRow.grade_level;
+      const retry = await supabase.from("students").insert(studentRow).select().single();
+      inserted = retry.data;
+      insertError = retry.error;
+    }
 
     if (insertError) {
       throw insertError;
@@ -143,9 +161,9 @@ export const addStudent = async (req, res) => {
 
     // Audit log
     await supabase.from("logs").insert({
-      user: "Teacher",
+      user: actorName(req, "Teacher"),
       action: "Add Student",
-      details: `Added student ${name} to ${section}`,
+      details: `Added student ${name} to ${section} (${normalizedGrade})`,
     });
 
     res.status(201).json({ ...mapStudent(inserted), generatedPassword });
@@ -187,7 +205,7 @@ export const deleteStudent = async (req, res) => {
 
     // Audit log
     await supabase.from("logs").insert({
-      user: "Teacher",
+      user: actorName(req, "Teacher"),
       action: "Delete Student",
       details: `Removed student ${student.name}`,
     });

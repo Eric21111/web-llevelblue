@@ -22,7 +22,7 @@ export async function apiFetch(url, options = {}) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  return fetch(`${BASE_URL}${url}`, { ...options, headers });
+  return fetch(`${BASE_URL}${url}`, { cache: "no-store", ...options, headers });
 }
 
 /**

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useCallback } from "react";
 import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell,
@@ -14,6 +14,8 @@ import StatusPill from "../../components/StatusPill";
 import MiniRadar from "../../components/MiniRadar";
 import { COLORS } from "../../constants/colors";
 import { apiFetch } from "../../utils/api";
+import { formatLastActive } from "../../utils/time";
+import { useLivePoll } from "../../hooks/useLivePoll";
 
 const SKILL_COLORS = {
   Phishing: COLORS.teal,
@@ -23,7 +25,7 @@ const SKILL_COLORS = {
   Baiting: "#C792EA",
 };
 
-const POLL_INTERVAL = 30000; // 30 seconds
+const POLL_INTERVAL = 2000;
 
 export default function TeacherHome() {
   const [students, setStudents] = useState([]);
@@ -34,31 +36,29 @@ export default function TeacherHome() {
   const [dismissedAlerts, setDismissedAlerts] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [lastPolled, setLastPolled] = useState(null);
-  const pollRef = useRef(null);
+  const [now, setNow] = useState(Date.now());
 
-  const fetchDashboardData = () => {
+  const fetchDashboardData = useCallback(() => {
     Promise.all([
       apiFetch("/api/students").then((res) => res.json()),
       apiFetch("/api/analytics").then((res) => res.json()),
       apiFetch("/api/analytics/at-risk").then((res) => res.json()),
     ])
       .then(([studentsData, analyticsData, atRiskData]) => {
-        setStudents(studentsData || []);
+        setStudents(Array.isArray(studentsData) ? studentsData : []);
         setClassMasteryRadar(analyticsData.classMasteryRadar || []);
         setMasteryGrowthOverTime(analyticsData.masteryGrowthOverTime || []);
         setQuizTypeAccuracy(analyticsData.quizTypeAccuracy || []);
         setAtRisk(Array.isArray(atRiskData) ? atRiskData : []);
-        setLastPolled(new Date());
+        const checked = Date.now();
+        setLastPolled(new Date(checked));
+        setNow(checked);
       })
       .catch((err) => console.error("Error fetching dashboard data:", err))
       .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    fetchDashboardData();
-    pollRef.current = setInterval(fetchDashboardData, 5000);
-    return () => clearInterval(pollRef.current);
   }, []);
+
+  useLivePoll(fetchDashboardData, POLL_INTERVAL);
 
   const activeAlerts = atRisk.filter((s) => !dismissedAlerts.has(s.id));
 
@@ -83,64 +83,65 @@ export default function TeacherHome() {
   return (
     <>
       {/* ── REMEDIATION ENGINE ALERT BANNER ── */}
-      {activeAlerts.length > 0 && (
-        <div style={{ marginBottom: 20, display: "flex", flexDirection: "column", gap: 8 }}>
-          {activeAlerts.map((student) => (
-            <div key={student.id} style={{
-              display: "flex", alignItems: "center", gap: 12, padding: "13px 16px",
-              background: "linear-gradient(90deg, rgba(239,91,91,0.12), rgba(239,91,91,0.06))",
-              border: `1px solid rgba(239,91,91,0.35)`, borderRadius: 12,
-              animation: "pulse-border 2s ease-in-out infinite",
+      <div style={{ marginBottom: 20, display: "flex", flexDirection: "column", gap: 8 }}>
+        {activeAlerts.map((student) => (
+          <div key={student.id} style={{
+            display: "flex", alignItems: "center", gap: 12, padding: "13px 16px",
+            background: "linear-gradient(90deg, rgba(239,91,91,0.12), rgba(239,91,91,0.06))",
+            border: `1px solid rgba(239,91,91,0.35)`, borderRadius: 12,
+            animation: "pulse-border 2s ease-in-out infinite",
+          }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 10, background: "rgba(239,91,91,0.15)",
+              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
             }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: 10, background: "rgba(239,91,91,0.15)",
-                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-              }}>
-                <ShieldAlert size={20} color={COLORS.coral} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-                  <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 13.5, color: COLORS.coral }}>
-                    Action Required:
-                  </span>
-                  <span style={{ fontFamily: "Inter", fontWeight: 600, fontSize: 13.5, color: COLORS.text }}>
-                    {student.name}
-                  </span>
-                  <span style={{ fontFamily: "Inter", fontSize: 12.5, color: COLORS.sub }}>
-                    · {student.section}
-                  </span>
-                </div>
-                <div style={{ fontFamily: "Inter", fontSize: 12, color: COLORS.sub }}>
-                  Failing:{" "}
-                  {student.failingSkills.map((skill, i) => (
-                    <span key={skill}>
-                      <span style={{ color: SKILL_COLORS[skill] || COLORS.amber, fontWeight: 600 }}>{skill}</span>
-                      {i < student.failingSkills.length - 1 && ", "}
-                    </span>
-                  ))}
-                  {" "}· {student.sessions} sessions · last active {student.lastActive ?? "—"}
-                </div>
-              </div>
-              <button
-                onClick={() => setDismissedAlerts((prev) => new Set([...prev, student.id]))}
-                title="Dismiss alert"
-                style={{ background: "transparent", border: "none", cursor: "pointer", display: "flex", padding: 4, flexShrink: 0 }}
-              >
-                <X size={15} color={COLORS.sub} />
-              </button>
+              <ShieldAlert size={20} color={COLORS.coral} />
             </div>
-          ))}
-
-          {/* Poll status indicator */}
-          <div style={{ display: "flex", alignItems: "center", gap: 5, paddingLeft: 2 }}>
-            <RefreshCw size={11} color={COLORS.sub} />
-            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10.5, color: COLORS.sub }}>
-              Auto-refresh every 30s · last checked{" "}
-              {lastPolled ? lastPolled.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "—"}
-            </span>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 13.5, color: COLORS.coral }}>
+                  Action Required:
+                </span>
+                <span style={{ fontFamily: "Inter", fontWeight: 600, fontSize: 13.5, color: COLORS.text }}>
+                  {student.name}
+                </span>
+                <span style={{ fontFamily: "Inter", fontSize: 12.5, color: COLORS.sub }}>
+                  · {student.section}
+                </span>
+              </div>
+              <div style={{ fontFamily: "Inter", fontSize: 12, color: COLORS.sub }}>
+                Failing:{" "}
+                {student.failingSkills.map((skill, i) => (
+                  <span key={skill}>
+                    <span style={{ color: SKILL_COLORS[skill] || COLORS.amber, fontWeight: 600 }}>{skill}</span>
+                    {i < student.failingSkills.length - 1 && ", "}
+                  </span>
+                ))}
+                {" "}· {student.sessions} sessions · last active {formatLastActive(student.lastActive, now)}
+              </div>
+            </div>
+            <button
+              onClick={() => setDismissedAlerts((prev) => new Set([...prev, student.id]))}
+              title="Dismiss alert"
+              style={{ background: "transparent", border: "none", cursor: "pointer", display: "flex", padding: 4, flexShrink: 0 }}
+            >
+              <X size={15} color={COLORS.sub} />
+            </button>
           </div>
+        ))}
+
+        <div style={{ display: "flex", alignItems: "center", gap: 6, paddingLeft: 2 }}>
+          <span style={{
+            width: 7, height: 7, borderRadius: "50%", background: COLORS.teal,
+            boxShadow: `0 0 6px ${COLORS.teal}`, display: "inline-block",
+          }} />
+          <RefreshCw size={11} color={COLORS.sub} />
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10.5, color: COLORS.sub }}>
+            Live · refreshing every 2s · last checked{" "}
+            {lastPolled ? lastPolled.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "—"}
+          </span>
         </div>
-      )}
+      </div>
 
       {/* ── STAT CARDS ── */}
       <div style={{ display: "flex", gap: 16, marginBottom: 20, flexWrap: "wrap" }}>
@@ -172,7 +173,7 @@ export default function TeacherHome() {
           </ResponsiveContainer>
         </Panel>
 
-        <Panel title="Mastery Growth Over Time" sub="Average skill mastery (%) by week, all students">
+        <Panel title="Mastery Growth Over Time" sub="Average BKT mastery (%) of students active that week">
           <ResponsiveContainer width="100%" height={260}>
             <LineChart data={masteryGrowthOverTime}>
               <CartesianGrid stroke={COLORS.grid} vertical={false} />
@@ -189,12 +190,12 @@ export default function TeacherHome() {
       </div>
 
       {/* ── QUIZ TYPE ACCURACY ── */}
-      <Panel title="Quiz Type Accuracy" sub="Correctness rate filtered by quiz interaction type" style={{ marginBottom: 16 }}>
+      <Panel title="Skill Mastery Rate" sub="Live class-average BKT P(L) by skill" style={{ marginBottom: 16 }}>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={quizTypeAccuracy} layout="vertical" margin={{ left: 10 }}>
             <CartesianGrid stroke={COLORS.grid} horizontal={false} />
             <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fill: COLORS.sub, fontSize: 11.5, fontFamily: "Inter" }} axisLine={false} tickLine={false} />
-            <YAxis type="category" dataKey="type" width={160} tick={{ fill: COLORS.text, fontSize: 12, fontFamily: "Inter" }} axisLine={false} tickLine={false} />
+            <YAxis type="category" dataKey="type" width={110} tick={{ fill: COLORS.text, fontSize: 12, fontFamily: "Inter" }} axisLine={false} tickLine={false} />
             <Tooltip formatter={(v) => [`${v}%`, "Accuracy"]} contentStyle={{ background: COLORS.panelAlt, border: `1px solid ${COLORS.border}`, borderRadius: 8, fontFamily: "Inter", fontSize: 12 }} />
             <Bar dataKey="accuracy" radius={[0, 7, 7, 0]} barSize={28}>
               {(quizTypeAccuracy || []).map((_, i) => (
@@ -237,7 +238,7 @@ export default function TeacherHome() {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontFamily: "Inter", fontWeight: 600, fontSize: 13.5, color: COLORS.text }}>{s.name}</div>
                   <div style={{ fontFamily: "Inter", fontSize: 11.5, color: COLORS.sub, marginTop: 2 }}>
-                    {s.section} · {s.sessions} sessions · last active {s.lastActive ?? "—"}
+                    {s.section} · {s.sessions} sessions · last active {formatLastActive(s.lastActive, now)}
                   </div>
                   <div style={{ marginTop: 5, display: "flex", gap: 5, flexWrap: "wrap" }}>
                     {s.failingSkills.map((skill) => (
