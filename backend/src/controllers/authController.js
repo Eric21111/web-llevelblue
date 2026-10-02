@@ -8,6 +8,10 @@ function computeName(firstName, middleInitial, lastName) {
   return `${firstName}${mi} ${lastName}`;
 }
 
+function escapeLikePattern(value) {
+  return value.replace(/[\\%_]/g, "\\$&");
+}
+
 // Login controller
 export const login = async (req, res) => {
   try {
@@ -17,13 +21,16 @@ export const login = async (req, res) => {
     }
 
     const normalizedEmail = email.toLowerCase().trim();
+    const emailPattern = escapeLikePattern(normalizedEmail);
 
     // ── 1. Check teachers/admins in the users table ─────────────────────────
-    const { data: user } = await supabase
+    const { data: user, error: userLookupError } = await supabase
       .from("users")
       .select("*")
-      .eq("email", normalizedEmail)
-      .single();
+      .ilike("email", emailPattern)
+      .maybeSingle();
+
+    if (userLookupError) throw userLookupError;
 
     if (user) {
       // Passwords security match (supports plain-text auto-migration)
@@ -84,11 +91,13 @@ export const login = async (req, res) => {
     }
 
     // ── 2. Fallback: check students table for mobile game login ──────────────
-    const { data: student } = await supabase
+    const { data: student, error: studentLookupError } = await supabase
       .from("students")
       .select("*")
-      .eq("email", normalizedEmail)
+      .ilike("email", emailPattern)
       .maybeSingle();
+
+    if (studentLookupError) throw studentLookupError;
 
     if (student) {
       const isBcrypt = student.password && (student.password.startsWith("$2a$") || student.password.startsWith("$2b$"));
