@@ -6,6 +6,7 @@ import {
 import FontImports from "./components/FontImports";
 import Sidebar from "./components/Sidebar";
 import LoginPage from "./pages/LoginPage";
+import LandingPage from "./pages/LandingPage";
 import SuperAdminSignupPage from "./pages/super/SuperAdminSignupPage";
 import ForcePasswordChangeModal from "./components/ForcePasswordChangeModal";
 import { COLORS } from "./constants/colors";
@@ -73,6 +74,7 @@ function AppContent() {
   }
 
   if (!authed) {
+    if (currentPath === "/") return <LandingPage />;
     return <LoginPage onLogin={handleLogin} />;
   }
 

@@ -144,7 +144,7 @@ export default function UsabilityFeedback() {
           <div style={{ textAlign: "center", padding: "30px 10px" }}>
             <h4 style={{ color: COLORS.teal, fontFamily: "'Space Grotesk', sans-serif", fontSize: 16, fontWeight: 700, margin: "0 0 10px" }}>Survey Submitted!</h4>
             <p style={{ color: COLORS.sub, fontSize: 12.5, lineHeight: 1.6, margin: "0 0 20px" }}>
-              Thank you for contributing to LevelBlue's system usability scale. Your scores have been aggregated into the metrics console.
+              Thank you for contributing to LEVELBLUE's system usability scale. Your scores have been aggregated into the metrics console.
             </p>
             <button
               onClick={() => setSubmitted(false)}

@@ -16,7 +16,7 @@ export default function Sidebar({ role, user, page, setPage, pages, onLogout }) 
           <Shield size={18} color="#0B1220" strokeWidth={2.5} />
         </div>
         <div>
-          <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 16, color: COLORS.text, letterSpacing: -0.2 }}>LevelBlue</div>
+          <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 16, color: COLORS.text, letterSpacing: -0.2 }}>LEVELBLUE</div>
           <div style={{ fontFamily: "Inter, sans-serif", fontSize: 10.5, color: COLORS.sub, letterSpacing: 0.5 }}>ANALYTICS CONSOLE</div>
         </div>
       </div>

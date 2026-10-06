@@ -359,7 +359,7 @@ export const getMe = async (req, res) => {
 async function sendBrevoEmail(toEmail, code) {
   const apiKey = process.env.BREVO_API_KEY;
   const senderEmail = process.env.BREVO_SENDER_EMAIL || "no-reply@levelblue.com";
-  const senderName = process.env.BREVO_SENDER_NAME || "LevelBlue Security";
+  const senderName = process.env.BREVO_SENDER_NAME || "LEVELBLUE Security";
 
   if (!apiKey) {
     console.warn("BREVO_API_KEY is not defined in .env. Verification code (dev):", code);
@@ -376,12 +376,12 @@ async function sendBrevoEmail(toEmail, code) {
     body: JSON.stringify({
       sender: { name: senderName, email: senderEmail },
       to: [{ email: toEmail }],
-      subject: "Verify Your Email Address - LevelBlue",
+      subject: "Verify Your Email Address - LEVELBLUE",
       htmlContent: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e1e1e1; border-radius: 10px; background-color: #0F1729; color: #E7EBF3;">
-          <h2 style="color: #3DD6C4; text-align: center;">LevelBlue Security Awareness</h2>
+          <h2 style="color: #3DD6C4; text-align: center;">LEVELBLUE Security Awareness</h2>
           <p>Hello,</p>
-          <p>To verify your email address on the LevelBlue Console, please use the following 6-digit verification code:</p>
+          <p>To verify your email address on the LEVELBLUE Console, please use the following 6-digit verification code:</p>
           <div style="text-align: center; margin: 30px 0;">
             <span style="font-family: monospace; font-size: 32px; font-weight: bold; background-color: #172238; color: #E7EBF3; padding: 10px 20px; border-radius: 5px; letter-spacing: 5px; border: 1px solid #26334F;">
               ${code}
@@ -389,7 +389,7 @@ async function sendBrevoEmail(toEmail, code) {
           </div>
           <p>This code is valid for 10 minutes. If you did not request this code, please ignore this email.</p>
           <hr style="border: none; border-top: 1px solid #26334F; margin: 20px 0;" />
-          <p style="font-size: 12px; color: #8C9BBF; text-align: center;">WMSU-ILS · LevelBlue Platform</p>
+          <p style="font-size: 12px; color: #8C9BBF; text-align: center;">WMSU-ILS · LEVELBLUE Platform</p>
         </div>
       `
     })

@@ -16,3 +16,57 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Keep page and console scrollbars consistent with LEVELBLUE's dark theme. */
+html {
+  background: #0b1322;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: #0b1322;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #28786f;
+  border: 2px solid #0b1322;
+  border-radius: 999px;
+  min-height: 40px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3dd6c4;
+}
+
+/* Firefox uses the standard scrollbar properties. */
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #28786f #0b1322;
+  }
+}
+
+@media (forced-colors: active) {
+  * {
+    scrollbar-color: auto;
+  }
+
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: Canvas;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: ButtonText;
+    border-color: Canvas;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: Highlight;
+  }
+}

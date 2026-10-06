@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from "rea
 import { apiFetch } from "../utils/api";
 
 /**
- * AuthContext — Centralized authentication state for LevelBlue.
+ * AuthContext — Centralized authentication state for LEVELBLUE.
  *
  * Provides: user, role, authed, loadingSession, login, logout, setUser
  * Replaces scattered useState calls in App.jsx with a single source of truth.

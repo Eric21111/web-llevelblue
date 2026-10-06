@@ -1,7 +1,7 @@
 {
   "name": "levelblue-backend",
   "version": "1.0.0",
-  "description": "Backend Express API for LevelBlue Security Awareness Analytics Console",
+  "description": "Backend Express API for LEVELBLUE Security Awareness Analytics Console",
   "main": "server.js",
   "type": "module",
   "scripts": {

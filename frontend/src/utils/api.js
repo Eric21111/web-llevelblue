@@ -1,5 +1,5 @@
 /**
- * api.js — Centralized API client for LevelBlue
+ * api.js — Centralized API client for LEVELBLUE
  *
  * Use `apiFetch` instead of `fetch` for all /api/ calls.
  * Automatically injects the Authorization header from localStorage.

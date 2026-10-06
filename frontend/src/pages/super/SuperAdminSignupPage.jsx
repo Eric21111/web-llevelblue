@@ -143,7 +143,7 @@ export default function SuperAdminSignupPage({ onComplete }) {
                 <Shield size={16} color="#0B1220" strokeWidth={2.5} />
               </div>
               <div>
-                <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 16 }}>LevelBlue</div>
+                <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 16 }}>LEVELBLUE</div>
                 <div style={{ fontFamily: "Inter", fontSize: 9.5, color: COLORS.sub, letterSpacing: 0.5 }}>CREATION PANEL</div>
               </div>
             </div>
