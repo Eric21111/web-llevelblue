@@ -1,210 +1,40 @@
-import { useState, useEffect } from "react";
-import Panel from "../../components/Panel";
-import { COLORS } from "../../constants/colors";
-import { apiFetch } from "../../utils/api";
-import { useAuth } from "../../context/AuthContext";
+import { useState } from "react";
+import { MessageSquare, SlidersHorizontal, GraduationCap, BookOpen, Bug, UserRound } from "lucide-react";
+import { useDashboardData } from "../../hooks/useDashboardData";
+import { DashboardToolbar, DashboardCard, DataState, EmptyState } from "../../components/dashboard/DashboardParts";
+import { feedbackSummary, studentFeedback, filterFeedback, feedbackSection, feedbackModule } from "../../utils/feedback";
+import { formatLastActive } from "../../utils/time";
+
+const SOURCES = { feedback: "/api/usability-feedback" };
+const scoreLabel = value => value === null ? "—" : value.toFixed(1);
+const ratingCount = count => `${count} rating${count === 1 ? "" : "s"}`;
 
 export default function UsabilityFeedback() {
-  const { user } = useAuth();
-  const [submissions, setSubmissions] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  // Form states
-  const [q1, setQ1] = useState(5);
-  const [q2, setQ2] = useState(5);
-  const [q3, setQ3] = useState(5);
-  const [q4, setQ4] = useState(5);
-  const [q5, setQ5] = useState(5);
-  const [comments, setComments] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-
-  const fetchFeedback = (silent = false) => {
-    if (!silent) setLoading(true);
-    apiFetch("/api/usability-feedback")
-      .then((res) => res.json())
-      .then((data) => setSubmissions(data || []))
-      .catch((err) => console.error("Error loading usability data:", err))
-      .finally(() => { if (!silent) setLoading(false); });
-  };
-
-  useEffect(() => {
-    fetchFeedback();
-    const interval = setInterval(() => fetchFeedback(true), 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-
-    const averageRating = Number(((q1 + q2 + q3 + q4 + q5) / 5).toFixed(1));
-
-    try {
-      const res = await apiFetch("/api/usability-feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          rating: averageRating,
-          comments,
-          q1, q2, q3, q4, q5
-        }),
-      });
-
-      if (res.ok) {
-        setSubmitted(true);
-        setComments("");
-        fetchFeedback();
-      } else {
-        alert("Failed to submit feedback");
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // Define the questions
-  const questions = [
-    { key: "q1", q: "The game was easy to navigate" },
-    { key: "q2", q: "I understood why my answers were wrong" },
-    { key: "q3", q: "The difficulty felt right for me" },
-    { key: "q4", q: "I would recommend this to a classmate" },
-    { key: "q5", q: "The quizzes felt relevant to real scams" },
-  ];
-
-  // Compute averages dynamically
-  const computedMeans = questions.map((item) => {
-    if (submissions.length === 0) {
-      return { q: item.q, mean: 0 };
-    }
-    const sum = submissions.reduce((acc, sub) => acc + (sub[item.key] || 0), 0);
-    const mean = Number((sum / submissions.length).toFixed(1));
-    return { q: item.q, mean };
-  });
-
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 20, fontFamily: "Inter, sans-serif" }}>
-      
-      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-        <Panel title="Usability & Acceptance Survey" sub={`Weighted mean scores, 5-point scale (n = ${submissions.length} responses)`}>
-          {loading ? (
-            <div style={{ color: COLORS.sub, padding: "20px 0", textAlign: "center" }}>Loading survey results...</div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-              {computedMeans.map((it, i) => (
-                <div key={i}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                    <span style={{ fontSize: 13, fontWeight: 500, color: COLORS.text }}>{it.q}</span>
-                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, fontSize: 13, color: COLORS.teal }}>
-                      {it.mean > 0 ? it.mean.toFixed(1) : "N/A"}
-                    </span>
-                  </div>
-                  <div style={{ height: 8, background: COLORS.panelAlt, borderRadius: 5, overflow: "hidden" }}>
-                    <div style={{
-                      width: `${it.mean > 0 ? (it.mean / 5) * 100 : 0}%`,
-                      height: "100%",
-                      background: `linear-gradient(90deg, ${COLORS.teal2}, ${COLORS.teal})`,
-                      borderRadius: 5,
-                      transition: "width 0.5s ease-out"
-                    }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Panel>
-
-        <Panel title="Recent Feedback & Comments" sub="Written opinions from teachers and reviewers">
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: 220, overflowY: "auto" }}>
-            {loading ? (
-              <div style={{ color: COLORS.sub, textAlign: "center" }}>Loading feedback...</div>
-            ) : submissions.filter(s => s.comments).length === 0 ? (
-              <div style={{ color: COLORS.sub, fontSize: 12.5, textAlign: "center", padding: "10px 0" }}>No comments submitted yet.</div>
-            ) : (
-              submissions.filter(s => s.comments).map((sub) => (
-                <div key={sub.id} style={{ background: COLORS.panelAlt, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "12px 14px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: COLORS.teal }}>{sub.teacherName}</span>
-                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: COLORS.sub }}>
-                      {sub.createdAt ? new Date(sub.createdAt).toLocaleDateString() : ""}
-                    </span>
-                  </div>
-                  <p style={{ fontSize: 12.5, color: COLORS.text, margin: 0, lineHeight: 1.5 }}>"{sub.comments}"</p>
-                </div>
-              ))
-            )}
-          </div>
-        </Panel>
-      </div>
-
-      <Panel title="Submit Survey Response" sub={`Signed in as ${[user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.email || "your account"}`}>
-        {submitted ? (
-          <div style={{ textAlign: "center", padding: "30px 10px" }}>
-            <h4 style={{ color: COLORS.teal, fontFamily: "'Space Grotesk', sans-serif", fontSize: 16, fontWeight: 700, margin: "0 0 10px" }}>Survey Submitted!</h4>
-            <p style={{ color: COLORS.sub, fontSize: 12.5, lineHeight: 1.6, margin: "0 0 20px" }}>
-              Thank you for contributing to LEVELBLUE's system usability scale. Your scores have been aggregated into the metrics console.
-            </p>
-            <button
-              onClick={() => setSubmitted(false)}
-              style={{ background: COLORS.panelAlt, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "8px 16px", color: COLORS.text, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}
-            >
-              Submit Another Response
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            
-            {questions.map((item, idx) => {
-              const currentVal = [q1, q2, q3, q4, q5][idx];
-              const setVal = [setQ1, setQ2, setQ3, setQ4, setQ5][idx];
-
-              return (
-                <div key={item.key} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.sub }}>{idx + 1}. {item.q}</span>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    {[1, 2, 3, 4, 5].map((val) => (
-                      <button
-                        key={val} type="button" onClick={() => setVal(val)}
-                        style={{
-                          flex: 1, padding: "6px 0", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer",
-                          fontFamily: "'JetBrains Mono', monospace", border: `1px solid ${currentVal === val ? COLORS.teal : COLORS.border}`,
-                          background: currentVal === val ? "rgba(61,214,196,0.12)" : COLORS.panelAlt,
-                          color: currentVal === val ? COLORS.teal : COLORS.sub,
-                          transition: "all 0.15s"
-                        }}
-                      >
-                        {val}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-
-            <div>
-              <label style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.sub, display: "block", marginBottom: 5 }}>Comments / Feedback</label>
-              <textarea
-                value={comments} onChange={(e) => setComments(e.target.value)} rows={3} placeholder="Write any usability suggestions or notes..."
-                style={{ width: "100%", padding: "10px 12px", background: COLORS.panelAlt, border: `1px solid ${COLORS.border}`, borderRadius: 8, color: COLORS.text, fontSize: 13, outline: "none", resize: "none", fontFamily: "Inter" }}
-              />
-            </div>
-
-            <button
-              type="submit" disabled={submitting}
-              style={{
-                marginTop: 6, background: COLORS.teal, border: "none", borderRadius: 8, color: "#0B1220",
-                padding: "10px 0", fontWeight: 700, fontSize: 13.5, cursor: submitting ? "default" : "pointer", opacity: submitting ? 0.7 : 1
-              }}
-            >
-              {submitting ? "Submitting..." : "Submit Response"}
-            </button>
-
-          </form>
-        )}
-      </Panel>
-
-    </div>
-  );
+  const state = useDashboardData(SOURCES);
+  const [section, setSection] = useState("");
+  const [module, setModule] = useState("");
+  const submissions = studentFeedback(state.data.feedback || []);
+  const sections = [...new Set(submissions.map(feedbackSection))].sort();
+  const modules = [...new Set(submissions.map(feedbackModule))].sort();
+  const filtered = filterFeedback(submissions, section, module);
+  const summary = feedbackSummary(filtered);
+  const byModule = [...new Set(filtered.map(feedbackModule))].sort().map(name => ({ name, ...feedbackSummary(filtered.filter(item => feedbackModule(item) === name)) }));
+  const clearFilters = () => { setSection(""); setModule(""); };
+  return <div className="dashboard feedback-viewer">
+    <div className="feedback-context"><MessageSquare size={19} /><p>Hear from your learners. Explore student ratings, suggestions, and bug reports submitted through the mobile app.</p><span>Read-only</span></div>
+    <DashboardToolbar title="Student experience overview" state={state} />
+    <div className="feedback-filters"><SlidersHorizontal size={17} aria-hidden="true" /><label><span>Section</span><div className="dash-filter"><GraduationCap size={15} /><select aria-label="Filter by section" value={section} onChange={event => setSection(event.target.value)}><option value="">All sections</option>{section && !sections.includes(section) && <option>{section}</option>}{sections.map(name => <option key={name}>{name}</option>)}</select></div></label><label><span>Module</span><div className="dash-filter"><BookOpen size={15} /><select aria-label="Filter by module" value={module} onChange={event => setModule(event.target.value)}><option value="">All modules</option>{module && !modules.includes(module) && <option>{module}</option>}{modules.map(name => <option key={name}>{name}</option>)}</select></div></label>{(section || module) && <button className="dash-text-button" onClick={clearFilters}>Clear filters</button>}<span className="feedback-result-count" aria-live="polite">{state.loading || state.errors.feedback ? "" : `${filtered.length} student response${filtered.length === 1 ? "" : "s"}`}</span></div>
+    <DataState state={state} sources={["feedback"]}>
+      {!filtered.length ? <DashboardCard icon={MessageSquare} title={section || module ? "No feedback for this selection" : "Student feedback will appear here"}><EmptyState title={section || module ? "Try another section or module" : "Waiting for student responses"} text={section || module ? "No student submissions match both filters." : "Ratings and comments will appear after students submit feedback from the mobile app."} />{(section || module) && <button className="dash-button" onClick={clearFilters}>Show all student feedback</button>}</DashboardCard> : <>
+        <DashboardCard icon={MessageSquare} title="Student satisfaction & difficulty" description="Student survey averages on a 1–5 agreement scale. Higher scores indicate a more positive experience.">
+          <div className="feedback-summary"><div><span>Overall satisfaction</span><strong>{scoreLabel(summary.overall.mean)}<small> / 5</small></strong><p>Composite survey average · {summary.overall.count} rated responses</p></div><div><span>Difficulty fit</span><strong>{scoreLabel(summary.difficulty.mean)}<small> / 5</small></strong><p>“The difficulty felt right for me” · {ratingCount(summary.difficulty.count)}</p></div><div><span>Low difficulty-fit ratings</span><strong>{summary.difficulty.count ? summary.lowDifficultyFit : "—"}{summary.difficulty.count > 0 && <small> / {summary.difficulty.count}</small>}</strong><p>Rated 1 or 2 · worth reviewing student comments</p></div><div><span>Written feedback</span><strong>{summary.comments.length}</strong><p>Comments and bug reports in this selection</p></div></div>
+          <div className="feedback-question-grid">{summary.questions.map(question => <div key={question.key}><span>{question.label}<small>{ratingCount(question.count)}</small></span><strong>{scoreLabel(question.mean)}<small> / 5</small></strong></div>)}</div>
+          <p className="dash-caption">Each response has equal weight. Missing ratings are excluded, not counted as zero. A low difficulty-fit score can mean too easy or too hard; use the comments for context.</p>
+        </DashboardCard>
+        <DashboardCard icon={BookOpen} title="Experience by module" description="Compare where students report a less positive experience within the selected sections."><div className="dash-table-wrap"><table className="dash-table"><thead><tr><th scope="col">Module</th><th scope="col">Responses</th><th scope="col">Satisfaction / 5</th><th scope="col">Difficulty fit / 5</th><th scope="col">Low difficulty fit</th></tr></thead><tbody>{byModule.map(item => <tr key={item.name}><td><strong>{item.name}</strong></td><td>{item.total}</td><td>{scoreLabel(item.overall.mean)}</td><td>{scoreLabel(item.difficulty.mean)}</td><td><span className={`dash-pill ${item.lowDifficultyFit ? "amber" : ""}`}>{item.difficulty.count ? `${item.lowDifficultyFit} / ${item.difficulty.count}` : "—"}</span></td></tr>)}</tbody></table></div></DashboardCard>
+        <DashboardCard icon={MessageSquare} title="Recent Feedback & Comments" description="Student suggestions, learning notes, and reported issues. Newest submissions appear first.">{summary.comments.length ? <div className="feedback-feed">{summary.comments.map((item, index) => <article key={item._id || item.id || index}><div className="feedback-comment-heading"><span className="feedback-author"><UserRound size={16} />{item.studentName || "Student"}</span><time dateTime={Number.isFinite(Date.parse(item.createdAt)) ? item.createdAt : undefined}>{Number.isFinite(Date.parse(item.createdAt)) ? formatLastActive(item.createdAt) : "Date not recorded"}</time></div><div className="feedback-tags"><span>{feedbackSection(item)}</span><span>{feedbackModule(item)}</span>{item.feedbackType === "bug" && <span className="feedback-bug"><Bug size={12} />Bug report</span>}</div><p>{item.comments}</p></article>)}</div> : <EmptyState title="No written comments in this selection" text="These students submitted ratings without a comment." />}</DashboardCard>
+      </>}
+    </DataState>
+    <p className="dash-footnote">Only identified student submissions are included. Filters use the section and module recorded with each response; general app feedback is listed separately from module feedback.</p>
+  </div>;
 }

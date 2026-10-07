@@ -1,0 +1,42 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {PGlite} from '@electric-sql/pglite';
+test('additive migration preserves records, resolves only unique section names and atomically assigns co-teachers',async()=>{
+ const db=new PGlite();
+ try{
+ await db.exec(`create role anon; create role authenticated; create role service_role;
+ create table users(id uuid primary key,name text,role text,status text);
+ create table sections(id uuid primary key default gen_random_uuid(),name text,subject text,created_at timestamptz default now());
+ create table students(id uuid primary key,section text,grade_level text,pre numeric,post numeric,mastery_phishing numeric);
+ create table feedback(id uuid primary key,teacher_name text,section text);
+ create table support_bounties(id uuid primary key default gen_random_uuid(),mentor_id uuid,mentee_id uuid,topic text,status text,mentee_confirmed boolean);
+ create table player_saves(student_id uuid,save jsonb);
+ insert into users values('00000000-0000-0000-0000-000000000001','Head','super','Active'),('00000000-0000-0000-0000-000000000002','Teacher','admin','Active'),('00000000-0000-0000-0000-000000000003','Co-teacher','admin','Active'),('00000000-0000-0000-0000-000000000004','Invite','admin','Invited');
+ insert into sections(id,name) values('00000000-0000-0000-0000-000000000011','Emerald'),('00000000-0000-0000-0000-000000000012','Duplicate'),('00000000-0000-0000-0000-000000000013','Duplicate');
+ insert into students values('00000000-0000-0000-0000-000000000021','Emerald','Grade 11',0,5,.25),('00000000-0000-0000-0000-000000000022','Duplicate','Grade 12',0,0,0);
+ insert into player_saves values('00000000-0000-0000-0000-000000000021','{"codex":["Phishing"],"stage":4}');
+ insert into feedback values('00000000-0000-0000-0000-000000000031','Legacy reviewer','Emerald');`);
+ const before=(await db.query('select id,section,grade_level,pre,post,mastery_phishing from students order by id')).rows;
+ const save=(await db.query('select * from player_saves')).rows;
+ const sql=await readFile(new URL('../migrations/20261007_web_foundations.sql',import.meta.url),'utf8');
+ await db.exec(sql);await db.exec(sql);
+ assert.deepEqual((await db.query('select id,section,grade_level,pre,post,mastery_phishing from students order by id')).rows,before);
+ assert.deepEqual((await db.query('select * from player_saves')).rows,save);
+ assert.equal((await db.query("select section_id from students where section='Duplicate'")).rows[0].section_id,null);
+ assert.equal((await db.query("select section_id from students where section='Emerald'")).rows[0].section_id,'00000000-0000-0000-0000-000000000011');
+ assert.equal((await db.query('select count(*)::int n from teacher_sections')).rows[0].n,0);
+ for(const teacher of ['00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000003']) await db.query("select levelblue_faculty($1,$2,'Active',array[$3])",['00000000-0000-0000-0000-000000000001',teacher,'00000000-0000-0000-0000-000000000011']);
+ assert.equal((await db.query('select count(*)::int n from teacher_sections')).rows[0].n,2);
+ await assert.rejects(db.query("select levelblue_faculty($1,$2,'Inactive',array['missing'])",['00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000002']));
+ assert.equal((await db.query("select status from users where name='Teacher'")).rows[0].status,'Active');
+ await db.query("select levelblue_create_section($1,'Sapphire','Cybersecurity','Grade 12')",['00000000-0000-0000-0000-000000000002']);
+ assert.equal((await db.query('select count(*)::int n from teacher_sections')).rows[0].n,3);
+ await assert.rejects(db.query("select levelblue_create_section($1,'Sapphire','Cybersecurity','Grade 12')",['00000000-0000-0000-0000-000000000002']));
+ await db.query("select levelblue_faculty($1,$2,'Inactive',array[]::text[])",['00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000004']);
+ await db.query("select levelblue_faculty($1,$2,'Active',array[]::text[])",['00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000004']);
+ assert.equal((await db.query("select status from users where name='Invite'")).rows[0].status,'Invited');
+ assert.ok((await db.query('select * from staff_events')).rows.every(e=>e.actor_id&&e.created_at));
+ assert.equal((await db.query('select pre_completed_at from students limit 1')).rows[0].pre_completed_at,null);
+ }finally{await db.close();}
+});

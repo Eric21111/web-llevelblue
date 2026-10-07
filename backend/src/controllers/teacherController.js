@@ -1,5 +1,6 @@
 import { supabase } from "../config/db.js";
 import bcrypt from "bcryptjs";
+import { randomBytes } from "node:crypto";
 import { actorName } from "../utils/actor.js";
 
 // Helper: map Supabase user row to frontend-expected shape
@@ -61,12 +62,8 @@ export const addTeacher = async (req, res) => {
     }
 
     // Generate random 8-char password
-    const generatedPassword = Math.random().toString(36).slice(-8);
+    const generatedPassword = randomBytes(9).toString("base64url");
     const hashedPassword = await bcrypt.hash(generatedPassword, 10);
-
-    // Get current student statistics to pre-populate the display counts
-    const { data: studentsList } = await supabase.from("students").select("section");
-    const uniqueSections = new Set((studentsList || []).map((s) => s.section));
 
     const name = computeName(firstName.trim(), middleInitial?.trim(), lastName.trim());
 
@@ -80,9 +77,9 @@ export const addTeacher = async (req, res) => {
         email: email.toLowerCase().trim(),
         password: hashedPassword,
         role: "admin",
-        role_label: "Grade 10 Teacher",
-        sections: uniqueSections.size,
-        students: (studentsList || []).length,
+        role_label: "Teacher",
+        sections: 0,
+        students: 0,
         status: "Invited",
       })
       .select()

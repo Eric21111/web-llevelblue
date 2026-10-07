@@ -10,18 +10,14 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 }
 
 if (!SUPABASE_SERVICE_KEY) {
-  console.warn(
-    "WARNING: SUPABASE_SERVICE_KEY is not set. Falling back to anon key — " +
-    "inserts/updates may be blocked by Row Level Security (RLS). " +
-    "Add your service role key from: Supabase Dashboard → Settings → API → service_role"
-  );
+  throw new Error('SUPABASE_SERVICE_KEY is required for the staff workspace. Never put this key in the frontend.');
 }
 
 // Use the service role key on the backend to bypass RLS for trusted server operations.
 // Never expose this key in the frontend or client-side code.
 export const supabase = createClient(
   SUPABASE_URL,
-  SUPABASE_SERVICE_KEY || SUPABASE_ANON_KEY,
+  SUPABASE_SERVICE_KEY,
   {
     auth: {
       autoRefreshToken: false,

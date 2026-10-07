@@ -33,6 +33,7 @@ export const login = async (req, res) => {
     if (userLookupError) throw userLookupError;
 
     if (user) {
+      if (!['Active', 'Invited'].includes(user.status)) return res.status(403).json({error: 'This account is inactive. Contact your school head.'});
       // Passwords security match (supports plain-text auto-migration)
       const isBcrypt = user.password && (user.password.startsWith("$2a$") || user.password.startsWith("$2b$"));
       let isMatch = false;
@@ -214,7 +215,9 @@ export const registerSuperAdmin = async (req, res) => {
 // Update Profile controller
 export const updateProfile = async (req, res) => {
   try {
-    const { id, firstName, lastName, middleInitial, email, password, imageUrl } = req.body;
+    const { firstName, lastName, middleInitial, email, password, imageUrl } = req.body;
+    const id = req.user.id;
+    if (!['admin','super'].includes(req.user.role)) return res.status(403).json({error:'Staff profile required.'});
     if (!id || !email) {
       return res.status(400).json({ error: "User ID and Email are required" });
     }
@@ -276,7 +279,9 @@ export const updateProfile = async (req, res) => {
 // Complete Invite controller (force password change on first login)
 export const completeInvite = async (req, res) => {
   try {
-    const { id, password } = req.body;
+    const { password } = req.body;
+    const id = req.user.id;
+    if (req.user.role !== 'admin' || req.user.status !== 'Invited') return res.status(403).json({error:'An invited teacher account is required.'});
     if (!id || !password) {
       return res.status(400).json({ error: "User ID and new password are required" });
     }

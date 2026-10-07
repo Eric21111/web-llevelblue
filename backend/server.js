@@ -14,16 +14,15 @@ if (!process.env.JWT_SECRET) {
 
 // Import Routes
 import authRoutes from "./src/routes/authRoutes.js";
-import studentRoutes from "./src/routes/studentRoutes.js";
+import { createWorkspaceRoutes } from './src/routes/workspaceRoutes.js';
+import { createBountyRoutes } from './src/routes/scopedBounties.js';
+import { supabase } from './src/config/db.js';
+import { headOnly } from './src/services/access.js';
 import teacherRoutes from "./src/routes/teacherRoutes.js";
 import contentBankRoutes from "./src/routes/contentBankRoutes.js";
 import logRoutes from "./src/routes/logRoutes.js";
 import feedbackRoutes from "./src/routes/feedbackRoutes.js";
-import analyticsRoutes from "./src/routes/analyticsRoutes.js";
-import { getAnalyticsPreview } from "./src/controllers/analyticsController.js";
 import settingsRoutes from "./src/routes/settingsRoutes.js";
-import sectionsRoutes from "./src/routes/sectionsRoutes.js";
-import bountyRoutes from "./src/routes/bountyRoutes.js";
 import { authMiddleware } from "./src/middleware/auth.js";
 
 const app = express();
@@ -47,16 +46,24 @@ app.use(morgan("dev"));
 
 // ─── Mount Routes ─────────────────────────────────────────────────────────────
 app.use("/api/auth", authLimiter, authRoutes); // Rate-limit all auth endpoints
-app.use("/api/students", authMiddleware, studentRoutes);
-app.use("/api/teachers", authMiddleware, teacherRoutes);
-app.use("/api/content-bank", authMiddleware, contentBankRoutes);
-app.use("/api/system-logs", authMiddleware, logRoutes);
+
+
+app.use("/api/content-bank", authMiddleware, headOnly, contentBankRoutes);
+app.use("/api/system-logs", authMiddleware, headOnly, logRoutes);
 app.use("/api/usability-feedback", authMiddleware, feedbackRoutes);
-app.get("/api/analytics/preview", getAnalyticsPreview);
-app.use("/api/analytics", authMiddleware, analyticsRoutes);
-app.use("/api/settings", authMiddleware, settingsRoutes);
-app.use("/api/sections", authMiddleware, sectionsRoutes);
-app.use("/api/bounties", authMiddleware, bountyRoutes);
+
+
+app.use("/api/settings", authMiddleware, headOnly, settingsRoutes);
+
+app.use('/api/bounties', authMiddleware, createBountyRoutes(supabase));
+app.use('/api', authMiddleware, createWorkspaceRoutes(supabase));
+app.use('/api/teachers', headOnly, teacherRoutes);
+app.use((error, req, res, next) => {
+  console.error('Workspace request failed:', error.code || error.message);
+  if(res.headersSent) return next(error);
+  const setup=['42P01','42703','PGRST204','PGRST202'].includes(error.code);
+  res.status(error.status || (setup ? 503 : error.code==='23505' || error.code==='P0001' ? 409 : 500)).json({error: setup ? 'Web foundations are not configured yet. Apply the database migrations and assign faculty sections.' : error.status || error.code==='P0001' ? error.message : 'This request could not be completed. Please retry.'});
+});
 
 app.listen(PORT, () => {
   console.log(`Backend server running on http://localhost:${PORT}`);

@@ -46,7 +46,7 @@ export default function ConsoleLayout({ user, role, pages, pageIndex, currentPat
         <Notifications key={`${role}:${user?._id ?? user?.id ?? user?.email ?? "session"}`} user={user} role={role} currentPath={currentPath} onNavigate={onNavigate} />
         <button className="console-profile-button" aria-label="Open account settings" onClick={() => onNavigate("/settings")}><span className="dash-avatar">{initials(user?.name || user?.firstName)}</span></button>
       </div>
-    </header><main id="console-main" ref={mainRef} tabIndex={-1} className="console-main">{!["/dashboard", "/follow-ups", "/school-progress"].includes(page.path) && <div className="dash-page-intro"><span className="dash-eyebrow">{page.group}</span><h1>{page.label}</h1><p>{page.description}</p></div>}{children}</main></div>
+    </header><main id="console-main" ref={mainRef} tabIndex={-1} className="console-main">{!["/dashboard", "/follow-ups", "/school-progress", "/analytics", "/engagement", "/reports", "/interventions", "/sections"].includes(page.path) && <div className="dash-page-intro"><span className="dash-eyebrow">{page.group}</span><h1>{page.label}</h1><p>{page.description}</p></div>}{children}</main></div>
     {logoutOpen && <LogoutDialog onCancel={() => setLogoutOpen(false)} onConfirm={() => { setLogoutOpen(false); onLogout(); }} />}
   </div>;
 }

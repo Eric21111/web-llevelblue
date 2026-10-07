@@ -1,5 +1,6 @@
+import FacultyAssignments from "../../components/FacultyAssignments";
 import { useState, useEffect } from "react";
-import { Plus, Trash2, X, Copy, CheckCircle } from "lucide-react";
+import { Plus, X, Copy, CheckCircle } from "lucide-react";
 import Panel from "../../components/Panel";
 import { COLORS } from "../../constants/colors";
 import { apiFetch } from "../../utils/api";
@@ -18,6 +19,7 @@ const labelStyle = {
 export default function TeacherManagement() {
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Form states
@@ -34,9 +36,9 @@ export default function TeacherManagement() {
   const fetchTeachers = (silent = false) => {
     if (!silent) setLoading(true);
     apiFetch("/api/teachers")
-      .then((res) => res.json())
-      .then((data) => setTeachers(data || []))
-      .catch((err) => console.error("Error loading teachers:", err))
+      .then(async res => { const data=await res.json(); if(!res.ok) throw new Error(data.error || "Could not load teachers"); return data; })
+      .then((data) => { setTeachers(Array.isArray(data)?data:[]); setLoadError(""); })
+      .catch((err) => setLoadError(err.message))
       .finally(() => { if (!silent) setLoading(false); });
   };
 
@@ -93,26 +95,11 @@ export default function TeacherManagement() {
     }
   };
 
-  const handleDeleteTeacher = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this teacher account? This will also revoke their login access.")) return;
-    try {
-      const res = await apiFetch(`/api/teachers/${id}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        fetchTeachers();
-      } else {
-        const err = await res.json();
-        alert(err.error || "Failed to delete teacher");
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   return (
     <>
-      <Panel title="Teacher & Admin Accounts" sub="Manage access for teacher (admin) accounts across sections"
+      <FacultyAssignments />
+      {loadError && <p className="learning-alert" role="alert">{loadError}</p>}
+      <Panel title="Teacher Accounts" sub="Manage access for teacher (admin) accounts across sections"
         right={
           <button
             onClick={() => setShowCreateModal(true)}
@@ -134,12 +121,12 @@ export default function TeacherManagement() {
             No teacher accounts found. Create one using the button above.
           </div>
         ) : (
-          <>
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 2fr 1fr 1fr 1fr 0.4fr", gap: 8, padding: "0 12px 10px", fontFamily: "Inter", fontSize: 11, fontWeight: 700, color: COLORS.sub, letterSpacing: 0.4, textTransform: "uppercase", borderBottom: `1px solid ${COLORS.border}` }}>
+          <div style={{overflowX: "auto"}}>
+            <div style={{ minWidth:650, display: "grid", gridTemplateColumns: "2fr 2fr 1fr 1fr 1fr 0.4fr", gap: 8, padding: "0 12px 10px", fontFamily: "Inter", fontSize: 11, fontWeight: 700, color: COLORS.sub, letterSpacing: 0.4, textTransform: "uppercase", borderBottom: `1px solid ${COLORS.border}` }}>
               <div>Name</div><div>Email</div><div>Sections</div><div>Students</div><div>Status</div><div></div>
             </div>
             {teachers.map((t) => (
-              <div key={t._id || t.id} style={{ display: "grid", gridTemplateColumns: "2fr 2fr 1fr 1fr 1fr 0.4fr", gap: 8, alignItems: "center", padding: "12px 12px", borderBottom: `1px solid ${COLORS.border}` }}>
+              <div key={t._id || t.id} style={{ minWidth:650, display: "grid", gridTemplateColumns: "2fr 2fr 1fr 1fr 1fr 0.4fr", gap: 8, alignItems: "center", padding: "12px 12px", borderBottom: `1px solid ${COLORS.border}` }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ width: 28, height: 28, borderRadius: "50%", background: COLORS.panelAlt, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Space Grotesk', sans-serif", fontSize: 11, fontWeight: 700, color: COLORS.teal }}>
                     {(t.firstName?.[0] || "").toUpperCase()}{(t.lastName?.[0] || "").toUpperCase()}
@@ -154,12 +141,10 @@ export default function TeacherManagement() {
                   color: t.status === "Active" ? COLORS.teal : COLORS.amber,
                   background: t.status === "Active" ? "rgba(61,214,196,0.12)" : "rgba(242,169,59,0.12)",
                 }}>{t.status}</span>
-                <button onClick={() => handleDeleteTeacher(t._id || t.id)} style={{ background: "transparent", border: "none", cursor: "pointer", display: "flex", justifyContent: "center", padding: 4 }}>
-                  <Trash2 size={14} color={COLORS.coral} style={{ opacity: 0.7 }} />
-                </button>
+                <span />
               </div>
             ))}
-          </>
+          </div>
         )}
       </Panel>
 

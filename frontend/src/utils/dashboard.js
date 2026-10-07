@@ -1,7 +1,7 @@
 export const SKILLS = ["Phishing", "Smishing", "Vishing", "Pretexting", "Baiting"];
 export const DAY_MS = 86400000;
 export const studentId = student => String(student._id ?? student.id ?? "");
-export const hasStarted = student => Number(student.sessions) > 0 || Number(student.pre) > 0 || Object.values(student.mastery || {}).some(value => Number(value) > 0);
+export const hasStarted = student => Number(student.assessedTopics) > 0 || student.preAssessment?.confirmed || student.postAssessment?.confirmed || Number(student.sessions) > 0 || Number(student.pre) > 0 || Object.values(student.mastery || {}).some(value => Number(value) > 0);
 export const timestamp = value => value ? Date.parse(value) : NaN;
 export function activeThisWeek(student, now = Date.now()) {
   const time = timestamp(student.lastActive);
@@ -9,6 +9,7 @@ export function activeThisWeek(student, now = Date.now()) {
 }
 export function masteryPercent(student) {
   const values = SKILLS.map(skill => student.mastery?.[skill]);
+  if (student.assessedTopics !== undefined) { const recorded = values.filter(v => v !== null && v !== undefined); return recorded.length ? Math.round(recorded.reduce((a,b) => a+b,0)/recorded.length*100) : null; }
   if (!hasStarted(student) || values.some(value => value === null || value === undefined || !Number.isFinite(Number(value)))) return null;
   return Math.round(values.reduce((sum, value) => sum + Math.min(1, Math.max(0, Number(value))), 0) / SKILLS.length * 100);
 }

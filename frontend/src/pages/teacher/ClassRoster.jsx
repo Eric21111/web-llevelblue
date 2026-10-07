@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, Trash2, X, Copy, CheckCircle, UserPlus, UserMinus, Eye } from "lucide-react";
+import { Search, Plus, X, Copy, CheckCircle, UserPlus, UserMinus, Eye } from "lucide-react";
 import Panel from "../../components/Panel";
 import StatusPill from "../../components/StatusPill";
 import MiniRadar from "../../components/MiniRadar";
@@ -10,6 +10,7 @@ export default function ClassRoster() {
   const [students, setStudents] = useState([]);
   const [query, setQuery] = useState(() => new URLSearchParams(window.location.search).get("search") || "");
   const [loading, setLoading] = useState(true);
+  const [loadError,setLoadError]=useState("");
   const [showAddModal, setShowAddModal] = useState(false);
 
   // Form states
@@ -52,8 +53,8 @@ export default function ClassRoster() {
     if (!silent) setLoading(true);
     apiFetch("/api/students")
       .then((res) => res.json())
-      .then((data) => setStudents(Array.isArray(data) ? data : []))
-      .catch((err) => console.error("Error loading roster:", err))
+      .then((data) => { if(!Array.isArray(data)) throw new Error(data.error || "Could not load roster"); setStudents(data); setLoadError(""); })
+      .catch((err) => setLoadError(err.message))
       .finally(() => { if (!silent) setLoading(false); });
   };
 
@@ -64,7 +65,7 @@ export default function ClassRoster() {
         const mapping = {};
         if (Array.isArray(data)) {
           data.forEach((b) => {
-            if (b.status === "PENDING" || b.status === "AWAITING_LINK" || b.status === "ACCEPTED") {
+            if (!b.cancelled_at && (b.status === "PENDING" || b.status === "AWAITING_LINK" || b.status === "ACCEPTED")) {
               mapping[b.mentee_id] = b;
             }
           });
@@ -86,7 +87,7 @@ export default function ClassRoster() {
     apiFetch("/api/sections")
       .then((res) => res.json())
       .then((data) => {
-        setSectionsList(data || []);
+        setSectionsList(Array.isArray(data) ? data : []);
         if (data && data.length > 0) {
           setNewSection(data[0].name);
         }
@@ -116,7 +117,8 @@ export default function ClassRoster() {
           middleName: middleName.trim(),
           email: email.trim(),
           section: newSection,
-          gradeLevel: newGradeLevel,
+          gradeLevel: sectionsList.find(s=>s.name===newSection)?.gradeLevel,
+          sectionId: sectionsList.find(s=>s.name===newSection)?.id,
           technical: newTechnical,
         }),
       });
@@ -147,23 +149,6 @@ export default function ClassRoster() {
       setFormError(err.message);
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const handleDeleteStudent = async (id) => {
-    if (!window.confirm("Are you sure you want to remove this student?")) return;
-    try {
-      const res = await apiFetch(`/api/students/${id}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        fetchStudents();
-      } else {
-        const err = await res.json();
-        alert(err.error || "Failed to delete student");
-      }
-    } catch (err) {
-      console.error(err);
     }
   };
 
@@ -229,6 +214,7 @@ export default function ClassRoster() {
 
   return (
     <>
+      {loadError && <p className="learning-alert" role="alert">{loadError}</p>}
       <Panel title="Class Roster" sub={`${totalStudents} students across ${sections.length || 0} sections`}
         right={
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -260,13 +246,13 @@ export default function ClassRoster() {
         ) : (
           <>
             <div style={{ display: "grid", gridTemplateColumns: "2fr 1.2fr 0.8fr 1.2fr 1fr 0.8fr 0.8fr 0.9fr 0.8fr 0.6fr", gap: 8, padding: "0 12px 10px", fontFamily: "Inter", fontSize: 11, fontWeight: 700, color: COLORS.sub, letterSpacing: 0.4, textTransform: "uppercase", borderBottom: `1px solid ${COLORS.border}` }}>
-              <div>Student</div><div>Section</div><div>Mastery</div><div>Skill Radar</div><div>Pre→Post</div><div>Sessions</div><div>Points</div><div>BKT P(L)</div><div>Status</div><div></div>
+              <div>Student</div><div>Section</div><div>Mastery</div><div>Skill Radar</div><div>Recorded Pre→Post</div><div>Sessions</div><div>Points</div><div>BKT P(L)</div><div>Status</div><div></div>
             </div>
             {filtered.map(s => {
               const studentId = s._id || s.id;
               const mastery = s.mastery || {};
-              const masteryVals = Object.values(mastery).map((v) => Number(v) || 0);
-              const avg = Math.round((masteryVals.reduce((a, b) => a + b, 0) / 5) * 100) || 0;
+              const masteryVals = Object.values(mastery).filter(v=>v!==null && v!==undefined);
+              const avg = masteryVals.length ? Math.round(masteryVals.reduce((a,b)=>a+b,0)/masteryVals.length*100) : null;
               const points = Number(s.points) || 0;
               const section = s.section || "";
               return (
@@ -285,9 +271,9 @@ export default function ClassRoster() {
                     {section.includes(" - ") ? section.split(" - ")[1] : section}
                     {s.gradeLevel ? ` · ${s.gradeLevel}` : ""}
                   </div>
-                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 700, color: avg >= 70 ? COLORS.teal : avg >= 50 ? COLORS.amber : COLORS.coral }}>{avg}%</div>
-                  <MiniRadar data={mastery} />
-                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5, color: COLORS.sub }}>{s.pre ?? 0} → <span style={{ color: COLORS.text, fontWeight: 700 }}>{s.post ?? 0}</span></div>
+                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 700, color: avg >= 70 ? COLORS.teal : avg >= 50 ? COLORS.amber : COLORS.coral }}>{avg === null ? "—" : `${avg}%`}</div>
+                  {s.assessedTopics === 5 ? <MiniRadar data={mastery} /> : <span style={{fontSize:11,color:COLORS.sub}}>{s.assessedTopics || 0}/5 topics assessed</span>}
+                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5, color: COLORS.sub }}>{s.pre ?? "—"} → <span style={{ color: COLORS.text, fontWeight: 700 }}>{s.post ?? "—"}</span></div>
                   <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5, color: COLORS.sub }}>{s.sessions ?? 0}</div>
                   <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5, fontWeight: 700, color: COLORS.text }}>{points.toLocaleString()}</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -295,7 +281,7 @@ export default function ClassRoster() {
                       fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 700,
                       color: (s.bkt ?? avg / 100) < 0.40 ? COLORS.coral : (s.bkt ?? avg / 100) < 0.70 ? COLORS.amber : COLORS.teal
                     }}>
-                      {typeof s.bkt === "number" ? s.bkt.toFixed(3) : (avg / 100).toFixed(3)}
+                      {typeof s.bkt === "number" ? s.bkt.toFixed(3) : "—"}
                     </span>
                     <span style={{ fontSize: 9, fontFamily: "Inter", color: COLORS.sub, letterSpacing: 0.3 }}>P(L)</span>
                   </div>
@@ -316,9 +302,7 @@ export default function ClassRoster() {
                         </button>
                       )
                     )}
-                    <button onClick={() => handleDeleteStudent(studentId)} style={{ background: "transparent", border: "none", cursor: "pointer", display: "flex", justifyContent: "center", padding: 6 }}>
-                      <Trash2 size={14} color={COLORS.coral} style={{ opacity: 0.7 }} />
-                    </button>
+                    <span />
                   </div>
                 </div>
               );
@@ -382,7 +366,7 @@ export default function ClassRoster() {
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: COLORS.sub, display: "block", marginBottom: 5 }}>Grade Level *</label>
                   <select
-                    value={newGradeLevel} onChange={e => setNewGradeLevel(e.target.value)} required
+                    value={sectionsList.find(s=>s.name===newSection)?.gradeLevel || ""} disabled
                     style={{ width: "100%", padding: "10px 12px", background: COLORS.panelAlt, border: `1px solid ${COLORS.border}`, borderRadius: 8, color: COLORS.text, fontSize: 13, outline: "none" }}
                   >
                     <option value="Grade 12">Grade 12</option>
@@ -542,7 +526,7 @@ export default function ClassRoster() {
                             alert(err.error || "Failed to dispatch bounty");
                             return;
                           }
-                          setAssignedMentors(prev => ({ ...prev, [mentoringStudent._id || mentoringStudent.id]: data }));
+                          setAssignedMentors(prev => ({ ...prev, [mentoringStudent._id || mentoringStudent.id]: Array.isArray(data) ? data[0] : data }));
                           setShowMentorModal(false);
                           showToast("SUCCESS: Bounty dispatched to Mentor's Threat Log.");
                         } catch (err) {

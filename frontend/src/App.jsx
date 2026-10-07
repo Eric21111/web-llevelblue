@@ -17,11 +17,11 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 // Lazy load pages for code splitting and faster initial load
 const TeacherHome = lazy(() => import("./pages/teacher/TeacherHome"));
 const ClassRoster = lazy(() => import("./pages/teacher/ClassRoster"));
-const SkillAnalytics = lazy(() => import("./pages/teacher/SkillAnalytics"));
-const EngagementReports = lazy(() => import("./pages/teacher/EngagementReports"));
+const LearningWorkspace = lazy(() => import("./pages/LearningWorkspace"));
+
 const UsabilityFeedback = lazy(() => import("./pages/teacher/UsabilityFeedback"));
 const TeacherSettings = lazy(() => import("./pages/teacher/TeacherSettings"));
-const SectionsManagement = lazy(() => import("./pages/teacher/SectionsManagement"));
+const SectionsManagement = lazy(() => import("./pages/SectionWorkspace"));
 
 const SuperAdminHome = lazy(() => import("./pages/super/SuperAdminHome"));
 const TeacherManagement = lazy(() => import("./pages/super/TeacherManagement"));
@@ -95,16 +95,20 @@ function AppContent() {
   const teacherPages = [
     { label: "Dashboard", path: "/dashboard", group: "Overview", icon: LayoutDashboard, component: TeacherHome },
     { label: "Student Follow-ups", path: "/follow-ups", group: "Teaching & support", icon: ShieldAlert, component: TeacherHome, followUps: true },
+    { label: "Reviews & Remediation", path: "/interventions", group: "Teaching & support", icon: ClipboardList, component: LearningWorkspace, mode: "interventions" },
     { label: "Student Roster", path: "/roster", group: "Teaching & support", icon: Users, component: ClassRoster, description: "Manage student records and keep your learners connected." },
     { label: "Sections", path: "/sections", group: "Teaching & support", icon: GraduationCap, component: SectionsManagement, description: "Organize your classes and learning groups." },
-    { label: "Skill Insights", path: "/analytics", group: "Learning insights", icon: BookOpen, component: SkillAnalytics, description: "Explore strengths, learning gaps, and assessment results." },
-    { label: "Engagement", path: "/engagement", group: "Learning insights", icon: Activity, component: EngagementReports, description: "Understand participation and recent learning activity." },
-    { label: "Share Feedback", path: "/survey", group: "Workspace", icon: ClipboardList, component: UsabilityFeedback, description: "Help improve the learning experience for everyone." },
+    { label: "Classroom Diagnostics", path: "/analytics", group: "Learning insights", icon: BookOpen, component: LearningWorkspace, description: "Explore strengths, learning gaps, and assessment results." },
+    { label: "Learning Reports", path: "/engagement", group: "Learning insights", icon: Activity, component: LearningWorkspace, mode: "reports", description: "Export individual recorded learning evidence." },
+    { label: "Student Feedback & Usability", path: "/survey", group: "Teaching & support", icon: ClipboardList, component: UsabilityFeedback, description: "Understand student satisfaction, difficulty fit, and feedback from the mobile app." },
     { label: "Account Settings", path: "/settings", group: "Workspace", icon: Settings, component: TeacherSettings, description: "Manage your profile and sign-in details." },
   ];
   const schoolPages = [
     { label: "Dashboard", path: "/dashboard", group: "Overview", icon: LayoutDashboard, component: SuperAdminHome },
-    { label: "School Progress", path: "/school-progress", group: "School insights", icon: BarChart3, component: SuperAdminHome, progress: true },
+    { label: "School Progress", path: "/school-progress", group: "School insights", icon: BarChart3, component: LearningWorkspace },
+    { label: "Student Feedback & Usability", path: "/survey", group: "School insights", icon: ClipboardList, component: UsabilityFeedback, description: "Explore student experience across sections and training modules." },
+    { label: "Institutional Reports", path: "/reports", group: "School insights", icon: ClipboardList, component: LearningWorkspace, mode: "reports" },
+    { label: "Sections", path: "/sections", group: "Administration", icon: GraduationCap, component: SectionsManagement },
     { label: "Teacher Accounts", path: "/teachers", group: "Administration", icon: UserCog, component: TeacherManagement, description: "Manage teacher access and account invitations." },
     { label: "Training Content", path: "/content", group: "Administration", icon: Database, component: ContentBankManagement, description: "Review question coverage and maintain your training content." },
     { label: "Activity Log", path: "/logs", group: "Administration", icon: ServerCog, component: SystemLogs, description: "Keep track of account and content changes across your school." },
@@ -126,7 +130,7 @@ function AppContent() {
     <FontImports />
     <Suspense fallback={<div className="dash-empty" role="status">Loading your workspace…</div>}>
       <ErrorBoundary key={currentPath}>
-        <Active key={`${currentPath}${currentSearch}`} user={user} setUser={setUser} onNavigate={navigate} followUps={page.followUps} progress={page.progress} />
+        <Active key={`${currentPath}${currentSearch}`} user={user} setUser={setUser} onNavigate={navigate} followUps={page.followUps} progress={page.progress} mode={page.mode} />
       </ErrorBoundary>
     </Suspense>
   </ConsoleLayout></WorkspaceDataProvider>;

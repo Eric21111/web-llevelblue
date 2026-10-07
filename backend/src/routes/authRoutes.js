@@ -8,7 +8,7 @@ router.post("/login", login);
 router.post("/register-super-admin", registerSuperAdmin);
 router.get("/me", authMiddleware, getMe);
 router.put("/profile", authMiddleware, updateProfile);
-router.put("/complete-invite", completeInvite);
+router.put("/complete-invite", authMiddleware, completeInvite);
 router.post("/send-verification", sendVerificationCode);
 router.post("/verify-code", verifyCode);
 
