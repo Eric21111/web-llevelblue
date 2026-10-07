@@ -1,10 +1,11 @@
 import { useState, useEffect, Suspense, lazy } from "react";
 import {
   LayoutDashboard, Users, BookOpen, Activity, ClipboardList,
-  UserCog, Database, ServerCog, ChevronRight, Settings, GraduationCap
+  UserCog, Database, ServerCog, Settings, GraduationCap, ShieldAlert, BarChart3
 } from "lucide-react";
 import FontImports from "./components/FontImports";
-import Sidebar from "./components/Sidebar";
+import ConsoleLayout from "./components/ConsoleLayout";
+import { WorkspaceDataProvider } from "./context/WorkspaceDataContext";
 import LoginPage from "./pages/LoginPage";
 import LandingPage from "./pages/LandingPage";
 import SuperAdminSignupPage from "./pages/super/SuperAdminSignupPage";
@@ -31,10 +32,12 @@ const SuperAdminSettings = lazy(() => import("./pages/super/SuperAdminSettings")
 function AppContent() {
   const { authed, role, user, setUser, loadingSession, login, logout } = useAuth();
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
+  const [currentSearch, setCurrentSearch] = useState(window.location.search);
 
   useEffect(() => {
     const handleLocationChange = () => {
       setCurrentPath(window.location.pathname);
+      setCurrentSearch(window.location.search);
     };
     window.addEventListener("popstate", handleLocationChange);
     return () => window.removeEventListener("popstate", handleLocationChange);
@@ -45,6 +48,7 @@ function AppContent() {
     if (currentPath === "/" || currentPath === "/login") {
       window.history.pushState({}, "", "/dashboard");
       setCurrentPath("/dashboard");
+      setCurrentSearch("");
     }
   };
 
@@ -88,74 +92,46 @@ function AppContent() {
     );
   }
 
-  const adminPages = [
-    { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard, component: TeacherHome },
-    { label: "Class Roster", path: "/roster", icon: Users, component: ClassRoster },
-    { label: "Sections", path: "/sections", icon: GraduationCap, component: SectionsManagement },
-    { label: "Skill Analytics", path: "/analytics", icon: BookOpen, component: SkillAnalytics },
-    { label: "Engagement", path: "/engagement", icon: Activity, component: EngagementReports },
-    { label: "Usability Survey", path: "/survey", icon: ClipboardList, component: UsabilityFeedback },
-    { label: "Settings", path: "/settings", icon: Settings, component: TeacherSettings },
+  const teacherPages = [
+    { label: "Dashboard", path: "/dashboard", group: "Overview", icon: LayoutDashboard, component: TeacherHome },
+    { label: "Student Follow-ups", path: "/follow-ups", group: "Teaching & support", icon: ShieldAlert, component: TeacherHome, followUps: true },
+    { label: "Student Roster", path: "/roster", group: "Teaching & support", icon: Users, component: ClassRoster, description: "Manage student records and keep your learners connected." },
+    { label: "Sections", path: "/sections", group: "Teaching & support", icon: GraduationCap, component: SectionsManagement, description: "Organize your classes and learning groups." },
+    { label: "Skill Insights", path: "/analytics", group: "Learning insights", icon: BookOpen, component: SkillAnalytics, description: "Explore strengths, learning gaps, and assessment results." },
+    { label: "Engagement", path: "/engagement", group: "Learning insights", icon: Activity, component: EngagementReports, description: "Understand participation and recent learning activity." },
+    { label: "Share Feedback", path: "/survey", group: "Workspace", icon: ClipboardList, component: UsabilityFeedback, description: "Help improve the learning experience for everyone." },
+    { label: "Account Settings", path: "/settings", group: "Workspace", icon: Settings, component: TeacherSettings, description: "Manage your profile and sign-in details." },
   ];
-
-  const superPages = [
-    { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard, component: SuperAdminHome },
-    { label: "Teacher Accounts", path: "/teachers", icon: UserCog, component: TeacherManagement },
-    { label: "Content Bank", path: "/content", icon: Database, component: ContentBankManagement },
-    { label: "System Logs", path: "/logs", icon: ServerCog, component: SystemLogs },
-    { label: "Settings", path: "/settings", icon: Settings, component: SuperAdminSettings },
+  const schoolPages = [
+    { label: "Dashboard", path: "/dashboard", group: "Overview", icon: LayoutDashboard, component: SuperAdminHome },
+    { label: "School Progress", path: "/school-progress", group: "School insights", icon: BarChart3, component: SuperAdminHome, progress: true },
+    { label: "Teacher Accounts", path: "/teachers", group: "Administration", icon: UserCog, component: TeacherManagement, description: "Manage teacher access and account invitations." },
+    { label: "Training Content", path: "/content", group: "Administration", icon: Database, component: ContentBankManagement, description: "Review question coverage and maintain your training content." },
+    { label: "Activity Log", path: "/logs", group: "Administration", icon: ServerCog, component: SystemLogs, description: "Keep track of account and content changes across your school." },
+    { label: "Account Settings", path: "/settings", group: "Workspace", icon: Settings, component: SuperAdminSettings, description: "Manage your profile and school administration settings." },
   ];
-
-  const pages = role === "admin" ? adminPages : superPages;
-  let pageIndex = pages.findIndex(p => p.path === currentPath);
-  if (pageIndex === -1) pageIndex = 0;
-
-  const Active = pages[pageIndex].component;
-  const pageMeta = pages[pageIndex];
-
-  const handleSetPage = (index) => {
-    const targetPath = pages[index]?.path || "/dashboard";
-    window.history.pushState({}, "", targetPath);
-    setCurrentPath(targetPath);
+  const pages = role === "admin" ? teacherPages : schoolPages;
+  const pageIndex = Math.max(0, pages.findIndex(page => page.path === currentPath));
+  const page = pages[pageIndex];
+  const Active = page.component;
+  const navigate = target => {
+    const path = target.split("?")[0];
+    if (!pages.some(item => item.path === path)) return;
+    window.history.pushState({}, "", target);
+    setCurrentPath(path);
+    setCurrentSearch(window.location.search);
   };
 
-  return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: COLORS.bg, color: COLORS.text }}>
-      <FontImports />
-      <Sidebar role={role} user={user} page={pageIndex} setPage={handleSetPage} pages={pages} onLogout={handleLogout} />
-      <div style={{ flex: 1, padding: "26px 32px", overflowY: "auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
-          <div>
-            <div style={{ fontFamily: "Inter", fontSize: 12, color: COLORS.sub, marginBottom: 3, display: "flex", alignItems: "center", gap: 6 }}>
-              {role === "admin" ? "Teacher Console" : "Super Admin Console"} <ChevronRight size={12} /> {pageMeta.label}
-            </div>
-            <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 24, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>
-              {pageMeta.label}
-            </h1>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontFamily: "Inter", fontSize: 12, color: COLORS.sub }}>ZCSPC · S.Y. 2025-2026</span>
-          </div>
-        </div>
-        <Suspense fallback={
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%", color: COLORS.sub, fontFamily: "Inter, sans-serif" }}>
-            Loading...
-          </div>
-        }>
-          <ErrorBoundary>
-            <Active user={user} setUser={setUser} />
-          </ErrorBoundary>
-        </Suspense>
-      </div>
-    </div>
-  );
+  return <WorkspaceDataProvider key={`${role}:${user?._id ?? user?.id ?? user?.email ?? "session"}`} role={role}><ConsoleLayout user={user} role={role} pages={pages} pageIndex={pageIndex} currentPath={`${currentPath}${currentSearch}`} onNavigate={navigate} onLogout={handleLogout}>
+    <FontImports />
+    <Suspense fallback={<div className="dash-empty" role="status">Loading your workspace…</div>}>
+      <ErrorBoundary key={currentPath}>
+        <Active key={`${currentPath}${currentSearch}`} user={user} setUser={setUser} onNavigate={navigate} followUps={page.followUps} progress={page.progress} />
+      </ErrorBoundary>
+    </Suspense>
+  </ConsoleLayout></WorkspaceDataProvider>;
 }
 
 export default function App() {
-  return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
-  );
+  return <AuthProvider><AppContent /></AuthProvider>;
 }
-

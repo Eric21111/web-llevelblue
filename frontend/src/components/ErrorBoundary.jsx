@@ -1,4 +1,5 @@
 import React from "react";
+import { COLORS } from "../constants/colors";
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -30,7 +31,7 @@ class ErrorBoundary extends React.Component {
             height: "100%",
             gap: 16,
             fontFamily: "Inter, sans-serif",
-            color: "#E7EBF3",
+            color: COLORS.text,
             padding: "40px",
             textAlign: "center",
           }}
@@ -39,15 +40,15 @@ class ErrorBoundary extends React.Component {
           <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>
             Something went wrong
           </h2>
-          <p style={{ color: "#8C9BBF", fontSize: 14, maxWidth: 400, margin: 0 }}>
+          <p style={{ color: COLORS.sub, fontSize: 14, maxWidth: 400, margin: 0 }}>
             This page encountered an unexpected error. You can try reloading, or
             navigate to a different section.
           </p>
           {import.meta.env.DEV && this.state.error && (
             <pre
               style={{
-                background: "#172238",
-                border: "1px solid #26334F",
+                background: COLORS.panelAlt,
+                border: `1px solid ${COLORS.border}`,
                 borderRadius: 8,
                 padding: "12px 16px",
                 fontSize: 12,

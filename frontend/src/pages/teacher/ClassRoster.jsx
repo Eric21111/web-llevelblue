@@ -8,7 +8,7 @@ import { apiFetch } from "../../utils/api";
 
 export default function ClassRoster() {
   const [students, setStudents] = useState([]);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(() => new URLSearchParams(window.location.search).get("search") || "");
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
 
