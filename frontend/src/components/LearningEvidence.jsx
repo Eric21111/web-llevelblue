@@ -21,6 +21,12 @@ export default function LearningEvidence({data:provided,compact=false,sectionNam
  const pairs=students.flatMap(s=>(s.evidence?.pairs||[]).map(p=>({...p,name:s.name})));
  const finished=attempts.filter(r=>['cleared','failed'].includes(r.data.outcome));
  const cleared=finished.filter(r=>r.data.outcome==='cleared');
+ const learnerDays=new Map();
+ if(learner)for(const r of students.flatMap(s=>s.evidence.observations)){
+  const day=new Date(r.occurred_at).toISOString().slice(0,10);
+  learnerDays.set(`${day}:${r.data.topic}`,{date:day,topic:r.data.topic,assessed:1,mastery:r.data.mastery});
+ }
+ const trends=learner?[...learnerDays.values()]:data.evidence.trends;
  return <section className="learning-card learning-evidence">
   <h2>Recorded learning outcomes</h2><p>Evidence received from the mobile app. Earlier activity may not have records.</p>
   <div className="learning-stats"><article><span>Completed assessments</span><strong>{assessments.length}</strong></article><article><span>Recorded attempts</span><strong>{attempts.length}</strong></article><article><span>Cleared / finished attempts</span><strong>{cleared.length} / {finished.length}</strong><small>{percent(finished.length?cleared.length/finished.length:null)}</small></article><article><span>Comparable module pairs</span><strong>{pairs.length}</strong></article></div>
@@ -31,7 +37,7 @@ export default function LearningEvidence({data:provided,compact=false,sectionNam
    <h3>Comparable learning gains</h3>{!pairs.length?<p>No confirmed comparable pair yet. Pre-tests, lesson checkpoints, and stage exams use different instruments; equal percentage scales alone do not establish comparability.</p>:<ul>{pairs.map((p,i)=><li key={i}>{p.name} · {p.moduleId}: {p.pre.toFixed(1)} → {p.post.toFixed(1)} ({p.gain.toFixed(1)} gain, {p.scale})</li>)}</ul>}
    <h3>Stage attempts</h3>{!attempts.length?<p className="dash-empty">No recorded stage attempts.</p>:<div className="learning-table-wrap" tabIndex={0} aria-label="Stage attempt records"><table className="learning-table"><thead><tr><th>Learner</th><th>Topic / stage</th><th>Outcome</th><th>Device time</th></tr></thead><tbody>{attempts.map(r=><tr key={r.id}><th>{r.name}</th><td>{r.data.topic} · {r.data.stage}</td><td>{r.data.outcome==='started'?'No result received':r.data.outcome==='abandoned'?'Left before result':r.data.outcome}</td><td>{date(r.occurred_at)}</td></tr>)}</tbody></table></div>}
    <h3>Dated mastery observations</h3><p>Daily mean of each learner’s last observation for that topic. Participants may differ between dates; this is not a matched-cohort gain.</p>
-   {!data.evidence.trends.length?<p className="dash-empty">No dated observations yet.</p>:<div className="learning-table-wrap" tabIndex={0} aria-label="Dated mastery observations"><table className="learning-table"><thead><tr><th>Date (UTC)</th><th>Topic</th><th>Learners observed</th><th>Mean mastery</th></tr></thead><tbody>{(learner?students.flatMap(s=>s.evidence.observations.map(r=>({date:date(r.occurred_at),topic:r.data.topic,assessed:1,mastery:r.data.mastery}))):data.evidence.trends).map((r,i)=><tr key={i}><td>{r.date}</td><th>{r.topic}</th><td>{r.assessed}</td><td>{percent(r.mastery)}</td></tr>)}</tbody></table></div>}
+   {!trends.length?<p className="dash-empty">No dated observations yet.</p>:<div className="learning-table-wrap" tabIndex={0} aria-label="Dated mastery observations"><table className="learning-table"><thead><tr><th>Date (UTC)</th><th>Topic</th><th>Learners observed</th><th>Mean mastery</th></tr></thead><tbody>{trends.map((r,i)=><tr key={i}><td>{r.date}</td><th>{r.topic}</th><td>{r.assessed}</td><td>{percent(r.mastery)}</td></tr>)}</tbody></table></div>}
   </>}
   {!compact&&<p className="dash-footnote">{data.evidence.limitation}</p>}
  </section>;
