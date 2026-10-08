@@ -1,3 +1,4 @@
+import LearningEvidence from '../../components/LearningEvidence';
 import { useState } from "react";
 import { Activity, BookOpen, ClipboardCheck, GraduationCap, ShieldAlert, Users, ArrowUpRight, Search } from "lucide-react";
 import { useWorkspaceData } from "../../context/WorkspaceDataContext";
@@ -26,7 +27,7 @@ export default function TeacherHome({ user, onNavigate, followUps = false }) {
       { value: riskUnavailable ? null : summary.needsSupport.length, label: "Need support", note: "One or more skills below 40%" },
     ]} />}
     {followUps && <div className="dash-page-intro"><span className="dash-eyebrow">TEACHING & SUPPORT</span><h1>Student follow-ups</h1><button className="learning-button" onClick={() => onNavigate("/interventions")}>Record a review or remediation</button><p>See who needs more practice and open their record to plan your next step.</p></div>}
-    <DashboardToolbar title={followUps ? "Students who need your attention" : "Your teaching overview"} state={state}><label className="dash-filter"><span className="dash-sr-only">Filter by section</span><GraduationCap size={15} /><select value={section} onChange={event => setSection(event.target.value)}><option value="">All sections</option>{sections.map(name => <option key={name}>{name}</option>)}</select></label></DashboardToolbar>
+    <DashboardToolbar title={followUps ? "Students who need your attention" : "Your teaching overview"} state={state}><label className="dash-filter"><span className="dash-sr-only">Filter by section</span><GraduationCap size={15} /><select value={section} onChange={event => setSection(event.target.value)}><option value="">All sections</option>{sections.map(name => <option key={name}>{name}</option>)}</select></label></DashboardToolbar><LearningEvidence compact sectionName={section} onNavigate={onNavigate}/>
     {followUps ? <DashboardCard icon={ShieldAlert} title="Learning support" description="Flagged when at least one recorded skill is below 40% mastery, after learning has started."><label className="dash-search-inline"><Search size={16} /><input aria-label="Search follow-up students" placeholder="Search by student or section…" value={query} onChange={event => setQuery(event.target.value)} /></label><DataState state={state} sources={["students", "risk"]}>{query && !needingHelp.length ? <EmptyState title="No matching students" text="Try a different name or section." /> : <StudentTable students={needingHelp} risk={state.data.risk} onNavigate={onNavigate} followUps />}</DataState></DashboardCard> : <>
       <div className="dash-grid">
         <div className="dash-column">

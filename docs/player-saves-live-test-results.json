@@ -1,0 +1,36 @@
+{
+  "checks": [
+    "player_saves is available through the database API",
+    "Temporary learner authenticates through the mobile API",
+    "Temporary learner authenticates through the mobile API",
+    "A fresh learner has no cloud save",
+    "Anonymous save reads are denied",
+    "Anonymous save writes are denied",
+    "First progress upload succeeds",
+    "Saved progress reads back successfully",
+    "Zero currency values and unlocked entries survive the round trip",
+    "Pre-test flags and extra save fields are preserved",
+    "A second upload updates the same student save",
+    "Latest values are returned and omitted pre-test flags are retained",
+    "Exactly one timestamped save exists for the learner",
+    "Mastery updates do not duplicate BKT topic rows",
+    "Student mastery and stage reflect the saved snapshot",
+    "A new login retrieves the same cloud save",
+    "Another learner cannot read the save by changing a query parameter",
+    "Direct anonymous database access is denied",
+    "Existing students records are unchanged",
+    "Existing bkt_records records are unchanged",
+    "Existing player_saves records are unchanged"
+  ],
+  "cleanup": [
+    "player_saves: removed temporary record(s)",
+    "bkt_records: removed temporary record(s)",
+    "students: removed temporary record(s)",
+    "player_saves: removed temporary record(s)",
+    "bkt_records: removed temporary record(s)",
+    "students: removed temporary record(s)"
+  ],
+  "errors": [],
+  "completedAt": "2026-10-08T09:08:08.883Z",
+  "passed": true
+}

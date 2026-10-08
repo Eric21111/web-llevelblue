@@ -6,11 +6,11 @@ The exact additions and replacements to GDScript are recorded in [mobile-curricu
 
 ## Enable the feature
 
-1. In the shared Supabase project, run `backend/migrations/20261008_curriculum.sql` after the two existing web-foundation migrations. The migration is additive and safe to run again; it creates curriculum tables and server-only functions. No existing learning data is rewritten. This new migration has been tested in an isolated PostgreSQL environment; it has **not** been applied to the live school database by this task.
+1. In the shared Supabase project, run `backend/migrations/20261008_curriculum.sql` after the two existing web-foundation migrations. The migration is additive and safe to run again; it creates curriculum tables and server-only functions. No existing learning data is rewritten. The user applied this migration; its catalog function and workflow were verified against the live school database on October 8, 2026.
 2. Restart the Express web backend and the Python mobile API. Both must point to the same school's Supabase project, using their existing server-side service credentials. Never put the Supabase service key in Godot or a web bundle.
 3. Run the updated Godot project at `C:/Users/John Lloyd/OneDrive/Documents/level-blue/frontend`, or export a new mobile build. Existing installed builds do not contain the reader.
 4. For a physical phone, the Godot `levelblue/api_base_url` setting must reach the Python mobile API; `127.0.0.1` refers to the phone itself. Keep the web and mobile APIs' existing authentication configuration.
-5. Smoke-test with an actual teacher draft and head review after migration, then sign in as a student and open **School Content** from Lessons or Codex. Refresh retrieves the latest published release. No real school content was published during automated verification.
+5. Smoke-test with an actual teacher draft and head review after migration, then sign in as a student and open **School Content** from Lessons or Codex. Refresh retrieves the latest published release. A clearly labeled temporary verification lesson was published during the live smoke test and then removed, together with its revisions, audit records, and temporary learner.
 
 ## Staff workflow
 
@@ -56,6 +56,21 @@ The Godot verification uses in-memory fixtures and checks schema validation, top
 
 Final results: 34 web tests passed, the Vite production build passed, all 4 mobile content API tests passed, and Godot School Content, Lessons (30 topics), and Codex (7 entries) verification scripts completed with zero failures. The new reader's rendered portrait and landscape layouts were inspected and its landscape controls adjusted to preserve reading space.
 
-The broader existing mobile Python suite has 11 failing assertions and 1 error in decision-scenario/trace-selector tests. The same 12 failures were reproduced from the unchanged committed baseline in an isolated temporary checkout. They are not introduced by this feature. Interactive web browser verification was unavailable because the browser automation runtime failed to start. Production database/mobile-device delivery remains pending the new migration and restart/rebuild steps above.
+The broader existing mobile Python suite has 11 failing assertions and 1 error in decision-scenario/trace-selector tests. The same 12 failures were reproduced from the unchanged committed baseline in an isolated temporary checkout. They are not introduced by this feature. Browser verification subsequently succeeded on October 8, 2026: teacher login, draft save/submission, head approval, and explicit publication confirmation were exercised through the real UI. A real temporary student login retrieved the publication through the Python API, and the Godot client fetched and rendered it. All 21 live checks passed; see `curriculum-live-test-results.json`. Existing student and BKT records matched fresh before/after checksums after fixture cleanup. This used the local Godot runtime, not an installed physical-phone build. At the time of the curriculum test, the shared database lacked `player_saves` (PGRST205). The follow-up below resolves that separate cloud-save issue.
+
+### Cloud-save follow-up (October 8, 2026)
+
+The user subsequently applied `backend/migrations/20261008_player_saves.sql`. The table is now available. Live testing also uncovered an existing repeated-upload failure: BKT upserts defaulted to the record ID instead of the unique student/topic pair. The mobile backend's gameplay, assessment, and pre-test writers now explicitly use `on_conflict="student_id,topic"`.
+
+All 17 focused Python save/mastery tests passed. All 21 live save checks passed; see `player-saves-live-test-results.json`. They cover initial upload, repeated updates, retrieval after a fresh login, zero values, retained pre-test flags and unlocks, one save per learner, BKT consistency, and anonymous/cross-account read restrictions. Temporary learners and their records were removed; existing students, BKT records, and saves matched their before/after checksums. Verification exercised the local mobile API against the shared database, not a physical-phone build. No further SQL is required for this fix.
+
+To repeat this integration check, start the updated Python API on port 8000 and run from the web `backend` directory:
+
+```powershell
+$env:LEVELBLUE_RUN_LIVE_SAVE_TEST='1'
+node tests/player-saves-live-smoke.mjs
+```
 
 Promotion, broadcasts, assessment completion telemetry, and engagement oversight remain separate milestones.
+
+A UI issue found during testing was corrected: approval/publication responses now retain the teacher display name already loaded into the content list. The production build passed afterward.

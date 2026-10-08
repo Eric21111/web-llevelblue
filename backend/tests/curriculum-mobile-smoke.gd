@@ -17,6 +17,10 @@ func _run() -> void:
 	var auth: Node = root.get_node("AuthService")
 	var db: Node = root.get_node("ContentDB")
 	var player: Node = root.get_node("PlayerManager")
+	# This reader test must not hydrate or replace the desktop user's saved game.
+	var hydrate: Callable = Callable(player, "_on_session_changed")
+	if auth.session_changed.is_connected(hydrate):
+		auth.session_changed.disconnect(hydrate)
 	var before: Dictionary = {"mastery":player.mastery_matrix.duplicate(true), "cleared":player.cleared_stages.duplicate(true), "unlocks":player.unlocked_skills.duplicate()}
 	auth.set("_token", token)
 	auth.set("_signed_in", true)

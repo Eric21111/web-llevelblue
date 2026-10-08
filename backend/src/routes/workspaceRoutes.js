@@ -4,6 +4,7 @@ import { randomBytes } from 'node:crypto';
 import { fail, result, allRows, rowsForIds, handler, staffOnly, headOnly, sectionScope, learners, requireLearner } from '../services/access.js';
 import { TOPICS, topicSummary, mapLearner } from '../services/learning.js';
 import { exportReport } from '../services/reports.js';
+import { attachLearningEvidence, RECORD_LIMITATION } from '../services/learningRecords.js';
 
 export function createWorkspaceRoutes(db) {
   const router=express.Router();
@@ -64,8 +65,8 @@ export function createWorkspaceRoutes(db) {
   router.delete('/teachers/:id',headOnly,(req,res)=>res.status(409).json({error:'Deactivate the teacher to preserve assignment and review history.'}));
   router.get('/analytics/at-risk',handler(async(req,res)=>res.json((await learners(db,req.user,req.query)).students.filter(s=>s.failedTopics.length).map(s=>({...s,id:s._id,weakTopics:s.failedTopics,failingSkills:s.failedTopics})))));
   router.get('/analytics',handler(async(req,res)=>{
-    const data=await learners(db,req.user,req.query);
-    res.json({...data,topics:topicSummary(data.students),comparisons:data.sections.map(s=>({id:s.scope_id,name:s.name,grade:s.grade_level,topics:topicSummary(data.students.filter(l=>l.sectionId===s.scope_id))})),grades:['Grade 11','Grade 12'].map(grade=>({grade,topics:topicSummary(data.students.filter(s=>s.gradeLevel===grade))})),limitations:['Historical mastery, stage attempts and simulation clearance are not connected.','Legacy scores without completion metadata are unconfirmed; learning gains require paired assessments on the same scale.']});
+    const data=await attachLearningEvidence(db,await learners(db,req.user,req.query));
+    res.json({...data,topics:topicSummary(data.students),comparisons:data.sections.map(s=>({id:s.scope_id,name:s.name,grade:s.grade_level,topics:topicSummary(data.students.filter(l=>l.sectionId===s.scope_id))})),grades:['Grade 11','Grade 12'].map(grade=>({grade,topics:topicSummary(data.students.filter(s=>s.gradeLevel===grade))})),limitations:[RECORD_LIMITATION,'Legacy scores without completion metadata are unconfirmed; learning gains require paired assessments on the same scale.']});
   }));
   router.get('/interventions',handler(async(req,res)=>{
     const {sections,students}=await learners(db,req.user,req.query);
@@ -105,7 +106,7 @@ export function createWorkspaceRoutes(db) {
     data.interventions=data.interventions.filter(i=>allowed.has(i.section_id));
     data.feedback=(await rowsForIds(db,'feedback','student_id',ids,'student_id,section_id,respondent_role')).filter(f=>f.respondent_role==='student');
     data.feedback=data.feedback.filter(f=>allowed.has(f.section_id));
-    exportReport(req,res,data);
+    exportReport(req,res,await attachLearningEvidence(db,data));
   }));
   return router;
 }

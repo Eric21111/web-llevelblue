@@ -1,0 +1,374 @@
+--- a/src/autoload/player_manager.gd
++++ b/src/autoload/player_manager.gd
+@@ -217,6 +217,7 @@
+ 		return false
+ 	if get_lesson_progress(module_id) < LessonCatalog.lesson_count(module_id):
+ 		return false
++	record_learning_event("posttest", module_id, {"attempt_id":learning_id(), "instrument":"lesson-checkpoint-v1", "correct":score, "answered":answered, "total":25})
+ 	if score > int(lesson_post_quiz_scores.get(module_id, 0)):
+ 		lesson_post_quiz_scores[module_id] = score
+ 		_save_progress()
+@@ -261,6 +262,7 @@
+ 
+ 
+ func reset_to_defaults() -> void:
++	learning_events.clear()
+ 	max_stage_cleared_by_module.clear()
+ 	credits = 0
+ 	pvp_tokens = 0
+@@ -754,6 +756,7 @@
+ 	var p_post: float = _posterior(p_learned, is_correct, p_guess, p_slip)
+ 	var new_mastery: float = clampf(p_post + ((1.0 - p_post) * p_transit), MIN_MASTERY, MAX_MASTERY)
+ 	mastery_matrix[key] = new_mastery
++	record_learning_event("mastery", str(LEARNING_MODULES.get(key, "")), {"mastery":new_mastery}, false)
+ 	print(
+ 		"[BKT] local %s %s  P(L) %.3f -> %.3f  (G=%.2f S=%.2f T=%.2f)"
+ 		% [key, "hit" if is_correct else "miss", p_learned, new_mastery, p_guess, p_slip, p_transit]
+@@ -855,6 +858,7 @@
+ 
+ func get_save_data() -> Dictionary:
+ 	return {
++		"learning_events": learning_events.duplicate(true),
+ 		"max_stage_cleared_by_module": max_stage_cleared_by_module.duplicate(true),
+ 		# Legacy field kept for older clients/detection only (see
+ 		# SaveService._looks_like_save()); it mirrors Module 1's own ceiling,
+@@ -888,6 +892,12 @@
+ 
+ 
+ func apply_save_data(data: Dictionary) -> void:
++	learning_events.clear()
++	var events: Variant = data.get("learning_events", [])
++	if events is Array:
++		for event: Variant in events:
++			if event is Dictionary:
++				learning_events.append(event.duplicate(true))
+ 	# Missing/malformed legacy wallet always means zero, never Solo conversion.
+ 	pvp_tokens = 0
+ 	var tokens_raw: Variant = data.get("pvp_tokens", 0)
+@@ -1144,3 +1154,39 @@
+ 		unlocked_towers.append("scanner")
+ 	if evo >= 2 and not unlocked_towers.has("sandbox"):
+ 		unlocked_towers.append("sandbox")
++
++
++# Learning evidence is account-scoped and travels with the existing offline save.
++var learning_events: Array[Dictionary] = []
++const LEARNING_MODULES: Dictionary = {"phishing":"mod_01", "smishing":"mod_02", "vishing":"mod_03", "pretexting":"mod_04", "baiting":"mod_05"}
++
++func learning_id() -> String:
++	var value: String = Crypto.new().generate_random_bytes(16).hex_encode()
++	return "%s-%s-4%s-a%s-%s" % [value.substr(0,8), value.substr(8,4), value.substr(13,3), value.substr(17,3), value.substr(20,12)]
++
++func record_learning_event(kind: String, module_id: String, fields: Dictionary, persist: bool = true) -> void:
++	if not AuthService.is_signed_in() or module_id not in LEARNING_MODULES.values():
++		return
++	var event: Dictionary = fields.duplicate(true)
++	event.merge({"event_id":learning_id(), "kind":kind, "module_id":module_id, "occurred_at":Time.get_datetime_string_from_system(true) + "Z"}, true)
++	learning_events.append(event)
++	if persist:
++		_save_progress()
++
++func begin_learning_attempt(module_id: String, stage_id: int) -> String:
++	if not AuthService.is_signed_in():
++		return ""
++	var attempt: String = learning_id()
++	record_learning_event("stage", module_id, {"attempt_id":attempt, "stage":stage_id, "outcome":"started"})
++	return attempt
++
++func finish_learning_attempt(attempt: String, module_id: String, stage_id: int, outcome: String) -> void:
++	if not attempt.is_empty():
++		record_learning_event("stage", module_id, {"attempt_id":attempt, "stage":stage_id, "outcome":outcome})
++
++func acknowledge_learning_events(ids: Array) -> void:
++	var remaining: Array[Dictionary] = []
++	for event: Dictionary in learning_events:
++		if event.get("event_id", "") not in ids:
++			remaining.append(event)
++	learning_events = remaining
+--- a/src/autoload/auth_service.gd
++++ b/src/autoload/auth_service.gd
+@@ -441,6 +441,7 @@
+ 		return Result.OK
+ 	if not _apply_local_pretest(module_id, answers):
+ 		return Result.UNKNOWN
++	PlayerManager.record_learning_event("pretest", module_id, {"answers":answers})
+ 	_pending_pretest[module_id] = answers
+ 	_persist(_signed_in, false, true)
+ 	session_changed.emit(_signed_in)
+--- a/src/autoload/save_service.gd
++++ b/src/autoload/save_service.gd
+@@ -18,6 +18,7 @@
+ var _fetch_in_flight: bool = false
+ var _last_fetch_ok: bool = false
+ var _retry_left: float = 0.0
++var _learning_session: String = ""
+ 
+ 
+ func _ready() -> void:
+@@ -32,6 +33,8 @@
+ 	_http_fetch.use_threads = true
+ 	add_child(_http_fetch)
+ 	_http_fetch.request_completed.connect(_on_fetch_completed)
++	_learning_session = AuthService.participant_code()
++	AuthService.session_changed.connect(_learning_session_changed)
+ 	set_process(true)
+ 
+ 
+@@ -62,7 +65,7 @@
+ 	await get_tree().process_frame
+ 
+ 
+-func save_game() -> void:
++func save_game(sync_cloud: bool = true) -> void:
+ 	var data: Dictionary = PlayerManager.get_save_data()
+ 	var json_string: String = JSON.stringify(data)
+ 	var path: String = _resolve_save_path()
+@@ -72,6 +75,8 @@
+ 		return
+ 	file.store_string(json_string)
+ 	file.close()
++	if not sync_cloud:
++		return
+ 	print("[SaveService] Game saved successfully. path=", path)
+ 	if AuthService.is_signed_in():
+ 		StudentDatabase.mark_needs_sync(AuthService.participant_code())
+@@ -149,6 +154,9 @@
+ 		_finish_fetch(false)
+ 		return
+ 
++	if StudentDatabase.has_pending_sync(AuthService.participant_code()):
++		_finish_fetch(false)
++		return
+ 	var json_string: String = body.get_string_from_utf8()
+ 	if json_string.strip_edges().is_empty() or json_string.strip_edges() == "null":
+ 		print("[SaveService] No cloud save exists yet. Loading local fallback.")
+@@ -222,6 +230,7 @@
+ 		return
+ 
+ 	var data: Dictionary = PlayerManager.get_save_data()
++	data["learning_events"] = PlayerManager.learning_events.slice(0, 100)
+ 	data["student"] = AuthService.cloud_sync_payload()
+ 	data["module_pretests"] = AuthService.completed_module_pretest_ids()
+ 	var json_string: String = JSON.stringify(data)
+@@ -244,7 +253,7 @@
+ 	result: int,
+ 	response_code: int,
+ 	_headers: PackedStringArray,
+-	_body: PackedByteArray,
++	body: PackedByteArray,
+ ) -> void:
+ 	_sync_in_flight = false
+ 	var ok: bool = result == HTTPRequest.RESULT_SUCCESS and response_code >= 200 and response_code < 300
+@@ -253,8 +262,17 @@
+ 		StudentDatabase.mark_needs_sync(AuthService.participant_code())
+ 		_retry_left = RETRY_SEC
+ 	elif ok:
++		var response: Variant = JSON.parse_string(body.get_string_from_utf8())
++		if response is Dictionary and response.get("acknowledged_events", []) is Array:
++			PlayerManager.acknowledge_learning_events(response.get("acknowledged_events", []))
++			save_game(false)
++		# Keep retrying until every queued result is acknowledged. Old APIs cannot
++		# silently discard evidence; offline queues survive app restarts.
++		if not PlayerManager.learning_events.is_empty():
++			StudentDatabase.mark_needs_sync(AuthService.participant_code())
++			ok = false
+ 		print("[SaveService] Cloud sync successful.")
+-		if not _resync_queued:
++		if not _resync_queued and ok:
+ 			StudentDatabase.mark_synced(AuthService.participant_code())
+ 		_retry_left = RETRY_SEC
+ 	else:
+@@ -280,3 +298,15 @@
+ 		if not safe_id.is_empty():
+ 			user_id = safe_id
+ 	return "user://player_save_" + user_id + ".json"
++
++
++func _learning_session_changed(_signed_in: bool) -> void:
++	var current: String = AuthService.participant_code() if AuthService.is_signed_in() else ""
++	if current == _learning_session:
++		return
++	_learning_session = current
++	_http_request.cancel_request()
++	_http_fetch.cancel_request()
++	_sync_in_flight = false
++	_fetch_in_flight = false
++	_resync_queued = false
+--- a/src/gameplay/preview/preview_match.gd
++++ b/src/gameplay/preview/preview_match.gd
+@@ -44,6 +44,8 @@
+ var incident_left := 0.0
+ var incident: Dictionary = {}
+ var global_patch := false
++var _learning_attempt: String = ""
++var _learning_owner: String = ""
+ var hud: Control
+ 
+ func _ready() -> void:
+@@ -54,6 +56,9 @@
+ 		return
+ 	set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+ 	_configure_match()
++	if match_context.persistent and not match_context.preview and get("account") == PlayerManager:
++		_learning_owner = AuthService.participant_code()
++		_learning_attempt = PlayerManager.begin_learning_attempt(match_context.module_id, match_context.stage_id)
+ 	hud = HUD.new()
+ 	add_child(hud)
+ 	hud.action.connect(_intent)
+@@ -87,6 +92,7 @@
+ 	return null
+ 
+ func _exit_tree() -> void:
++	_finish_learning("abandoned")
+ 	Engine.time_scale = 1.0
+ 
+ func _process(delta: float) -> void:
+@@ -533,6 +539,7 @@
+ func _finish(won: bool) -> void:
+ 	if phase == "Results":
+ 		return
++	_finish_learning("cleared" if won else "failed")
+ 	_set_phase("Results")
+ 	incident_active = false
+ 	hud.battle.world.process_mode = Node.PROCESS_MODE_DISABLED
+@@ -587,3 +594,9 @@
+ 				Engine.time_scale = speed
+ 		"exit": Router.return_to_stage_select()
+ 		"retry": Router.restart_level()
++
++
++func _finish_learning(outcome: String) -> void:
++	if not _learning_attempt.is_empty() and _learning_owner == AuthService.participant_code():
++		PlayerManager.finish_learning_attempt(_learning_attempt, match_context.module_id, match_context.stage_id, outcome)
++	_learning_attempt = ""
+--- a/src/gameplay/assessment_live.gd
++++ b/src/gameplay/assessment_live.gd
+@@ -113,6 +113,8 @@
+ 	super.resolve_answer(expired)
+ 	if answered == previous:
+ 		return
++	if answered == int(config.get("exam_question_count", 15)) and account == PlayerManager:
++		PlayerManager.record_learning_event("posttest", match_context.module_id, {"attempt_id":_learning_attempt, "instrument":"stage-exam-v1", "correct":correct_answers, "answered":answered, "total":15})
+ 	var correct: bool = correct_answers > previous_correct
+ 	if college and not correct:
+ 		missed_questions.append(question.duplicate(true))
+--- a/src/gameplay/level_manager.gd
++++ b/src/gameplay/level_manager.gd
+@@ -27,6 +27,8 @@
+ 
+ @export var enemy_scene: PackedScene
+ 
++var _learning_attempt: String = ""
++var _learning_owner: String = ""
+ var current_phase: GamePhase = GamePhase.PRE_MATCH
+ var current_gold: int = 5
+ var base_health: int = 5
+@@ -401,6 +403,10 @@
+ 		_stop_question_timer()
+ 	match new_phase:
+ 		GamePhase.PRE_MATCH:
++			_finish_learning_attempt("abandoned")
++			if not Router.is_tutorial:
++				_learning_owner = AuthService.participant_code()
++				_learning_attempt = PlayerManager.begin_learning_attempt(_current_module_id(), Router.active_stage_index + 1)
+ 			_quiz_modal.visible = false
+ 			_set_start_controls_visible(false)
+ 			_end_game_modal.visible = false
+@@ -436,6 +442,7 @@
+ 			if Router.is_tutorial:
+ 				_finish_tutorial_defend()
+ 				return
++			_finish_learning_attempt("failed")
+ 			_defeat_started = true
+ 			current_phase = GamePhase.GAME_OVER
+ 			_wave_token += 1
+@@ -478,6 +485,7 @@
+ 			_hide_upgrade_ui()
+ 			var stage_id: int = Router.active_stage_index + 1
+ 			var module_id: String = _current_module_id()
++			_finish_learning_attempt("cleared")
+ 			PlayerManager.mark_stage_cleared(module_id, stage_id)
+ 			if _decision != null:
+ 				PlayerManager.clear_decision_stage_state(_decision_key())
+@@ -1599,6 +1607,8 @@
+ 		update_hud()
+ 		return
+ 	_quiz_modal.visible = false
++	if _is_summative() and exam_questions_asked == exam_count and exam_count == 15 and not Router.is_tutorial and not _learning_attempt.is_empty():
++		PlayerManager.record_learning_event("posttest", _current_module_id(), {"attempt_id":_learning_attempt, "instrument":"stage-exam-v1", "correct":exam_questions_correct, "answered":exam_questions_asked, "total":exam_count})
+ 	if _is_summative() and exam_questions_asked >= exam_count:
+ 		var accuracy: float = float(exam_questions_correct) / float(exam_count)
+ 		if accuracy < _exam_required_score():
+@@ -1637,6 +1647,7 @@
+ 
+ 
+ func _exit_tree() -> void:
++	_finish_learning_attempt("abandoned")
+ 	Engine.time_scale = 1.0
+ 	var tree: SceneTree = get_tree()
+ 	if tree != null:
+@@ -3109,3 +3120,9 @@
+ 	if not next_title.is_empty():
+ 		data["advisory"] = "NEXT: %s" % next_title.to_upper()
+ 	return data
++
++
++func _finish_learning_attempt(outcome: String) -> void:
++	if not _learning_attempt.is_empty() and _learning_owner == AuthService.participant_code():
++		PlayerManager.finish_learning_attempt(_learning_attempt, _current_module_id(), Router.active_stage_index + 1, outcome)
++	_learning_attempt = ""
+--- a/src/autoload/player_manager.gd
++++ b/src/autoload/player_manager.gd
+@@ -1168,7 +1168,9 @@
+ 	if not AuthService.is_signed_in() or module_id not in LEARNING_MODULES.values():
+ 		return
+ 	var event: Dictionary = fields.duplicate(true)
+-	event.merge({"event_id":learning_id(), "kind":kind, "module_id":module_id, "occurred_at":Time.get_datetime_string_from_system(true) + "Z"}, true)
++	var now: float = Time.get_unix_time_from_system()
++	var stamp: String = Time.get_datetime_string_from_unix_time(int(now)) + ".%06dZ" % int(fmod(now, 1.0) * 1000000.0)
++	event.merge({"event_id":learning_id(), "kind":kind, "module_id":module_id, "occurred_at":stamp}, true)
+ 	learning_events.append(event)
+ 	if persist:
+ 		_save_progress()
+--- a/src/autoload/auth_service.gd
++++ b/src/autoload/auth_service.gd
+@@ -446,6 +446,8 @@
+ 	_persist(_signed_in, false, true)
+ 	session_changed.emit(_signed_in)
+ 	PlayerManager.seed_from_official_mastery()
++	var skill: String = str(PlayerManager.LEARNING_MODULES.find_key(module_id))
++	PlayerManager.record_learning_event("mastery", module_id, {"mastery":PlayerManager.get_mastery(skill)})
+ 	flush_pending_pretests()
+ 	return Result.OK
+ 
+--- a/src/autoload/save_service.gd
++++ b/src/autoload/save_service.gd
+@@ -41,7 +41,7 @@
+ func _process(delta: float) -> void:
+ 	if not AuthService.is_signed_in():
+ 		return
+-	if not StudentDatabase.has_pending_sync(AuthService.participant_code()):
++	if not StudentDatabase.has_pending_sync(AuthService.participant_code()) and PlayerManager.learning_events.is_empty():
+ 		return
+ 	_retry_left -= delta
+ 	if _retry_left > 0.0:
+--- a/src/autoload/save_service.gd
++++ b/src/autoload/save_service.gd
+@@ -112,7 +112,7 @@
+ 
+ 
+ func fetch_cloud_save() -> void:
+-	if StudentDatabase.has_pending_sync(AuthService.participant_code()):
++	if StudentDatabase.has_pending_sync(AuthService.participant_code()) or not PlayerManager.learning_events.is_empty():
+ 		push_pending_sync()
+ 		_finish_fetch(false)
+ 		return
+@@ -154,7 +154,7 @@
+ 		_finish_fetch(false)
+ 		return
+ 
+-	if StudentDatabase.has_pending_sync(AuthService.participant_code()):
++	if StudentDatabase.has_pending_sync(AuthService.participant_code()) or not PlayerManager.learning_events.is_empty():
+ 		_finish_fetch(false)
+ 		return
+ 	var json_string: String = body.get_string_from_utf8()

@@ -6,6 +6,18 @@
     "Teacher API sign-in succeeds",
     "Teacher cannot publish",
     "Student cannot author staff content",
+    "School-head API sign-in succeeds",
+    "School head approves the submitted revision",
+    "Approval alone does not publish content",
+    "School head publishes the approved revision",
+    "Published lesson reaches the real mobile API",
+    "Private author and review fields are omitted",
+    "Unchanged catalog returns HTTP 304",
+    "Godot fetches and renders the published lesson without changing progress",
+    "Stale revision actions are rejected",
+    "Published content can only be revised as a new draft",
+    "Creating a new draft keeps the previous publication live",
+    "History records author and school-head actions",
     "Existing students records unchanged",
     "Existing bkt_records records unchanged",
     "Temporary lesson removed from publication"
@@ -19,6 +31,5 @@
   "limitations": [
     "player_saves unavailable: PGRST205"
   ],
-  "error": "Browser publication was not received within five minutes",
-  "completedAt": "2026-10-08T05:12:07.009Z"
+  "completedAt": "2026-10-08T08:53:58.040Z"
 }

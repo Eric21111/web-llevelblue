@@ -1,3 +1,4 @@
+import LearningEvidence from '../../components/LearningEvidence';
 import { useState } from "react";
 import { Activity, BookOpen, ClipboardCheck, GraduationCap, Users, Layers, Search } from "lucide-react";
 import { useWorkspaceData } from "../../context/WorkspaceDataContext";
@@ -28,6 +29,7 @@ export default function SuperAdminHome({ user, onNavigate, progress = false }) {
     ]} />}
     {progress && <div className="dash-page-intro"><span className="dash-eyebrow">SCHOOL INSIGHTS</span><h1>School progress</h1><p>Compare participation and learning needs across sections to guide your support.</p></div>}
     <DashboardToolbar title={progress ? "Learning across your school" : "Your school at a glance"} state={state} />
+    <LearningEvidence compact detailsPath="/school-progress" onNavigate={onNavigate}/>
     {progress ? <>
       <div className="dash-summary-grid"><div><span>Students active in 7 days</span><strong>{studentsUnavailable ? "—" : `${summary.active} / ${summary.total}`}</strong><small>Based on last recorded activity</small></div><div><span>Average mastery</span><strong>{studentsUnavailable ? "—" : formatPercent(summary.mastery)}</strong><small>Among learners who have started</small></div><div><span>Students needing support</span><strong>{studentsUnavailable || state.errors.risk ? "—" : summary.needsSupport.length}</strong><small>At least one skill below 40%</small></div></div>
       <DashboardCard icon={GraduationCap} title="Section comparison" description="Use this view to discuss learning needs with your teachers."><label className="dash-search-inline"><Search size={16} /><input aria-label="Search sections" value={query} onChange={event => setQuery(event.target.value)} placeholder="Find a section…" /></label><DataState state={state} sources={["students", "risk", "sections"]}>{query && !sections.some(section => section.name.toLowerCase().includes(query.toLowerCase())) ? <EmptyState title="No matching sections" text="Try a different section name." /> : <SectionTable sections={sections.filter(section => section.name.toLowerCase().includes(query.toLowerCase()))} />}</DataState></DashboardCard>

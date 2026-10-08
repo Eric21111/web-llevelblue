@@ -22,6 +22,14 @@ const call=async(port,path,token,body,method=body?'POST':'GET')=>{
 };
 let learnerId;
 try{
+ // Capture immediately before this run, not before an interactive pause.
+ state.before={};
+ for(const [table,columns] of [['students','id,grade_level,section_id,pre,post,mastery_phishing,mastery_smishing,mastery_vishing,mastery_pretexting,mastery_baiting'],['bkt_records','*'],['player_saves','*']]){
+  const {data,error}=await supabase.from(table).select(columns);
+  if(error){state.before[table]={unavailable:error.code};continue;}
+  state.before[table]={count:data.length,hash:createHash('sha256').update(JSON.stringify(data.sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))))).digest('hex')};
+ }
+ writeFileSync('.curriculum-smoke-state.log',JSON.stringify(state));
  let owned=await unwrap(supabase.from('curriculum_revisions').select('item_id,title').eq('id',state.revision).maybeSingle());
  if(!owned){
   const session=await call(5000,'/api/auth/login',null,{email:process.env.SMOKE_TEACHER_EMAIL,password:process.env.SMOKE_STAFF_PASSWORD});
@@ -48,15 +56,27 @@ try{
  const teacherToken=teacher.body.token;
  check('Teacher cannot publish',(await call(5000,`/api/curriculum/${state.revision}/actions`,teacherToken,{action:'publish',version:1})).status===403);
  check('Student cannot author staff content',[401,403].includes((await call(5000,'/api/curriculum',token,{})).status));
+ if(process.env.SMOKE_AUTO_REVIEW==='1'){
+  const head=await call(5000,'/api/auth/login',null,{email:process.env.SMOKE_HEAD_EMAIL,password:process.env.SMOKE_STAFF_PASSWORD});
+  check('School-head API sign-in succeeds',head.status===200&&head.body.user.role==='super');
+  const list=await call(5000,'/api/curriculum',head.body.token);
+  const submitted=list.body.find(row=>row.id===state.revision);
+  const approved=await call(5000,`/api/curriculum/${state.revision}/actions`,head.body.token,{action:'approve',version:submitted.version});
+  check('School head approves the submitted revision',approved.status===200&&approved.body.status==='approved');
+  const approvedFeed=await call(8000,'/api/content',token);
+  check('Approval alone does not publish content',!approvedFeed.body.items.some(item=>item.id===state.item));
+  const publication=await call(5000,`/api/curriculum/${state.revision}/actions`,head.body.token,{action:'publish',version:approved.body.version});
+  check('School head publishes the approved revision',publication.status===200&&publication.body.status==='published');
+ }
  console.log('READY_FOR_BROWSER_PUBLICATION');
- const deadline=Date.now()+300000;
+ const deadline=Date.now()+1800000;
  let published;
  while(Date.now()<deadline){
   const result=await call(8000,'/api/content',token);
   if(result.status===200&&result.body.items.some(i=>i.id===state.item)){published=result;break;}
   await new Promise(resolve=>setTimeout(resolve,1500));
  }
- assert.ok(published,'Browser publication was not received within five minutes');
+ assert.ok(published,'Browser publication was not received within thirty minutes');
  const item=published.body.items.find(i=>i.id===state.item);
  check('Published lesson reaches the real mobile API',item.title===state.marker&&item.revision===1);
  check('Private author and review fields are omitted',!('author_id' in item)&&!('review_note' in item));
@@ -88,7 +108,7 @@ finally{
    if(error){assert.equal(error.code,state.before[table].unavailable);report.limitations.push(`${table} unavailable: ${error.code}`);continue;}
    const hash=createHash('sha256').update(JSON.stringify(data.sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))))).digest('hex');
    check(`Existing ${table} records unchanged`,hash===state.before[table].hash&&data.length===state.before[table].count);
-  }catch(error){report.error=error.message;process.exitCode=1;}
+  }catch(error){report.error=error.message;console.error('Preservation check failed:',table);process.exitCode=1;}
  }
  const catalog=await supabase.rpc('levelblue_published_catalog');
  check('Temporary lesson removed from publication',!catalog.error&&!catalog.data.items.some(i=>i.id===state.item));
