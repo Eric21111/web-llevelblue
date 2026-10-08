@@ -26,8 +26,8 @@ export function buildNotifications(role, data, now = Date.now()) {
   if (role === "super") {
     const invited = (data.teachers || []).filter(teacher => teacher.status === "Invited");
     add("invitations", invited, `${invited.length} teacher invitation${invited.length === 1 ? " is" : "s are"} pending`, "Help teachers complete their first sign-in.", "/teachers", "team");
-    const gaps = (data.content || []).filter(topic => Number(topic.authored) < Number(topic.target));
-    add("content", gaps, `${gaps.length} topic${gaps.length === 1 ? " is" : "s are"} below target`, "Review training questions and content coverage.", "/content", "learning", topic => `${topic.skill}:${topic.authored}/${topic.target}`);
+    const pending = (data.content || []).filter(item => item.status === 'submitted');
+    add("content", pending, `${pending.length} content revision${pending.length === 1 ? " needs" : "s need"} review`, "Review teacher submissions before publication.", "/content", "learning", item => `${item.id}:${item.version}`);
     const recent = (data.logs || []).filter(log => {
       const time = Date.parse(log.createdAt);
       return time <= now && time >= now - 7 * DAY_MS;
@@ -36,6 +36,10 @@ export function buildNotifications(role, data, now = Date.now()) {
       const revision = JSON.stringify([log.createdAt, log.user, log.action, log.details]);
       items.push({ id: `log:${log._id ?? log.id ?? revision}`, revision, title: log.action || "School activity", text: `${log.user || "System"}${log.details ? ` · ${log.details}` : ""}`, path: "/logs", kind: "activity", time: log.createdAt });
     }
+  }
+  if(role === 'admin') {
+    const returned = (data.content || []).filter(item => item.status === 'changes_requested');
+    add('content-changes', returned, `${returned.length} draft${returned.length === 1 ? ' needs' : 's need'} changes`, 'Read the school head’s review and update your draft.', '/content', 'learning', item => `${item.id}:${item.version}`);
   }
   return items;
 }

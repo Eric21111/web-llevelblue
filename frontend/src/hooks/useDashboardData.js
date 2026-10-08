@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiFetch } from "../utils/api";
 
-export const TEACHER_SOURCES = { students: "/api/students", risk: "/api/analytics/at-risk", sections: "/api/sections" };
-export const SCHOOL_SOURCES = { ...TEACHER_SOURCES, teachers: "/api/teachers", content: "/api/content-bank", logs: "/api/system-logs" };
+export const TEACHER_SOURCES = { students: "/api/students", risk: "/api/analytics/at-risk", sections: "/api/sections", content: "/api/curriculum" };
+export const SCHOOL_SOURCES = { ...TEACHER_SOURCES, teachers: "/api/teachers", logs: "/api/system-logs" };
 
 // Each source keeps its own error state: a failed request must never look like zero activity.
 export function useDashboardData(sources) {

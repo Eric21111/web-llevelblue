@@ -16,6 +16,7 @@ if (!process.env.JWT_SECRET) {
 import authRoutes from "./src/routes/authRoutes.js";
 import { createWorkspaceRoutes } from './src/routes/workspaceRoutes.js';
 import { createBountyRoutes } from './src/routes/scopedBounties.js';
+import { createCurriculumRoutes, createMobileContentRoutes } from './src/routes/curriculumRoutes.js';
 import { supabase } from './src/config/db.js';
 import { headOnly } from './src/services/access.js';
 import teacherRoutes from "./src/routes/teacherRoutes.js";
@@ -56,13 +57,15 @@ app.use("/api/usability-feedback", authMiddleware, feedbackRoutes);
 app.use("/api/settings", authMiddleware, headOnly, settingsRoutes);
 
 app.use('/api/bounties', authMiddleware, createBountyRoutes(supabase));
+app.use('/api/curriculum', authMiddleware, createCurriculumRoutes(supabase));
+app.use('/api/mobile/content', authMiddleware, createMobileContentRoutes(supabase));
 app.use('/api', authMiddleware, createWorkspaceRoutes(supabase));
 app.use('/api/teachers', headOnly, teacherRoutes);
 app.use((error, req, res, next) => {
   console.error('Workspace request failed:', error.code || error.message);
   if(res.headersSent) return next(error);
   const setup=['42P01','42703','PGRST204','PGRST202'].includes(error.code);
-  res.status(error.status || (setup ? 503 : error.code==='23505' || error.code==='P0001' ? 409 : 500)).json({error: setup ? 'Web foundations are not configured yet. Apply the database migrations and assign faculty sections.' : error.status || error.code==='P0001' ? error.message : 'This request could not be completed. Please retry.'});
+  res.status(error.status || (setup ? 503 : error.code==='23505' || error.code==='P0001' ? 409 : 500)).json({error: setup ? (req.originalUrl.startsWith('/api/curriculum') || req.originalUrl.startsWith('/api/mobile/content') ? 'Curriculum publishing is not configured yet. Apply backend/migrations/20261008_curriculum.sql.' : 'Web foundations are not configured yet. Apply the database migrations and assign faculty sections.') : error.status || error.code==='P0001' ? error.message : 'This request could not be completed. Please retry.'});
 });
 
 app.listen(PORT, () => {

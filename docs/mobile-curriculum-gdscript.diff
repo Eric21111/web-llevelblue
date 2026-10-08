@@ -1,0 +1,404 @@
+--- a/frontend/src/autoload/content_db.gd
++++ b/frontend/src/autoload/content_db.gd
+@@ -1,6 +1,16 @@
+ extends Node
+ ## Autoload singleton, registered as "ContentDB".
+-## Loads authored JSON at boot. FastAPI swap comes later.
++## Loads bundled gameplay at boot; published school resources stay separate.
++
++signal content_updated
++var school_items: Array[Dictionary] = []
++var school_content_status: String = "Sign in to load school content."
++var school_content_loading: bool = false
++var school_release: int = 0
++var _school_http: HTTPRequest
++var _school_request_token: String = ""
++var _school_session_token: String = ""
++var _school_has_catalog: bool = false
+ 
+ var questions: Dictionary = {}
+ var stages: Dictionary = {}
+@@ -26,6 +36,7 @@
+ 
+ 
+ func _ready() -> void:
++	_setup_school_feed.call_deferred()
+ 	_load_question_bank()
+ 	_load_json_dict("res://data/stages.json", stages)
+ 	_load_json_dict("res://data/enemies.json", enemies)
+@@ -660,3 +671,141 @@
+ 		push_error("ContentDB: JSON Parse Error in " + file_path)
+ 		return null
+ 	return json.data
++
++
++# Supplemental content never enters the stage question pools or saved unlocks.
++func _setup_school_feed() -> void:
++	_school_http = HTTPRequest.new()
++	_school_http.timeout = 20.0
++	_school_http.body_size_limit = 4 * 1024 * 1024
++	add_child(_school_http)
++	_school_http.request_completed.connect(_school_request_completed)
++	AuthService.session_changed.connect(_school_session_changed)
++	_school_session_changed(AuthService.is_signed_in())
++
++
++func _school_session_changed(signed_in: bool) -> void:
++	if signed_in and not _school_session_token.is_empty() and _school_session_token == AuthService.auth_token():
++		return
++	_school_session_token = AuthService.auth_token() if signed_in else ""
++	_school_http.cancel_request()
++	_school_request_token = ""
++	school_content_loading = false
++	school_items.clear()
++	school_release = 0
++	_school_has_catalog = false
++	school_content_status = "Sign in to load school content."
++	content_updated.emit()
++	if signed_in:
++		refresh_school_content()
++
++
++func refresh_school_content() -> void:
++	if not is_instance_valid(_school_http) or school_content_loading or not AuthService.is_signed_in():
++		return
++	_school_request_token = AuthService.auth_token()
++	var headers: PackedStringArray = ["Authorization: Bearer " + _school_request_token]
++	if _school_has_catalog:
++		headers.append('If-None-Match: "levelblue-content-v1-%d"' % school_release)
++	var base: String = str(ProjectSettings.get_setting("levelblue/api_base_url", "http://127.0.0.1:8000")).trim_suffix("/")
++	school_content_loading = true
++	school_content_status = "Checking for published school content..."
++	content_updated.emit()
++	var request_error: Error = _school_http.request(base + "/api/content", headers)
++	if request_error != OK:
++		_school_feed_failed()
++
++
++func _school_feed_failed() -> void:
++	school_content_loading = false
++	school_content_status = "School content could not refresh. Bundled lessons are still available."
++	if _school_has_catalog:
++		school_content_status += " Showing the last loaded school release."
++	content_updated.emit()
++
++
++func _school_request_completed(result: int, code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
++	if not AuthService.is_signed_in() or _school_request_token != AuthService.auth_token():
++		return
++	school_content_loading = false
++	if result != HTTPRequest.RESULT_SUCCESS:
++		_school_feed_failed()
++		return
++	if code == 401 or code == 403:
++		school_items.clear()
++		_school_has_catalog = false
++		school_content_status = "Sign in again to access school content."
++		content_updated.emit()
++		return
++	if code == 304 and _school_has_catalog:
++		school_content_status = "School content is up to date."
++		content_updated.emit()
++		return
++	var parsed: Variant = JSON.parse_string(body.get_string_from_utf8())
++	if code != 200 or not valid_school_catalog(parsed):
++		_school_feed_failed()
++		return
++	var catalog: Dictionary = parsed
++	school_items.clear()
++	for item: Dictionary in catalog["items"]:
++		school_items.append(item.duplicate(true))
++	school_release = int(catalog["releaseVersion"])
++	_school_has_catalog = true
++	school_content_status = "Release %d · %d school resources" % [school_release, school_items.size()]
++	content_updated.emit()
++
++
++func valid_school_catalog(value: Variant) -> bool:
++	if not value is Dictionary:
++		return false
++	var catalog: Dictionary = value
++	if catalog.get("schemaVersion") != 1 or not catalog.get("items") is Array:
++		return false
++	if not catalog.get("releaseVersion") is float and not catalog.get("releaseVersion") is int:
++		return false
++	if float(catalog["releaseVersion"]) < 0 or floorf(float(catalog["releaseVersion"])) != float(catalog["releaseVersion"]):
++		return false
++	var ids: Dictionary = {}
++	for raw: Variant in catalog["items"]:
++		if not raw is Dictionary:
++			return false
++		var item: Dictionary = raw
++		if not item.get("id") is String or str(item["id"]).is_empty() or ids.has(item["id"]):
++			return false
++		ids[item["id"]] = true
++		if not item.get("title") is String or not item.get("content") is Dictionary:
++			return false
++		if not ["Phishing", "Smishing", "Vishing", "Pretexting", "Baiting"].has(item.get("topic")):
++			return false
++		var content: Dictionary = item["content"]
++		var kind: String = str(item.get("kind", ""))
++		var fields: Array[String] = []
++		var list_key: String = ""
++		match kind:
++			"lesson":
++				fields = ["body"]
++				list_key = "objectives"
++			"codex":
++				fields = ["definition", "safeResponse"]
++				list_key = "warningSigns"
++			"quiz":
++				fields = ["prompt", "explanation"]
++				list_key = "options"
++			_:
++				return false
++		for field: String in fields:
++			if not content.get(field) is String or str(content[field]).strip_edges().is_empty():
++				return false
++		if not content.get(list_key) is Array:
++			return false
++		var entries: Array = content[list_key]
++		for entry: Variant in entries:
++			if not entry is String:
++				return false
++		if kind == "quiz":
++			var answer: Variant = content.get("correctOption")
++			if not answer is float and not answer is int:
++				return false
++			if entries.size() < 2 or entries.size() > 6 or float(answer) != floorf(float(answer)) or int(answer) < 0 or int(answer) >= entries.size():
++				return false
++	return true
+--- a/frontend/src/autoload/screen_router.gd
++++ b/frontend/src/autoload/screen_router.gd
+@@ -27,6 +27,7 @@
+ 	&"dashboard":    "res://src/ui/screens/dashboard/dashboard_screen.tscn",
+ 	&"store":        "res://src/ui/screens/store/store_screen.tscn",
+ 	&"lessons":      "res://src/ui/screens/intel/lessons_screen.tscn",
++	&"school_content": "res://src/ui/screens/intel/school_content_screen.tscn",
+ 	&"lesson_player": "res://src/ui/screens/intel/lesson_player_screen.tscn",
+ 	&"codex":        "res://src/ui/screens/intel/codex_screen.tscn",
+ 	&"progress":     "res://src/ui/screens/progress/progress_screen.tscn",
+--- a/frontend/src/ui/screens/intel/lessons_screen.gd
++++ b/frontend/src/ui/screens/intel/lessons_screen.gd
+@@ -142,6 +142,9 @@
+ 		account = PlayerManager
+ 	var shell: Dictionary = UI.shell(self, "LEARNING JOURNEY", func() -> void: Router.request_back())
+ 	var layout: VBoxContainer = shell.layout
++	var school_button: Button = UI.button("School Content", func() -> void: Router.push(&"school_content"))
++	school_button.custom_minimum_size.x = 200
++	shell.title.get_parent().add_child(school_button)
+ 	_heading = shell.title
+ 	_back = shell.back
+ 	_overview = UI.column(layout, 20)
+--- a/frontend/src/ui/screens/intel/codex_screen.gd
++++ b/frontend/src/ui/screens/intel/codex_screen.gd
+@@ -39,6 +39,9 @@
+ 	var shell := UI.shell(self, "CODEX / FIELD GUIDE", _on_back_pressed)
+ 	_back_button = shell.back
+ 	var layout: VBoxContainer = shell.layout
++	var school_button: Button = UI.button("School Content", func() -> void: Router.push(&"school_content"))
++	school_button.custom_minimum_size.x = 200
++	shell.title.get_parent().add_child(school_button)
+ 	var strip := HBoxContainer.new()
+ 	layout.add_child(strip)
+ 	strip.hide()
+--- /dev/null
++++ b/frontend/src/ui/screens/intel/school_content_screen.gd
+@@ -0,0 +1,127 @@
++extends BaseScreen
++## School-approved supplemental resources. Practice never writes gameplay progress.
++const UI: Script = preload("res://src/ui/screens/intel/study_ui.gd")
++const TOPICS: Array[String] = ["All topics", "Phishing", "Smishing", "Vishing", "Pretexting", "Baiting"]
++const KINDS: Array[String] = ["all", "lesson", "quiz", "codex"]
++var _intro: Label
++var _filters: HFlowContainer
++var _topic: OptionButton
++var _kind: OptionButton
++var _body: VBoxContainer
++var _status: Label
++var _refresh: Button
++var _selected: String = ""
++var _answer: Label
++
++func _ready() -> void:
++	var shell: Dictionary = UI.shell(self, "SCHOOL CONTENT", _back)
++	var layout: VBoxContainer = shell.layout
++	layout.add_theme_constant_override("separation", 12)
++	_intro = UI.label("School-approved resources. Practice does not change campaign progress.", 20, Color("#8FF0E6"))
++	layout.add_child(_intro)
++	_filters = HFlowContainer.new()
++	layout.add_child(_filters)
++	_topic = OptionButton.new()
++	_topic.name = "TopicFilter"
++	for topic: String in TOPICS:
++		_topic.add_item(topic)
++	_kind = OptionButton.new()
++	_kind.name = "ContentTypeFilter"
++	for caption: String in ["All resources", "Lessons", "Practice questions", "Threat Codex"]:
++		_kind.add_item(caption)
++	for control: OptionButton in [_topic, _kind]:
++		control.custom_minimum_size = Vector2(240, 52)
++		control.add_theme_font_override("font", UI.FONT)
++		control.add_theme_font_size_override("font_size", 20)
++		control.add_theme_color_override("font_color", Color("#F3ECD6"))
++		control.add_theme_stylebox_override("normal", UI.box(Color("#102040"), Color("#173058"), 12))
++		control.item_selected.connect(_filter_changed)
++		_filters.add_child(control)
++	_refresh = UI.button("Refresh", ContentDB.refresh_school_content)
++	_refresh.custom_minimum_size.x = 140
++	_refresh.autowrap_mode = TextServer.AUTOWRAP_OFF
++	_filters.add_child(_refresh)
++	_status = UI.label("", 18, UI.MUTED)
++	layout.add_child(_status)
++	_body = UI.scroll_column(layout)
++	ContentDB.content_updated.connect(_refresh_view)
++	_refresh_view()
++	ContentDB.refresh_school_content()
++
++func _filter_changed(_index: int) -> void:
++	_selected = ""
++	_refresh_view()
++
++func _refresh_view() -> void:
++	UI.clear(_body)
++	_status.text = ContentDB.school_content_status
++	_refresh.disabled = ContentDB.school_content_loading
++	for item: Dictionary in ContentDB.school_items:
++		if str(item["id"]) == _selected:
++			_intro.hide()
++			_filters.hide()
++			_status.hide()
++			_detail(item)
++			return
++	_selected = ""
++	_intro.show()
++	_filters.show()
++	_status.show()
++	var count: int = 0
++	for item: Dictionary in ContentDB.school_items:
++		if _topic.selected > 0 and item["topic"] != TOPICS[_topic.selected]:
++			continue
++		if _kind.selected > 0 and item["kind"] != KINDS[_kind.selected]:
++			continue
++		count += 1
++		var card: PanelContainer = UI.panel(_body, Color("#102040"))
++		var column: VBoxContainer = UI.column(card)
++		column.add_child(UI.label("%s / %s · Revision %s" % [item["topic"], str(item["kind"]).capitalize(), str(item.get("revision", 1))], 22, Color("#8FF0E6")))
++		column.add_child(UI.button(str(item["title"]), _open.bind(str(item["id"]))))
++	if count == 0:
++		_body.add_child(UI.label("No published resources match these filters." if not ContentDB.school_items.is_empty() else "Published school resources will appear here. You can continue your learning journey using bundled lessons.", 26))
++
++func _open(id: String) -> void:
++	_selected = id
++	_refresh_view()
++
++func _detail(item: Dictionary) -> void:
++	_body.add_child(UI.button("Back to resources", _open.bind("")))
++	_body.add_child(UI.label(str(item["title"]), 30, Color("#4FE0D4")))
++	var content: Dictionary = item["content"]
++	match str(item["kind"]):
++		"lesson":
++			for objective: String in content["objectives"]:
++				_body.add_child(UI.label("• " + objective, 24, UI.MUTED))
++			_body.add_child(UI.label(str(content["body"]), 26))
++		"codex":
++			_body.add_child(UI.label(str(content["definition"]), 26))
++			_body.add_child(UI.label("WARNING SIGNS", 24, Color("#FFB648")))
++			for sign_text: String in content["warningSigns"]:
++				_body.add_child(UI.label("• " + sign_text, 26))
++			_body.add_child(UI.label("SAFE RESPONSE", 24, Color("#33D17A")))
++			_body.add_child(UI.label(str(content["safeResponse"]), 26))
++		"quiz":
++			_body.add_child(UI.label(str(content["prompt"]), 26))
++			for index: int in content["options"].size():
++				_body.add_child(UI.button(str(content["options"][index]), _choose_answer.bind(index, content)))
++			_answer = UI.label("Choose an answer to see the explanation.", 24, UI.MUTED)
++			_answer.name = "AnswerFeedback"
++			_body.add_child(_answer)
++
++func _choose_answer(index: int, content: Dictionary) -> void:
++	var correct: bool = index == int(content["correctOption"])
++	_answer.text = ("Correct. " if correct else "Try again. ") + str(content["explanation"])
++	_answer.add_theme_color_override("font_color", Color("#33D17A") if correct else Color("#FFB648"))
++
++func _back() -> void:
++	if not _selected.is_empty():
++		_open("")
++	else:
++		Router.request_back()
++
++func can_go_back() -> bool:
++	if not _selected.is_empty():
++		_open("")
++		return false
++	return true
+--- /dev/null
++++ b/frontend/src/tools/verify_school_content.gd
+@@ -0,0 +1,67 @@
++extends SceneTree
++## In-memory fixtures only: no login, publication, assessment or save writes.
++var failures: int = 0
++func _initialize() -> void:
++	_run.call_deferred()
++func check(ok: bool, message: String) -> void:
++	if not ok:
++		failures += 1
++		push_error(message)
++func _run() -> void:
++	await process_frame
++	var db: Node = root.get_node("ContentDB")
++	var player: Node = root.get_node("PlayerManager")
++	var before: Dictionary = {"mastery":player.mastery_matrix.duplicate(true), "cleared":player.cleared_stages.duplicate(true), "lessons":player.completed_lessons.duplicate(), "unlocks":player.unlocked_skills.duplicate()}
++	var catalog: Dictionary = {"schemaVersion":1,"releaseVersion":1,"items":[
++		{"id":"lesson","revision":1,"title":"Verify the sender","kind":"lesson","topic":"Phishing","content":{"body":"Contact the school using a known number.","objectives":["Verify unexpected requests"]}},
++		{"id":"quiz","revision":1,"title":"A suspicious message","kind":"quiz","topic":"Smishing","content":{"prompt":"What should you do?","options":["Verify independently","Share a password"],"correctOption":0,"explanation":"Use a trusted channel."}},
++		{"id":"codex","revision":1,"title":"Unexpected USB drives","kind":"codex","topic":"Baiting","content":{"definition":"An attacker offers an enticing device.","warningSigns":["Unknown source"],"safeResponse":"Report it to school IT."}}
++	]}
++	check(db.valid_school_catalog(catalog), "Valid school catalog accepted")
++	var malformed: Dictionary = catalog.duplicate(true)
++	malformed.items[1].content.correctOption = 7
++	check(not db.valid_school_catalog(malformed), "Out-of-range answer rejected")
++	malformed = catalog.duplicate(true)
++	malformed.items[0].content.body = []
++	check(not db.valid_school_catalog(malformed), "Malformed text rejected")
++	malformed = catalog.duplicate(true)
++	malformed.items.append(malformed.items[0])
++	check(not db.valid_school_catalog(malformed), "Duplicate resource rejected")
++	for item: Dictionary in catalog.items:
++		db.school_items.append(item)
++	db.school_content_status = "Test release"
++	var scene: PackedScene = load("res://src/ui/screens/intel/school_content_screen.tscn")
++	var screen: Control = scene.instantiate()
++	root.add_child(screen)
++	root.content_scale_size = Vector2i.ZERO
++	await process_frame
++	check(screen._body.get_child_count() == 3, "All resource types visible")
++	screen._open("lesson")
++	check(not screen.can_go_back() and screen._selected.is_empty(), "Android back returns to list first")
++	screen._kind.select(2)
++	screen._filter_changed(2)
++	check(screen._body.get_child_count() == 1, "Type filter scopes list")
++	screen._open("quiz")
++	screen._choose_answer(1, catalog.items[1].content)
++	check(screen._answer.text.begins_with("Try again."), "Wrong answer gives explanation")
++	screen._choose_answer(0, catalog.items[1].content)
++	check(screen._answer.text.begins_with("Correct."), "Correct answer gives feedback")
++	screen._open("codex")
++	check(screen._body.get_child_count() >= 6, "Codex definition and safety notes rendered")
++	for viewport: Vector2i in [Vector2i(1280,720),Vector2i(844,390),Vector2i(390,844)]:
++		root.size = viewport
++		await process_frame
++		await process_frame
++		check(screen.get_combined_minimum_size().x <= viewport.x, "Reader fits viewport width")
++		if "--render" in OS.get_cmdline_user_args():
++			await RenderingServer.frame_post_draw
++			root.get_texture().get_image().save_png("res://.godot/school-content-%dx%d.png" % [viewport.x, viewport.y])
++	check(player.mastery_matrix == before.mastery and player.cleared_stages == before.cleared and player.completed_lessons == before.lessons and player.unlocked_skills == before.unlocks, "Browsing and practice preserve progress")
++	db._school_feed_failed()
++	check(db.school_items.size() == 3, "Transient failure retains current-session catalog")
++	db._school_session_changed(false)
++	check(db.school_items.is_empty(), "Sign out clears resources")
++	screen.queue_free()
++	await process_frame
++	print("School content checks complete; failures=", failures)
++	quit(1 if failures else 0)

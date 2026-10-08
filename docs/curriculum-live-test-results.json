@@ -1,0 +1,24 @@
+{
+  "checks": [
+    "Temporary learner signs in through the real mobile API",
+    "Submitted/approved lesson is hidden from students",
+    "Anonymous mobile content request is denied",
+    "Teacher API sign-in succeeds",
+    "Teacher cannot publish",
+    "Student cannot author staff content",
+    "Existing students records unchanged",
+    "Existing bkt_records records unchanged",
+    "Temporary lesson removed from publication"
+  ],
+  "cleanup": [
+    "curriculum_events",
+    "curriculum_revisions",
+    "curriculum_items",
+    "students"
+  ],
+  "limitations": [
+    "player_saves unavailable: PGRST205"
+  ],
+  "error": "Browser publication was not received within five minutes",
+  "completedAt": "2026-10-08T05:12:07.009Z"
+}

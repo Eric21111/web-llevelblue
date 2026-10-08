@@ -25,7 +25,7 @@ const SectionsManagement = lazy(() => import("./pages/SectionWorkspace"));
 
 const SuperAdminHome = lazy(() => import("./pages/super/SuperAdminHome"));
 const TeacherManagement = lazy(() => import("./pages/super/TeacherManagement"));
-const ContentBankManagement = lazy(() => import("./pages/super/ContentBankManagement"));
+const CurriculumWorkspace = lazy(() => import("./pages/CurriculumWorkspace"));
 const SystemLogs = lazy(() => import("./pages/super/SystemLogs"));
 const SuperAdminSettings = lazy(() => import("./pages/super/SuperAdminSettings"));
 
@@ -101,6 +101,7 @@ function AppContent() {
     { label: "Classroom Diagnostics", path: "/analytics", group: "Learning insights", icon: BookOpen, component: LearningWorkspace, description: "Explore strengths, learning gaps, and assessment results." },
     { label: "Learning Reports", path: "/engagement", group: "Learning insights", icon: Activity, component: LearningWorkspace, mode: "reports", description: "Export individual recorded learning evidence." },
     { label: "Student Feedback & Usability", path: "/survey", group: "Teaching & support", icon: ClipboardList, component: UsabilityFeedback, description: "Understand student satisfaction, difficulty fit, and feedback from the mobile app." },
+    { label: "My Teaching Content", path: "/content", group: "Teaching & support", icon: Database, component: CurriculumWorkspace },
     { label: "Account Settings", path: "/settings", group: "Workspace", icon: Settings, component: TeacherSettings, description: "Manage your profile and sign-in details." },
   ];
   const schoolPages = [
@@ -110,7 +111,7 @@ function AppContent() {
     { label: "Institutional Reports", path: "/reports", group: "School insights", icon: ClipboardList, component: LearningWorkspace, mode: "reports" },
     { label: "Sections", path: "/sections", group: "Administration", icon: GraduationCap, component: SectionsManagement },
     { label: "Teacher Accounts", path: "/teachers", group: "Administration", icon: UserCog, component: TeacherManagement, description: "Manage teacher access and account invitations." },
-    { label: "Training Content", path: "/content", group: "Administration", icon: Database, component: ContentBankManagement, description: "Review question coverage and maintain your training content." },
+    { label: "Review & Publish", path: "/content", group: "Administration", icon: Database, component: CurriculumWorkspace },
     { label: "Activity Log", path: "/logs", group: "Administration", icon: ServerCog, component: SystemLogs, description: "Keep track of account and content changes across your school." },
     { label: "Account Settings", path: "/settings", group: "Workspace", icon: Settings, component: SuperAdminSettings, description: "Manage your profile and school administration settings." },
   ];

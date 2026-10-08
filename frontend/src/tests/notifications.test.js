@@ -7,7 +7,7 @@ const data = {
   students: [{ id: "a", sessions: 1, lastActive: "2026-09-01" }, { id: "b", sessions: 0 }],
   risk: [{ id: "a", failingSkills: ["Phishing"] }],
   teachers: [{ id: "t", status: "Invited" }],
-  content: [{ skill: "Phishing", authored: 2, target: 5 }],
+  content: [{ id: 'draft-1', status: 'submitted', version: 2 }],
   logs: [{ id: "recent", createdAt: "2026-10-07T10:00:00Z", action: "Added content" }, { id: "old", createdAt: "2026-09-01" }, { id: "future", createdAt: "2027-01-01" }],
 };
 
@@ -25,6 +25,13 @@ test("unavailable or empty sources do not fabricate alerts", () => {
   assert.deepEqual(buildNotifications("super", {}, now), []);
   assert.deepEqual(buildNotifications("admin", { students: [], risk: data.risk }, now), []);
   assert.equal(buildNotifications("admin", { students: data.students }, now).some(item => item.id === "support"), false);
+});
+test('curriculum notifications follow actual review status and revision changes',()=>{
+  const content=[{id:'a',status:'changes_requested',version:3},{id:'b',status:'published',version:4}];
+  const notifications=buildNotifications('admin',{content});
+  assert.equal(notifications.length,1);assert.equal(notifications[0].path,'/content');
+  assert.notEqual(notifications[0].revision,buildNotifications('admin',{content:[{...content[0],version:6}]})[0].revision);
+  assert.deepEqual(buildNotifications('super',{content}),[]);
 });
 test("read storage is isolated by account and role and tolerates unavailable storage", () => {
   assert.notEqual(notificationStorageKey({ id: 1 }, "admin"), notificationStorageKey({ id: 2 }, "admin"));

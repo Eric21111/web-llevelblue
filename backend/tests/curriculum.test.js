@@ -1,0 +1,64 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {PGlite} from '@electric-sql/pglite';
+import express from 'express';
+import request from 'supertest';
+import {validateContent,publishedCatalog} from '../src/services/curriculum.js';
+import {createCurriculumRoutes,createMobileContentRoutes} from '../src/routes/curriculumRoutes.js';
+import {fakeDb} from './helpers.js';
+const lesson={kind:'lesson',topic:'Phishing',title:'Check the sender',content:{body:'Verify the sender through a trusted channel.',objectives:['Identify unexpected requests']}};
+test('content validation permits incomplete drafts but prevents incomplete or ambiguous publications',()=>{
+ assert.deepEqual(validateContent(lesson,true),lesson);
+ assert.throws(()=>validateContent({...lesson,content:{body:'',objectives:[]}},true));
+ const quiz={...lesson,kind:'quiz',content:{prompt:'Which action?',options:['Verify','Verify'],correctOption:0,explanation:'Use a trusted channel.'}};
+ assert.throws(()=>validateContent(quiz,true));
+ assert.throws(()=>validateContent({...quiz,content:{...quiz.content,options:['A','B'],correctOption:2}},true));
+ assert.doesNotThrow(()=>validateContent({...quiz,content:{...quiz.content,options:['',''],correctOption:null}},false));
+});
+test('migration and transitions preserve published revisions and audit every successful action',async()=>{
+ const db=new PGlite();
+ try{
+  await db.exec("create role anon;create role authenticated;create role service_role;create table users(id text primary key,role text,status text);insert into users values('head','super','Active'),('teacher','admin','Active'),('other','admin','Active'),('inactive','admin','Inactive'),('student','student','Active');");
+  const sql=await readFile(new URL('../migrations/20261008_curriculum.sql',import.meta.url),'utf8');await db.exec(sql);await db.exec(sql);
+  const write=async(actor,action,row=null,payload={})=>(await db.query('select levelblue_curriculum_write($1,$2,$3,$4,$5) r',[actor,action,row?.id??null,row?.version??null,JSON.stringify(payload)])).rows[0].r;
+  await assert.rejects(write('head','create',null,lesson));await assert.rejects(write('student','create',null,lesson));await assert.rejects(write('inactive','create',null,lesson));
+  let r=await write('teacher','create',null,lesson);const originalId=r.id;
+  await assert.rejects(write('other','edit',r,lesson));await assert.rejects(write('teacher','approve',r));await assert.rejects(write('head','publish',r));
+  r=await write('teacher','submit',r);await assert.rejects(write('teacher','edit',r,lesson));
+  await assert.rejects(write('head','request_changes',r));
+  r=await write('head','request_changes',r,{note:'Explain trusted channels.'});
+  r=await write('teacher','edit',r,{...lesson,title:'Trusted channels'});
+  await assert.rejects(write('teacher','submit',{...r,version:r.version-1}));
+  r=await write('teacher','submit',r);r=await write('head','approve',r);r=await write('head','publish',r);
+  assert.equal(r.release_version,1);const published=r;
+  await assert.rejects(write('teacher','edit',r,lesson));await assert.rejects(write('head','publish',r));
+  r=await write('teacher','revise',r);assert.equal(r.revision,2);assert.equal(r.status,'draft');
+  await assert.rejects(write('teacher','revise',published));
+  assert.deepEqual((await db.query('select to_jsonb(r) r from curriculum_revisions r where id=$1',[originalId])).rows[0].r,published);
+  assert.equal(publishedCatalog((await db.query('select * from curriculum_revisions')).rows).items[0].revision,1);
+  r=await write('teacher','submit',r);r=await write('head','approve',r);r=await write('head','publish',r);
+  const catalog=publishedCatalog((await db.query('select * from curriculum_revisions')).rows);
+  assert.equal(catalog.items.length,1);assert.equal(catalog.items[0].revision,2);assert.equal(catalog.releaseVersion,2);assert.equal(catalog.items[0].author_id,undefined);
+  const feed=(await db.query('select levelblue_published_catalog() feed')).rows[0].feed;
+  assert.equal(feed.items[0].revision,2);assert.equal(feed.items[0].review_note,undefined);assert.equal(feed.releaseVersion,2);
+  const events=(await db.query('select * from curriculum_events')).rows;assert.equal(events.length,11);assert.ok(events.every(e=>e.actor_id&&e.created_at&&e.revision_id));
+  await db.exec("update users set status='Inactive' where id='teacher'");await assert.rejects(write('teacher','revise',r));
+  await db.exec('set role anon');await assert.rejects(db.query('select * from curriculum_revisions'));await assert.rejects(write('head','publish',r));
+ }finally{await db.close();}
+});
+test('staff API scopes drafts to author and mobile feed exposes only latest publications',async()=>{
+ const base={...lesson,item_id:'item',id:'r1',revision:1,version:1,status:'published',author_id:'teacher',release_version:1,published_at:'2026-10-08'};
+ const db=fakeDb({curriculum_revisions:[base,{...base,id:'r2',revision:2,status:'draft',review_note:'private'},{...base,id:'other',item_id:'other',author_id:'other',status:'submitted'}],curriculum_events:[],users:[{id:'teacher',name:'Teacher One'},{id:'other',name:'Teacher Two'}]});
+ db.rpc=()=>Promise.resolve({data:publishedCatalog(db.tables.curriculum_revisions),error:null});
+ const app=express();app.use(express.json());app.use((req,res,next)=>{req.user={id:req.headers['x-user']||'teacher',role:req.headers['x-role']||'admin',status:'Active'};next();});app.use('/content',createCurriculumRoutes(db));app.use('/mobile',createMobileContentRoutes(db));app.use((e,req,res,next)=>res.status(e.status||500).json({error:e.message}));
+ assert.equal((await request(app).get('/content')).body.length,2);
+ assert.equal((await request(app).get('/content').set('x-role','super')).body.length,3);
+ await request(app).get('/content/other/history').expect(404);
+ await request(app).post('/content/r1/actions').send({action:'publish',version:1}).expect(403);
+ await request(app).get('/content').set('x-role','student').expect(403);
+ const feed=await request(app).get('/mobile').set('x-role','student').expect(200);
+ assert.equal(feed.body.items.length,1);assert.equal(feed.body.items[0].revision,1);assert.equal(feed.body.items[0].review_note,undefined);
+ await request(app).get('/mobile').set('x-role','student').set('If-None-Match',feed.headers.etag).expect(304);
+ await request(app).get('/mobile').expect(403);
+});
