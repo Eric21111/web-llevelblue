@@ -35,6 +35,6 @@ export default function SectionWorkspace({user}) {
      </form>}
     </article>)}
    </section>
-  </div><p className="dash-footnote">Student accounts and learning history are preserved. Promotion and graduation archival are pending mobile synchronization checks.</p>
+  </div><p className="dash-footnote">Use Section Checklist to promote selected learners or archive graduating enrollment. Student accounts and learning history are preserved.</p>
  </div>;
 }

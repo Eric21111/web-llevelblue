@@ -29,6 +29,7 @@ export function mapLearner(row, records = []) {
   const comparable = preAssessment.confirmed && postAssessment.confirmed && preAssessment.scale && preAssessment.scale === postAssessment.scale
     && preAssessment.pairId && preAssessment.pairId === postAssessment.pairId && Date.parse(postAssessment.completedAt) >= Date.parse(preAssessment.completedAt);
   return { _id: row.id, name: row.name, email: row.email, section: row.section, sectionId: row.section_id, gradeLevel: row.grade_level,
+    enrollmentStatus:row.enrollment_status||'active',academicYear:row.academic_year||null,enrollmentVersion:row.enrollment_version??0,
     sessions: row.sessions, points: row.points, technical: row.technical, lastActive: row.last_active, createdAt: row.created_at,
     pre: preAssessment.score, post: postAssessment.score, preAssessment, postAssessment,
     gain: comparable ? postAssessment.score - preAssessment.score : null,

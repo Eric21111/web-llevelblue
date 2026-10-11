@@ -22,6 +22,8 @@ const LearningWorkspace = lazy(() => import("./pages/LearningWorkspace"));
 const UsabilityFeedback = lazy(() => import("./pages/teacher/UsabilityFeedback"));
 const TeacherSettings = lazy(() => import("./pages/teacher/TeacherSettings"));
 const SectionsManagement = lazy(() => import("./pages/SectionWorkspace"));
+const CohortChecklist = lazy(() => import("./pages/CohortChecklist"));
+const TeacherActivity = lazy(() => import("./pages/TeacherActivity"));
 
 const SuperAdminHome = lazy(() => import("./pages/super/SuperAdminHome"));
 const TeacherManagement = lazy(() => import("./pages/super/TeacherManagement"));
@@ -94,6 +96,7 @@ function AppContent() {
 
   const teacherPages = [
     { label: "Dashboard", path: "/dashboard", group: "Overview", icon: LayoutDashboard, component: TeacherHome },
+    { label: "Section Checklist", path: "/enrollment", group: "Teaching & support", icon: GraduationCap, component: CohortChecklist },
     { label: "Student Follow-ups", path: "/follow-ups", group: "Teaching & support", icon: ShieldAlert, component: TeacherHome, followUps: true },
     { label: "Reviews & Remediation", path: "/interventions", group: "Teaching & support", icon: ClipboardList, component: LearningWorkspace, mode: "interventions" },
     { label: "Student Roster", path: "/roster", group: "Teaching & support", icon: Users, component: ClassRoster, description: "Manage student records and keep your learners connected." },
@@ -106,6 +109,8 @@ function AppContent() {
   ];
   const schoolPages = [
     { label: "Dashboard", path: "/dashboard", group: "Overview", icon: LayoutDashboard, component: SuperAdminHome },
+    { label: "Section Checklist", path: "/enrollment", group: "Administration", icon: GraduationCap, component: CohortChecklist },
+    { label: "Teacher Activity", path: "/teacher-activity", group: "School insights", icon: UserCog, component: TeacherActivity },
     { label: "School Progress", path: "/school-progress", group: "School insights", icon: BarChart3, component: LearningWorkspace },
     { label: "Student Feedback & Usability", path: "/survey", group: "School insights", icon: ClipboardList, component: UsabilityFeedback, description: "Explore student experience across sections and training modules." },
     { label: "Institutional Reports", path: "/reports", group: "School insights", icon: ClipboardList, component: LearningWorkspace, mode: "reports" },
