@@ -116,6 +116,7 @@ export const login = async (req, res) => {
           id: student.id,
           email: student.email,
           role: "student",
+          sessionVersion: student.session_version ?? 0,
           roleLabel: "Student",
           name: student.name,
           section: student.section,

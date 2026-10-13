@@ -26,9 +26,14 @@ import logRoutes from "./src/routes/logRoutes.js";
 import feedbackRoutes from "./src/routes/feedbackRoutes.js";
 import settingsRoutes from "./src/routes/settingsRoutes.js";
 import { authMiddleware } from "./src/middleware/auth.js";
+import { createRecoveryRoutes } from './src/routes/recoveryRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+// Set only when the deployment has exactly this many trusted reverse proxies.
+const proxyHops = Number(process.env.TRUST_PROXY_HOPS || 0);
+if (![0, 1].includes(proxyHops)) throw new Error('TRUST_PROXY_HOPS must be 0 or 1');
+app.set('trust proxy', proxyHops);
 
 // ─── Rate Limiters ────────────────────────────────────────────────────────────
 const authLimiter = rateLimit({
@@ -48,6 +53,9 @@ app.use(morgan("dev"));
 
 // ─── Mount Routes ─────────────────────────────────────────────────────────────
 app.use("/api/auth", authLimiter, authRoutes); // Rate-limit all auth endpoints
+const recovery = createRecoveryRoutes(supabase);
+app.use('/api/student-recovery', recovery.publicRoutes);
+app.use('/api/password-assistance', authMiddleware, recovery.staffRoutes);
 
 
 app.use("/api/content-bank", authMiddleware, headOnly, contentBankRoutes);

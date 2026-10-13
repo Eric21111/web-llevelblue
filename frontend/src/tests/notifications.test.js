@@ -11,6 +11,17 @@ const data = {
   logs: [{ id: "recent", createdAt: "2026-10-07T10:00:00Z", action: "Added content" }, { id: "old", createdAt: "2026-09-01" }, { id: "future", createdAt: "2027-01-01" }],
 };
 
+test('password assistance alerts track actionable requests and delivery retries', () => {
+ const pending={id:'request-1',student_name:'Student',status:'pending',updated_at:'2026-10-13T01:00:00Z'};
+ for(const role of ['admin','super']){
+  const first=buildNotifications(role,{recovery:[pending]});
+  assert.equal(first.length,1);assert.equal(first[0].path,'/password-assistance');
+  const retry=buildNotifications(role,{recovery:[{...pending,status:'delivery_failed'}]});
+  assert.notEqual(first[0].revision,retry[0].revision);
+  for(const status of ['approved','issuing','declined','completed','expired'])assert.equal(buildNotifications(role,{recovery:[{...pending,status}]}).length,0);
+ }
+});
+
 test("notifications only link to screens available to their role", () => {
   assert.deepEqual(buildNotifications("admin", data, now).map(item => item.path), ["/follow-ups", "/roster", "/engagement"]);
   assert.deepEqual(buildNotifications("super", data, now).map(item => item.path), ["/school-progress", "/teachers", "/content", "/logs"]);
