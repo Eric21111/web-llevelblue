@@ -1,16 +1,21 @@
-import { ArrowUpRight, RefreshCw, AlertCircle, Inbox, CheckCircle2 } from "lucide-react";
+import { ArrowUpRight, RefreshCw, AlertCircle, Inbox, CheckCircle2, Users, Activity, GraduationCap, ShieldAlert } from "lucide-react";
+import DashboardExports from './DashboardExports';
 import { formatLastActive } from "../../utils/time";
 import { initials, formatPercent, masteryPercent, studentId } from "../../utils/dashboard";
 
 export function DashboardCard({ icon: Icon, title, description, action, onAction, children, className = "" }) {
   return <section className={`dash-card ${className}`}><header className="dash-card-header"><div><h2>{Icon && <Icon size={18} aria-hidden="true" />}{title}</h2>{description && <p>{description}</p>}</div>{action && <button className="dash-text-button" onClick={onAction}>{action}<ArrowUpRight size={14} aria-hidden="true" /></button>}</header>{children}</section>;
 }
-export function DashboardHero({ user, school = false, stats, onNavigate }) {
+export function DashboardHero({ user, school = false, stats, sectionName='' }) {
   const now = new Date();
   const hour = now.getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const name = user?.firstName || user?.name?.split(" ")[0];
-  return <section className={`dash-welcome ${school ? "is-school" : ""}`}><div className="dash-welcome-heading"><div className="dash-hero-copy"><div className="dash-eyebrow">{school ? "SCHOOL BRIEFING" : "YOUR LEARNING STUDIO"} <span> / {now.toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span></div><h1>{greeting}{name ? `, ${name}` : ""}.</h1><p>{school ? "See the whole school. Support every learner." : "Small steps today. Safer habits tomorrow."}</p><button className="dash-primary-action" onClick={() => onNavigate(school ? "/school-progress" : "/follow-ups")}>{school ? "Explore school progress" : "Plan your student check-ins"}<ArrowUpRight size={17} /></button></div></div><div className="dash-metric-strip">{stats.map((stat, index) => <div key={stat.label}><span className="dash-metric-index">0{index + 1}</span><div><span className="dash-metric-label">{stat.label}</span><strong>{stat.value ?? "—"}</strong><small>{stat.note}</small></div></div>)}</div></section>;
+  const icons = school ? [GraduationCap, Users, Activity, ShieldAlert] : [Users, Activity, ShieldAlert, GraduationCap];
+  return <section className={`dash-welcome ${school ? "is-school" : ""}`}>
+    <div className="dash-overview-heading"><div><span className="dash-eyebrow">{school ? 'School workspace' : 'Teacher workspace'}</span><h1>Dashboard</h1><p>{greeting}{name ? ', ' + name : ''}. {school ? 'Here’s how learning is progressing across your school.' : 'Here’s where your classroom needs you today.'}</p></div><DashboardExports sectionName={sectionName}/></div>
+    <div className="dash-overview-metrics">{stats.map((stat,index) => { const Icon=icons[index]; return <article key={stat.label}><div className="dash-overview-metric-label"><span>{stat.label}</span><Icon size={18} aria-hidden="true"/></div><strong>{stat.value ?? '—'}</strong><small>{stat.note}</small></article>; })}</div>
+  </section>;
 }
 export function DashboardToolbar({ title = "Your overview", state, children }) {
   return <div className="dash-toolbar"><div><h2>{title}</h2><span className={Object.keys(state.errors).length ? "dash-sync-error" : "dash-sync"}>{Object.keys(state.errors).length ? "Some information is unavailable" : state.loading ? "Loading your information…" : `Updated ${state.updatedAt?.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · refreshes every 30s`}</span></div><div className="dash-toolbar-actions">{children}<button className="dash-button" disabled={state.refreshing} onClick={state.refresh}><RefreshCw size={14} className={state.refreshing ? "dash-spin" : ""} />{state.refreshing ? "Refreshing" : "Refresh"}</button></div></div>;
