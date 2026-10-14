@@ -12,7 +12,7 @@ const LEVELS = [
   { label: "Very Weak", color: "#EF5B5B" },
   { label: "Weak", color: "#E87740" },
   { label: "Fair", color: "#F2A93B" },
-  { label: "Good", color: "#8BD068" },
+  { label: "Good", color: "#688ed0" },
   { label: "Strong", color: COLORS.teal },
 ];
 
@@ -62,7 +62,7 @@ export default function PasswordStrengthIndicator({ password = "" }) {
               <div style={{
                 width: 16, height: 16, borderRadius: 4, flexShrink: 0,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                background: met ? "rgba(61,214,196,0.15)" : "transparent",
+                background: met ? "rgba(61, 117, 214,0.15)" : "transparent",
                 border: met ? `1.5px solid ${COLORS.teal}` : `1.5px solid ${COLORS.border}`,
                 transition: "all 0.2s ease",
               }}>

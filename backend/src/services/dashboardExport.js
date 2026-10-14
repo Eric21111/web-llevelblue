@@ -4,10 +4,11 @@ import {TOPICS, topicSummary} from './learning.js';
 import {summarizeEvidence} from './learningRecords.js';
 import {csvCell} from './reports.js';
 
-export const DASHBOARD_DATE_NOTE = 'The selected day filters recorded learning activity, feedback and reviews. Enrollment, faculty and current mastery are live totals at generation time, not a historical snapshot. Records follow current section access. Missing activity does not prove no learning occurred.';
+export const DASHBOARD_DATE_NOTE = 'The selected period filters recorded learning activity, feedback and reviews. Enrollment, faculty and current mastery are live totals at generation time, not a historical snapshot. Records follow current section access. Missing activity does not prove no learning occurred.';
 
 export function dashboardDay(query) {
-  const {date, startOffset, endOffset} = query;
+  const {date, startOffset, endOffset, period='day'} = query;
+  if(!['day','month','year'].includes(period)) throw fail(400,'Choose day, month or year.');
   if(typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) throw fail(400,'Choose a valid export date.');
   const midnight = Date.parse(`${date}T00:00:00Z`);
   if(!Number.isFinite(midnight) || new Date(midnight).toISOString().slice(0,10) !== date) throw fail(400,'Choose a valid export date.');
@@ -15,11 +16,14 @@ export function dashboardDay(query) {
     if(typeof value !== 'string' || !/^-?\d+$/.test(value) || Number(value)<-840 || Number(value)>720) throw fail(400,'A valid local timezone offset is required.');
     return Number(value);
   };
-  const start = midnight + offset(startOffset)*60000;
-  const end = midnight + 86400000 + offset(endOffset)*60000;
-  if(end-start<23*3600000 || end-start>25*3600000) throw fail(400,'Invalid local day boundaries.');
+  const anchor=new Date(midnight),year=anchor.getUTCFullYear(),month=anchor.getUTCMonth();
+  const first=period==='year'?Date.UTC(year,0,1):period==='month'?Date.UTC(year,month,1):midnight;
+  const last=period==='year'?Date.UTC(year+1,0,1):period==='month'?Date.UTC(year,month+1,1):midnight+86400000;
+  const start = first + offset(startOffset)*60000;
+  const end = last + offset(endOffset)*60000;
+  if(Math.abs((end-start)-(last-first))>3600000) throw fail(400,'Invalid local period boundaries.');
   if(start>Date.now()) throw fail(400,'Choose today or an earlier date.');
-  return {date,start:new Date(start).toISOString(),end:new Date(end).toISOString()};
+  return {date:period==='year'?date.slice(0,4):period==='month'?date.slice(0,7):date,start:new Date(start).toISOString(),end:new Date(end).toISOString()};
 }
 
 export async function dashboardData(db,user,query) {
@@ -58,20 +62,20 @@ export async function dashboardData(db,user,query) {
 export function dashboardRows(data) {
   const pct=v=>v==null?'Unavailable':`${(v*100).toFixed(1)}%`;
   const name=id=>data.students.find(s=>String(s._id)===String(id))?.name||'Learner';
-  const rows=[['LEVELBLUE dashboard export'],['Selected local date',data.day.date],['Day starts (UTC, inclusive)',data.day.start],['Day ends (UTC, exclusive)',data.day.end],['Generated (UTC)',data.generatedAt],['Workspace',data.role==='super'?'School head':'Teacher'],['Scope',data.sections.map(s=>s.name).join(', ')||'No assigned sections'],['Report basis',data.limitation],[],['CURRENT OVERVIEW'],['Active enrollment',data.students.length],['Sections',data.sections.length],['Learners active in last 7 days',data.students.filter(s=>{const t=Date.parse(s.lastActive),now=Date.parse(data.generatedAt);return t<=now&&t>=now-7*86400000;}).length],['Learners needing support',data.students.filter(s=>s.failedTopics.length).length],['Learners with no recorded mastery',data.students.filter(s=>!s.assessedTopics).length]];
+  const rows=[['LEVELBLUE dashboard export'],['Selected local period',data.day.date],['Period starts (UTC, inclusive)',data.day.start],['Period ends (UTC, exclusive)',data.day.end],['Generated (UTC)',data.generatedAt],['Workspace',data.role==='super'?'School head':'Teacher'],['Scope',data.sections.map(s=>s.name).join(', ')||'No assigned sections'],['Report basis',data.limitation],[],['CURRENT OVERVIEW'],['Active enrollment',data.students.length],['Sections',data.sections.length],['Learners active in last 7 days',data.students.filter(s=>{const t=Date.parse(s.lastActive),now=Date.parse(data.generatedAt);return t<=now&&t>=now-7*86400000;}).length],['Learners needing support',data.students.filter(s=>s.failedTopics.length).length],['Learners with no recorded mastery',data.students.filter(s=>!s.assessedTopics).length]];
   if(data.faculty)rows.push(['Active teachers',data.faculty.filter(t=>t.status==='Active').length],['Pending teacher invitations',data.faculty.filter(t=>t.status==='Invited').length]);
   rows.push([],['CURRENT TOPIC MASTERY'],['Topic','Assessed learners','Unassessed','Below 40%','Mean BKT mastery']);
   data.topics.forEach(t=>rows.push([t.topic,t.assessed,t.unassessed,t.support,pct(t.mastery)]));
   rows.push([],['CURRENT SECTIONS'],['Section','Grade','Learners','Need support']);
   data.sections.forEach(s=>{const group=data.students.filter(l=>l.sectionId===s.scope_id);rows.push([s.name,s.grade_level||'Unconfirmed',group.length,group.filter(l=>l.failedTopics.length).length]);});
-  rows.push([],['ACTIVITY ON SELECTED DATE'],['Learners with learning records',data.recordedLearners],['Completed assessments',data.evidence.assessments.length],['Cleared attempts',data.evidence.cleared],['Failed attempts',data.evidence.failed],['Started / abandoned without a finished result that day',data.evidence.incomplete],['Student feedback responses',data.feedback.length],['Reviews and interventions recorded',data.interventions.length],['Evidence note','Device time selects learning records; server creation time selects feedback and reviews. An attempt finished on another day is not a failure on this day. Assessment scores may be mobile-reported.'],[],['MASTERY OBSERVED ON SELECTED DATE'],['Topic','Learners observed','Below 40%','Mean last observation']);
+  rows.push([],['ACTIVITY IN SELECTED PERIOD'],['Learners with learning records',data.recordedLearners],['Completed assessments',data.evidence.assessments.length],['Cleared attempts',data.evidence.cleared],['Failed attempts',data.evidence.failed],['Started / abandoned without a finished result in this period',data.evidence.incomplete],['Student feedback responses',data.feedback.length],['Reviews and interventions recorded',data.interventions.length],['Evidence note','Device time selects learning records; server creation time selects feedback and reviews. An attempt finished outside this period is not a failure within it. Assessment scores may be mobile-reported.'],[],['MASTERY OBSERVED IN SELECTED PERIOD'],['Topic','Learners observed','Below 40%','Mean last observation']);
   data.dailyTopics.forEach(t=>rows.push([t.topic,t.assessed,t.support,pct(t.mastery)]));
-  rows.push([],['ASSESSMENTS ON SELECTED DATE'],['Learner','Topic','Assessment','Correct','Total','Score (%)','Device time','Source']);
+  rows.push([],['ASSESSMENTS IN SELECTED PERIOD'],['Learner','Topic','Assessment','Correct','Total','Score (%)','Device time','Source']);
   data.evidence.assessments.forEach(r=>rows.push([name(r.student_id),r.data.topic,r.data.instrument||r.kind,r.data.correct,r.data.total,r.data.score,r.occurred_at,r.data.source]));
-  if(!data.evidence.assessments.length) rows.push(['No completed assessments recorded on this date.']);
-  rows.push([],['STAGE OUTCOMES ON SELECTED DATE'],['Learner','Module','Stage','Outcome','Device time']);
+  if(!data.evidence.assessments.length) rows.push(['No completed assessments recorded in this period.']);
+  rows.push([],['STAGE OUTCOMES IN SELECTED PERIOD'],['Learner','Module','Stage','Outcome','Device time']);
   data.evidence.attempts.forEach(r=>rows.push([name(r.student_id),r.module_id,r.data.stage,r.data.outcome,r.occurred_at]));
-  if(!data.evidence.attempts.length) rows.push(['No stage activity recorded on this date.']);
+  if(!data.evidence.attempts.length) rows.push(['No stage activity recorded in this period.']);
   return rows;
 }
 

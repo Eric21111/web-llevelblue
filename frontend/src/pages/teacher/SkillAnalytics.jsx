@@ -7,7 +7,7 @@ import Panel from "../../components/Panel";
 import { COLORS } from "../../constants/colors";
 import { apiFetch } from "../../utils/api";
 
-const SKILL_COLORS = ["#3DD6C4", "#F2A93B", "#EF5B5B", "#7C9EF2", "#C792EA"];
+const SKILL_COLORS = ["#3d75d6", "#F2A93B", "#EF5B5B", "#7C9EF2", "#C792EA"];
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;

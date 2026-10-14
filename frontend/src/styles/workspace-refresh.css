@@ -1,7 +1,7 @@
 /* Shared workspace refresh. Public landing and login styles stay independent. */
 .console-shell { --console-bg: #f6f8fb; --console-border: #e9edf3; --console-text: #202b3c; --console-muted: #67758a; --dash-teal: #2563eb; background: var(--console-bg); }
 .console-shell :focus-visible { outline-color: #2563eb; }
-.console-sidebar { width: 244px; background: #fff; color: #202b3c; border-right: 1px solid var(--console-border); }
+.console-sidebar { width: 244px; transition: width .24s ease, transform .24s ease, visibility .24s; overflow-x: hidden; background: #fff; color: #202b3c; border-right: 1px solid var(--console-border); }
 .console-brand { height: 72px; padding: 0 18px; gap: 8px; color: #182238; font-size: 18px; flex-shrink: 0; border-bottom: 1px solid var(--console-border); }
 .console-brand > span { width: 30px; height: 34px; border: 0; border-radius: 9px; background: #edf3ff; color: #2563eb; flex-shrink: 0; }
 .console-brand > div > span { color: #2563eb; }
@@ -32,6 +32,14 @@
 .console-sidebar .dash-avatar, .dash-avatar { background: #eaf0ff; color: #315cba; }
 .console-topbar { height: 72px; background: #fff; border-bottom: 1px solid var(--console-border); padding: 0 28px; }
 .console-topbar-actions { gap: 12px; }
+.console-profile-menu { position: relative; }
+.console-account-options { position: absolute; top: calc(100% + 12px); right: 0; z-index: 45; width: min(250px,calc(100vw - 36px)); padding: 10px; background: #fff; border: 1px solid #e2e9f3; border-radius: 14px; box-shadow: 0 12px 35px #263b6020; }
+.console-account-options > strong { display: block; padding: 8px 10px 3px; color: #243148; font-size: 13px; overflow-wrap: anywhere; }
+.console-account-options > small { display: block; padding: 0 10px 12px; margin-bottom: 5px; border-bottom: 1px solid #edf0f5; color: #728096; font-size: 11px; }
+.console-account-options > button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 10px; border: 0; border-radius: 8px; background: transparent; color: #354b6e; font: 500 12px Inter,sans-serif; text-align: left; }
+.console-account-options > button:hover { background: #edf3ff; color: #245fe0; }
+.console-account-options > button:last-child { color: #a33838; }
+.console-account-options > button:last-child:hover { background: #fff2f2; }
 .console-breadcrumb { font-size: 12px; }
 .console-breadcrumb strong { white-space: normal; }
 .console-search { background: #f8fafc; border: 1px solid #edf0f4; width: 235px; border-radius: 22px; }
@@ -50,7 +58,7 @@
 .dash-date { display: flex; align-items: center; gap: 7px; padding: 9px 12px; color: #65748a; font-size: 11px; background: white; border: 1px solid #e6ecf4; border-radius: 9px; }
 .dash-primary-action { background: #2563eb; border-color: #2563eb; border-radius: 9px; margin: 0; gap: 8px; padding: 10px 13px; box-shadow: 0 3px 6px #2563eb18; font-size: 11px; }
 .dash-primary-action:hover { background: #1d4ed8; }
-.dash-export-controls { flex-shrink: 0; max-width: 340px; }
+.dash-export-controls { flex-shrink: 0; max-width: 570px; }
 .dash-date input { min-width: 0; width: 125px; border: 0; background: transparent; color: #41536e; font-size: 11px; cursor: pointer; }
 .dash-export-anchor { position: relative; }
 .dash-export-options { position: absolute; right: 0; top: calc(100% + 9px); z-index: 15; width: 250px; padding: 15px; border: 1px solid #e2e9f3; background: #fff; border-radius: 13px; box-shadow: 0 12px 35px #263b6020; text-align: left; }
@@ -61,7 +69,7 @@
 .dash-export-options button small { margin: 3px 0 0; }
 .dash-overview-heading .dash-export-note, .dash-overview-heading .dash-export-status, .dash-overview-heading .dash-export-error { font-size: 10px; text-align: right; margin: 7px 0 0; max-width: 300px; }
 .dash-overview-heading .dash-export-error { color: #aa3838; }
-.dash-overview-heading .dash-export-status { color: #237653; }
+.dash-overview-heading .dash-export-status { color: #234176; }
 .dash-overview-metrics { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 16px; }
 .dash-overview-metrics article { background: #fff; border: 1px solid var(--console-border); border-radius: 16px; padding: 19px 20px; box-shadow: 0 2px 3px #20324c03; }
 .dash-overview-metric-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #354157; font-size: 12px; font-weight: 550; }
@@ -81,8 +89,8 @@
 .dash-card-header h2 { color: #243148; font-size: 14px; font-weight: 600; }
 .dash-card-header h2 svg { color: #386fe0; }
 .dash-card-header p { color: #7b8799; }
-.dash-text-button { color: #4d6a9d; }
-.dash-text-button:hover { color: #2563eb; }
+.dash-text-button { color: #315a9a; border: 1px solid #d3dff0; background: white; padding: 8px 12px; border-radius: 8px; white-space: nowrap; }
+.dash-text-button:hover { color: #2563eb; border-color: #9ebcee; background: #edf3ff; }
 .dashboard-school .dash-grid > .dash-column:first-child > .dash-priorities { display: block; background: #fff; }
 .dashboard-school .dash-priorities .dash-attention-row + .dash-attention-row { border-top: 1px solid #f0f3f6; }
 .dash-count { border-radius: 11px; background: #edf4ff; color: #326be1; }
@@ -105,8 +113,8 @@
 .dash-empty > svg { color: #85a5dc; }
 .console-sidebar-close { color: #536781; }
 @media (min-width: 901px) {
-  .sidebar-collapsed .console-sidebar { width: 76px; }
-  .sidebar-collapsed .console-brand { padding: 12px 0; height: 92px; flex-direction: column; gap: 3px; }
+  .sidebar-collapsed .console-sidebar { width: 88px; }
+  .sidebar-collapsed .console-brand { padding: 0 10px; height: 72px; flex-direction: row; gap: 9px; }
   .sidebar-collapsed .console-collapse { margin: 0; }
   .sidebar-collapsed .console-brand > div, .sidebar-collapsed .console-workspace, .sidebar-collapsed .console-nav-group button > span, .sidebar-collapsed .console-group-toggle, .sidebar-collapsed .console-user > div, .sidebar-collapsed .console-user > .dash-avatar { display: none; }
   .sidebar-collapsed .console-sidebar nav { padding-top: 16px; }
@@ -146,3 +154,43 @@
   .console-search-results { width: 230px; right: auto; }
 }
 @media (prefers-reduced-motion: reduce) { .console-group-toggle svg { transition: none; } }
+/* Date selection and selected-period evidence share one query with exports. */
+.dash-heading-actions { flex-direction:row; flex-wrap:wrap; justify-content:flex-end; }
+.dash-period-toggle { display:flex; padding:3px; border:1px solid #e0e7f2; border-radius:9px; background:white; }
+.dash-period-toggle button { background:transparent; color:#64748b; padding:7px 10px; border:0; border-radius:6px; font:500 11px Inter,sans-serif; }
+.dash-period-toggle button[aria-pressed=true] { color:#245bd0; background:#eaf1ff; }
+.dash-period-toggle button:hover:not(:disabled) { background:#f0f5ff; }
+button.dash-date { font:500 11px Inter,sans-serif; min-height:36px; }
+.dash-calendar { width:min(352px,calc(100vw - 28px)); padding:22px; border:1px solid #dce5f3; border-radius:18px; background:#fff; color:#243148; box-shadow:0 24px 80px #17305d38; font:13px/1.5 Inter,sans-serif; }
+.dash-calendar::backdrop { background:#15284180; backdrop-filter:blur(3px); }
+.dash-calendar header,.dash-calendar-nav,.dash-calendar footer { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.dash-calendar h2 { font-size:18px; margin:0; }
+.dash-calendar-nav { margin:20px 0 14px; }
+.dash-calendar-nav select { padding:8px 5px; background:white; border:1px solid #dbe4f2; border-radius:7px; color:#344764; font:inherit; max-width:100px; }
+.dash-calendar-grid,.dash-calendar-week { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+.dash-calendar-week { color:#7b8799; text-align:center; font-size:10px; margin-bottom:6px; }
+.dash-calendar-grid button,.dash-calendar-periods button { border:1px solid transparent; background:white; color:#344764; border-radius:8px; padding:9px 0; font:500 12px Inter,sans-serif; }
+.dash-calendar button[aria-current=date] { border-color:#9bb9ee; }
+.dash-calendar button[aria-pressed=true] { background:#2563eb; color:white; }
+.dash-calendar-grid button:hover:not(:disabled),.dash-calendar-periods button:hover:not(:disabled) { background:#eaf2ff; color:#245bc4; }
+.dash-calendar :is(button,select):focus-visible { outline:2px solid #2563eb; outline-offset:2px; }
+.dash-calendar button:disabled { opacity:.3; cursor:not-allowed; }
+.dash-calendar-periods { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.dash-calendar footer { margin-top:18px; padding-top:14px; border-top:1px solid #e9edf4; }
+.dash-calendar small { color:#7a879b; font-size:10px; }
+.dash-period-activity { margin-top:20px; padding:20px; border:1px solid #e0e8f5; border-radius:16px; background:#f0f5ff; }
+.dash-period-activity h2 { margin:0 0 6px; font:600 14px Inter,sans-serif; color:#29456e; }
+.dash-period-activity p { font-size:11px; color:#657894; line-height:1.7; }
+.dash-period-metrics { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:16px; margin:18px 0 10px; }
+.dash-period-metrics strong { display:block; font-size:24px; color:#235bc4; }
+.dash-period-metrics span { color:#5d7293; font-size:11px; }
+.console-brand { white-space:nowrap; }
+.console-brand > div { overflow:hidden; }
+.console-collapse { flex-shrink:0; }
+.console-shell button,.console-shell a,.dash-calendar button { transition:background .16s,color .16s,border-color .16s,box-shadow .16s,transform .16s; }
+.console-shell :is(.dash-button,.dash-text-button,.dash-primary-action,.learning-button):hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 3px 10px #245bc416; }
+.console-shell :is(.dash-attention-row,.dash-shortcuts button):hover { background:#eff5ff; border-color:#b7cdf1; }
+.console-shell :is(.dash-attention-row,.dash-shortcuts button) { border:1px solid #e3eaf5; border-radius:9px; padding:12px; margin-top:8px; }
+.console-shell .learning-button:hover:not(:disabled) { filter:brightness(1.07); }
+@media(max-width:700px){.dash-heading-actions{justify-content:flex-start;}.dash-period-metrics{grid-template-columns:repeat(2,minmax(0,1fr));}.dash-period-activity{padding:16px;}}
+@media(prefers-reduced-motion:reduce){.console-sidebar,.console-shell button,.console-shell a,.dash-calendar button{transition:none!important;transform:none!important;}}

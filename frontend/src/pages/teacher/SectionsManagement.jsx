@@ -127,7 +127,7 @@ export default function SectionsManagement() {
               }}>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                    <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(61,214,196,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(61, 117, 214,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <GraduationCap size={16} color={COLORS.teal} />
                     </div>
                     <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 15, color: COLORS.text }}>

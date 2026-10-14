@@ -65,11 +65,11 @@ function DashboardPreview() {
           <div className="lb-chart-card">
             <div className="lb-chart-heading"><span>Mastery over time</span><span className="lb-chart-key">Class average</span></div>
             <svg className="lb-growth-chart" viewBox="0 0 430 158" role="img" aria-label="Sample mastery increases from 32 to 77 percent across six weeks">
-              <defs><linearGradient id="lb-chart-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#3dd6c4" stopOpacity=".24" /><stop offset="100%" stopColor="#3dd6c4" stopOpacity="0" /></linearGradient></defs>
+              <defs><linearGradient id="lb-chart-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#60a5fa" stopOpacity=".24" /><stop offset="100%" stopColor="#60a5fa" stopOpacity="0" /></linearGradient></defs>
               {[25, 65, 105].map((y, i) => <g key={y}><text x="0" y={y + 4}>{[100, 70, 40][i]}%</text><line x1="35" x2="425" y1={y} y2={y} /></g>)}
               <path d="M35 117 C70 117 85 97 112 98 S167 73 190 77 S245 53 270 57 S325 40 348 43 S398 25 425 27 L425 137 L35 137Z" fill="url(#lb-chart-fill)" />
-              <path className="lb-chart-line" d="M35 117 C70 117 85 97 112 98 S167 73 190 77 S245 53 270 57 S325 40 348 43 S398 25 425 27" fill="none" stroke="#3dd6c4" strokeWidth="2.5" pathLength="1" />
-              <circle cx="425" cy="27" r="4" fill="#3dd6c4" stroke="#122539" strokeWidth="3" />
+              <path className="lb-chart-line" d="M35 117 C70 117 85 97 112 98 S167 73 190 77 S245 53 270 57 S325 40 348 43 S398 25 425 27" fill="none" stroke="#60a5fa" strokeWidth="2.5" pathLength="1" />
+              <circle cx="425" cy="27" r="4" fill="#60a5fa" stroke="#122539" strokeWidth="3" />
               {[35, 112, 190, 270, 348, 410].map((x, i) => <text key={x} x={x} y="155" textAnchor="middle">W{i + 1}</text>)}
             </svg>
           </div>

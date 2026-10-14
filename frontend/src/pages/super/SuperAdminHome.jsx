@@ -22,7 +22,7 @@ export default function SuperAdminHome({ user, onNavigate, progress = false }) {
   const studentsUnavailable = state.loading || state.errors.students;
 
   return <div className="dashboard dashboard-school">
-    {!progress && <DashboardHero onNavigate={onNavigate} user={user} school stats={[
+    {!progress && <DashboardHero refreshKey={state.updatedAt?.getTime()} onNavigate={onNavigate} user={user} school stats={[
       { value: teachersUnavailable ? null : active, label: "Active teachers", note: "Supporting your learners" },
       { value: studentsUnavailable ? null : summary.total, label: "Students", note: "Across your school" },
       { value: studentsUnavailable || state.errors.sections ? null : sections.length, label: "Sections", note: "Learning together" },

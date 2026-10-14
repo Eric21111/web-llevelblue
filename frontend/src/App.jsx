@@ -15,6 +15,8 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 // Lazy load pages for code splitting and faster initial load
+const StudentFollowUps = lazy(() => import("./pages/StudentFollowUps"));
+const ReviewsRemediation = lazy(() => import("./pages/ReviewsRemediation"));
 const TeacherHome = lazy(() => import("./pages/teacher/TeacherHome"));
 const ClassRoster = lazy(() => import("./pages/teacher/ClassRoster"));
 const LearningWorkspace = lazy(() => import("./pages/LearningWorkspace"));
@@ -102,8 +104,8 @@ function AppContent() {
     { label: "Dashboard", path: "/dashboard", group: "Overview", icon: LayoutDashboard, component: TeacherHome },
     { label: 'Password Assistance', path: '/password-assistance', group: 'Teaching & support', icon: ShieldAlert, component: PasswordAssistance },
     { label: "Section Checklist", path: "/enrollment", group: "Teaching & support", icon: GraduationCap, component: CohortChecklist },
-    { label: "Student Follow-ups", path: "/follow-ups", group: "Teaching & support", icon: ShieldAlert, component: TeacherHome, followUps: true },
-    { label: "Reviews & Remediation", path: "/interventions", group: "Teaching & support", icon: ClipboardList, component: LearningWorkspace, mode: "interventions" },
+    { label: "Student Follow-ups", path: "/follow-ups", group: "Teaching & support", icon: ShieldAlert, component: StudentFollowUps },
+    { label: "Reviews & Remediation", path: "/interventions", group: "Teaching & support", icon: ClipboardList, component: ReviewsRemediation },
     { label: "Student Roster", path: "/roster", group: "Teaching & support", icon: Users, component: ClassRoster, description: "Manage student records and keep your learners connected." },
     { label: "Sections", path: "/sections", group: "Teaching & support", icon: GraduationCap, component: SectionsManagement, description: "Organize your classes and learning groups." },
     { label: "Classroom Diagnostics", path: "/analytics", group: "Learning insights", icon: BookOpen, component: LearningWorkspace, description: "Explore strengths, learning gaps, and assessment results." },

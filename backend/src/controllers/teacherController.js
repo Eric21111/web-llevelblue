@@ -1,6 +1,7 @@
 import { supabase } from "../config/db.js";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "node:crypto";
+import {contactDetails} from "../services/management.js";
 import { actorName } from "../utils/actor.js";
 
 // Helper: map Supabase user row to frontend-expected shape
@@ -46,7 +47,7 @@ export const getTeachers = async (req, res) => {
 
 export const addTeacher = async (req, res) => {
   try {
-    const { firstName, lastName, middleInitial, email } = req.body;
+    const { firstName, lastName, middleInitial, email } = contactDetails(req.body);
     if (!firstName || !lastName || !email) {
       return res.status(400).json({ error: "First name, last name, and email are required" });
     }
@@ -97,7 +98,7 @@ export const addTeacher = async (req, res) => {
     res.status(201).json({ ...mapUser(newTeacher), generatedPassword });
   } catch (error) {
     console.error("Add teacher error:", error);
-    res.status(500).json({ error: "Server error creating teacher account" });
+    res.status(error.status || (error.code === "23505" ? 409 : 500)).json({ error: error.status ? error.message : error.code === "23505" ? "This email is already used by another staff account." : "Server error creating teacher account" });
   }
 };
 

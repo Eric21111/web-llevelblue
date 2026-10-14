@@ -192,8 +192,8 @@ export default function SuperAdminSettings({ user, setUser }) {
         {keyMsg.text && (
           <div style={{
             display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 8, marginBottom: 16,
-            background: keyMsg.type === "success" ? "rgba(61,214,196,0.1)" : "rgba(239,91,91,0.1)",
-            border: `1px solid ${keyMsg.type === "success" ? "rgba(61,214,196,0.3)" : "rgba(239,91,91,0.3)"}`
+            background: keyMsg.type === "success" ? "rgba(61, 117, 214,0.1)" : "rgba(239,91,91,0.1)",
+            border: `1px solid ${keyMsg.type === "success" ? "rgba(61, 117, 214,0.3)" : "rgba(239,91,91,0.3)"}`
           }}>
             {keyMsg.type === "success" ? <CheckCircle size={16} color={COLORS.teal} /> : <AlertTriangle size={16} color={COLORS.coral} />}
             <span style={{ fontSize: 13, color: keyMsg.type === "success" ? COLORS.teal : COLORS.coral, fontFamily: "Inter" }}>
@@ -235,8 +235,8 @@ export default function SuperAdminSettings({ user, setUser }) {
         {profileMsg.text && (
           <div style={{
             display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 8, marginBottom: 16,
-            background: profileMsg.type === "success" ? "rgba(61,214,196,0.1)" : "rgba(239,91,91,0.1)",
-            border: `1px solid ${profileMsg.type === "success" ? "rgba(61,214,196,0.3)" : "rgba(239,91,91,0.3)"}`
+            background: profileMsg.type === "success" ? "rgba(61, 117, 214,0.1)" : "rgba(239,91,91,0.1)",
+            border: `1px solid ${profileMsg.type === "success" ? "rgba(61, 117, 214,0.3)" : "rgba(239,91,91,0.3)"}`
           }}>
             {profileMsg.type === "success" ? <CheckCircle size={16} color={COLORS.teal} /> : <AlertTriangle size={16} color={COLORS.coral} />}
             <span style={{ fontSize: 13, color: profileMsg.type === "success" ? COLORS.teal : COLORS.coral, fontFamily: "Inter" }}>
@@ -303,7 +303,7 @@ export default function SuperAdminSettings({ user, setUser }) {
                 style={{ flex: 1, background: COLORS.panelAlt, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "10px 12px", color: COLORS.text, fontFamily: "Inter", fontSize: 13.5 }}
               />
               {isEmailVerified ? (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(61,214,196,0.12)", border: "1px solid rgba(61,214,196,0.3)", borderRadius: 8, padding: "0 14px", color: COLORS.teal, fontSize: 12.5, fontWeight: 600 }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(61, 117, 214,0.12)", border: "1px solid rgba(61, 117, 214,0.3)", borderRadius: 8, padding: "0 14px", color: COLORS.teal, fontSize: 12.5, fontWeight: 600 }}>
                   ✓ Verified
                 </span>
               ) : (
@@ -371,8 +371,8 @@ export default function SuperAdminSettings({ user, setUser }) {
         {passwordMsg.text && (
           <div style={{
             display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 8, marginBottom: 16,
-            background: passwordMsg.type === "success" ? "rgba(61,214,196,0.1)" : "rgba(239,91,91,0.1)",
-            border: `1px solid ${passwordMsg.type === "success" ? "rgba(61,214,196,0.3)" : "rgba(239,91,91,0.3)"}`
+            background: passwordMsg.type === "success" ? "rgba(61, 117, 214,0.1)" : "rgba(239,91,91,0.1)",
+            border: `1px solid ${passwordMsg.type === "success" ? "rgba(61, 117, 214,0.3)" : "rgba(239,91,91,0.3)"}`
           }}>
             {passwordMsg.type === "success" ? <CheckCircle size={16} color={COLORS.teal} /> : <AlertTriangle size={16} color={COLORS.coral} />}
             <span style={{ fontSize: 13, color: passwordMsg.type === "success" ? COLORS.teal : COLORS.coral, fontFamily: "Inter" }}>

@@ -1,40 +1,23 @@
-import {useEffect,useState} from 'react';
+import {useState} from 'react';
+import {Plus,RefreshCw} from 'lucide-react';
 import {apiRequest} from '../utils/api';
-export default function SectionWorkspace({user}) {
- const [sections,setSections]=useState([]),[name,setName]=useState(''),[grade,setGrade]=useState('Grade 11');
- const [error,setError]=useState(''),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true);
- const [choices,setChoices]=useState({}),[sectionErrors,setSectionErrors]=useState({}),[message,setMessage]=useState('');
- async function load(){
-  setLoading(true);setError('');
-  try{setSections(await apiRequest('/api/sections'));}catch(e){setError(e.message);}finally{setLoading(false);}
- }
- useEffect(()=>{load();},[]);
- async function create(e){e.preventDefault();setBusy(true);setError('');setMessage('');try{await apiRequest('/api/sections',{method:'POST',body:JSON.stringify({name,gradeLevel:grade})});setName('');setMessage('Section created.');await load();}catch(e){setError(e.message);}finally{setBusy(false);}}
- async function confirm(e,id){
-  e.preventDefault();setBusy(true);setMessage('');setSectionErrors(v=>({...v,[id]:''}));
-  try{
-   await apiRequest('/api/sections/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({gradeLevel:choices[id]})});
-   setMessage('Section grade confirmed. Students without a recorded grade now use this section grade in the workspace.');
-   await load();
-  }catch(e){setSectionErrors(v=>({...v,[id]:e.message}));}finally{setBusy(false);}
- }
- return <div className="dashboard learning-workspace">
-  <div className="dash-page-intro"><span className="dash-eyebrow">CLASSROOM ORGANIZATION</span><h1>Sections & assignments</h1><p>{user?.role==='super'?'Create sections and assign co-teachers from Teacher Accounts.':'You are automatically assigned to sections you create. The school head manages co-teachers.'}</p></div>
-  {error&&<p className="learning-alert" role="alert">{error} <button onClick={load} disabled={busy||loading}>Reload sections</button></p>}
-  {message&&<p className="learning-success" role="status">{message}</p>}
-  <div className="learning-two-col">
-   <section className="learning-card"><h2>Create a section</h2><form className="learning-form" onSubmit={create}><label>Section name<input required maxLength={100} value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Grade 11 – Emerald"/></label><label>Grade<select value={grade} onChange={e=>setGrade(e.target.value)}><option>Grade 11</option><option>Grade 12</option></select></label><button className="learning-button" disabled={busy}>{busy?'Saving…':'Create section'}</button></form></section>
-   <section className="learning-card"><h2>{user?.role==='super'?'School sections':'Your assigned sections'}</h2>
-    {loading?<p role="status">Loading sections…</p>:!sections.length?<p>No assigned sections yet.</p>:sections.map(s=><article className="learning-note" key={s.id}>
-     <strong>{s.name}</strong><p>{s.gradeLevel||'Grade needs confirmation'} · {s.subject}</p>
-     {user?.role==='super'&&!s.gradeLevel&&<form className="learning-form" onSubmit={e=>confirm(e,s.id)}>
-      <label>Grade for {s.name}<select required value={choices[s.id]||''} disabled={busy} onChange={e=>{setChoices(v=>({...v,[s.id]:e.target.value}));setSectionErrors(v=>({...v,[s.id]:''}));}}><option value="" disabled>Choose grade</option><option>Grade 11</option><option>Grade 12</option></select></label>
-      <p>Students with no recorded grade will use the confirmed section grade. Existing student grades and learning progress are preserved.</p>
-      {sectionErrors[s.id]&&<p className="learning-alert" role="alert">{sectionErrors[s.id]}</p>}
-      <button className="learning-button" disabled={busy||!choices[s.id]}>{busy?'Saving…':'Confirm section grade'}</button>
-     </form>}
-    </article>)}
-   </section>
-  </div><p className="dash-footnote">Use Section Checklist to promote selected learners or archive graduating enrollment. Student accounts and learning history are preserved.</p>
+import {ManagementDialog,ManagementPagination,useManagementPage,useDirectory,DirectoryState} from '../components/ManagementUI';
+const sources={sections:'/api/sections',students:'/api/students?enrollment=all'};
+export default function SectionWorkspace({user,onNavigate}){
+ const head=user?.role==='super',state=useDirectory(sources),sections=state.data.sections||[],students=state.data.students||[];
+ const [query,setQuery]=useState(''),[grade,setGrade]=useState(''),[form,setForm]=useState(null),[preview,setPreview]=useState(null),[removing,setRemoving]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
+ const filtered=sections.filter(s=>(!grade||s.gradeLevel===grade)&&`${s.name} ${s.subject}`.toLowerCase().includes(query.toLowerCase())),page=useManagementPage(filtered,query+grade);
+ const members=id=>students.filter(s=>s.sectionId===id);
+ const previewPage=useManagementPage(preview?members(preview.id):[],preview?.id);
+ function edit(s){setError('');setForm(s?{id:s.id,name:s.name,subject:s.subject||'',gradeLevel:s.gradeLevel||'',originalGrade:s.gradeLevel}:{name:'',subject:'General Cybersecurity',gradeLevel:'Grade 11'});}
+ async function save(e){e.preventDefault();if(busy)return;setBusy(true);setError('');try{await apiRequest(form.id?`/api/sections/${encodeURIComponent(form.id)}/details`:'/api/sections',{method:form.id?'PATCH':'POST',body:JSON.stringify(form)});setMessage(form.id?'Section updated.':'Section created.');setForm(null);state.refresh();}catch(e){setError(e.message);}finally{setBusy(false);}}
+ async function remove(){if(busy)return;setBusy(true);setError('');try{await apiRequest(`/api/sections/${encodeURIComponent(removing.id)}`,{method:'DELETE'});setMessage('Empty section deleted.');setRemoving(null);state.refresh();}catch(e){setError(e.message);}finally{setBusy(false);}}
+ return <div className="dashboard support-workspace"><header className="support-page-heading"><div><h1>Sections & assignments</h1><p>{head?'View school sections, check enrollment, and manage class details.':'View your assigned sections. You are automatically assigned when you create one.'}</p></div><button className="dash-primary-action" onClick={()=>edit()}><Plus size={16}/>Add section</button></header>{message&&<p className="support-success" role="status">{message}</p>}
+ <section className="support-panel"><div className="support-filters"><label className="support-search">Find a section<input type="search" placeholder="Name or subject…" value={query} onChange={e=>setQuery(e.target.value)}/></label><label>Grade<select value={grade} onChange={e=>setGrade(e.target.value)}><option value="">All grades</option><option>Grade 11</option><option>Grade 12</option></select></label><button className="dash-button" disabled={state.loading} onClick={state.refresh}><RefreshCw size={16}/>Refresh</button></div>
+ <DirectoryState {...state}>{!filtered.length?<p className="support-empty">No sections match this view. Create a section or change the filters.</p>:<div className="support-table-scroll" tabIndex={0} aria-label="Section directory"><table className="support-table management-table"><thead><tr><th>Section</th><th>Grade</th><th>Active students</th><th>Archived students</th><th>Actions</th></tr></thead><tbody>{page.items.map(s=><tr key={s.id}><th>{s.name}<small>{s.subject}</small></th><td>{s.gradeLevel||'Needs confirmation'}</td><td>{members(s.id).filter(s=>s.enrollmentStatus!=='graduated').length}</td><td>{members(s.id).filter(s=>s.enrollmentStatus==='graduated').length}</td><td><div className="management-actions"><button className="dash-button" onClick={()=>setPreview(s)}>Preview</button><button className="dash-button" onClick={()=>edit(s)}>Edit</button>{head&&<button className="dash-button management-danger" disabled={members(s.id).length>0} title={members(s.id).length?'Sections with students are preserved':'Delete an empty section'} onClick={()=>{setError('');setRemoving(s);}}>Delete</button>}</div></td></tr>)}</tbody></table></div>}<ManagementPagination state={page}/></DirectoryState></section>
+ <p className="dash-footnote">Use Section Checklist for promotion and graduation. Names with enrollment or history stay unchanged for mobile compatibility.</p>
+ {form&&<ManagementDialog title={form.id?'Edit section':'Add section'} busy={busy} onClose={()=>setForm(null)}><form onSubmit={save} className="support-form"><fieldset disabled={busy} className="support-form"><label>Section name<input required maxLength={100} disabled={!!form.id&&members(form.id).length>0} value={form.name} onChange={e=>setForm(v=>({...v,name:e.target.value}))}/></label><label>Subject<input maxLength={200} value={form.subject} onChange={e=>setForm(v=>({...v,subject:e.target.value}))}/></label><label>Grade<select required value={form.gradeLevel} disabled={!!form.id&&(!!form.originalGrade||!head)} onChange={e=>setForm(v=>({...v,gradeLevel:e.target.value}))}><option value="">Choose a grade</option><option>Grade 11</option><option>Grade 12</option></select></label>{form.id&&<p>Confirmed grades and enrolled section names are protected. The school head can confirm a missing grade after checking enrollment.</p>}{error&&<p className="support-error" role="alert">{error}</p>}<footer className="support-dialog-actions"><button type="button" className="dash-button" onClick={()=>setForm(null)}>Cancel</button><button className="dash-primary-action" disabled={!form.gradeLevel}>{busy?'Saving…':'Save section'}</button></footer></fieldset></form></ManagementDialog>}
+ {preview&&<ManagementDialog title={preview.name} onClose={()=>setPreview(null)}><p>{preview.gradeLevel||'Grade unconfirmed'} · {preview.subject}</p><div className="management-summary"><div><strong>{members(preview.id).length}</strong><small>Total students</small></div><div><strong>{members(preview.id).filter(s=>s.enrollmentStatus!=='graduated').length}</strong><small>Active enrollment</small></div><div><strong>{members(preview.id).filter(s=>s.enrollmentStatus==='graduated').length}</strong><small>Archived</small></div></div>{!members(preview.id).length?<p>No students enrolled yet.</p>:<ul className="management-preview-list">{previewPage.items.map(s=><li key={s._id}><strong>{s.name}</strong><p>{s.email||'No email recorded'} · {s.enrollmentStatus==='graduated'?'Archived':'Active'}</p></li>)}</ul>}<ManagementPagination state={previewPage}/>{head&&<footer className="support-dialog-actions"><button className="dash-button" onClick={()=>onNavigate('/teachers')}>Manage co-teachers</button></footer>}</ManagementDialog>}
+ {removing&&<ManagementDialog title="Delete empty section?" busy={busy} onClose={()=>setRemoving(null)}><p>Delete <strong>{removing.name}</strong> and its teacher assignments? The server will block deletion if it finds students, feedback, or enrollment history.</p>{error&&<p className="support-error" role="alert">{error}</p>}<footer className="support-dialog-actions"><button className="dash-button" disabled={busy} onClick={()=>setRemoving(null)}>Cancel</button><button className="dash-primary-action" disabled={busy} onClick={remove}>{busy?'Deleting…':'Delete section'}</button></footer></ManagementDialog>}
  </div>;
 }

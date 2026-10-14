@@ -33,21 +33,21 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #28786f;
+  background: #284578;
   border: 2px solid #0b1322;
   border-radius: 999px;
   min-height: 40px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3dd6c4;
+  background: #3d75d6;
 }
 
 /* Firefox uses the standard scrollbar properties. */
 @supports not selector(::-webkit-scrollbar) {
   * {
     scrollbar-width: thin;
-    scrollbar-color: #28786f #0b1322;
+    scrollbar-color: #284578 #0b1322;
   }
 }
 

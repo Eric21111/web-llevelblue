@@ -2,11 +2,11 @@ import { COLORS } from "../constants/colors";
 
 export default function StatusPill({ status }) {
   const map = {
-    "Excel":   { c: COLORS.teal,  bg: "rgba(61,214,196,0.12)" },
+    "Excel":   { c: COLORS.teal,  bg: "rgba(61, 117, 214,0.12)" },
     "Average": { c: COLORS.amber, bg: "rgba(242,169,59,0.12)" },
     "At-Risk": { c: COLORS.coral, bg: "rgba(239,91,91,0.12)" },
     // Legacy labels kept for backward compat
-    "On Track":     { c: COLORS.teal,  bg: "rgba(61,214,196,0.12)" },
+    "On Track":     { c: COLORS.teal,  bg: "rgba(61, 117, 214,0.12)" },
     "Needs Review": { c: COLORS.amber, bg: "rgba(242,169,59,0.12)" },
     "At Risk":      { c: COLORS.coral, bg: "rgba(239,91,91,0.12)" },
   };

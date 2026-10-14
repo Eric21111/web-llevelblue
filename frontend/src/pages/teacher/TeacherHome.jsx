@@ -1,6 +1,6 @@
 import LearningEvidence from '../../components/LearningEvidence';
 import { useState } from "react";
-import { Activity, BookOpen, ClipboardCheck, GraduationCap, ShieldAlert, Users, ArrowUpRight, Search } from "lucide-react";
+import { Activity, BookOpen, ClipboardCheck, GraduationCap, ShieldAlert, Users, Search } from "lucide-react";
 import { useWorkspaceData } from "../../context/WorkspaceDataContext";
 import { summarizeStudents } from "../../utils/dashboard";
 import { DashboardHero, DashboardToolbar, DashboardCard, DataState, AttentionRow, SkillBars, Participation, StudentActivity, StudentTable, EmptyState } from "../../components/dashboard/DashboardParts";
@@ -21,7 +21,7 @@ export default function TeacherHome({ user, onNavigate, followUps = false }) {
   const lowestSkill = summary.skills.filter(skill => skill.value !== null).sort((a, b) => a.value - b.value)[0];
 
   return <div className="dashboard dashboard-teacher">
-    {!followUps && <DashboardHero sectionName={section} user={user} stats={[
+    {!followUps && <DashboardHero refreshKey={state.updatedAt?.getTime()} sectionName={section} user={user} stats={[
       { value: unavailable ? null : summary.total, label: "Students", note: section || "Across available sections" },
       { value: unavailable ? null : summary.active, label: "Active learners", note: "In the last 7 days" },
       { value: riskUnavailable ? null : summary.needsSupport.length, label: "Need support", note: "One or more skills below 40%" },
@@ -48,7 +48,7 @@ export default function TeacherHome({ user, onNavigate, followUps = false }) {
         </div>
         <div className="dash-column">
           <DashboardCard icon={Activity} className="dash-activity-card" title="Learner check-ins" description="Latest recorded activity for each student." action="Roster" onAction={() => onNavigate("/roster")}><DataState state={state} sources={["students"]}><StudentActivity students={students} /></DataState></DashboardCard>
-          <DashboardCard icon={GraduationCap} className="dash-tools-card" title="Your classroom"><div className="dash-shortcuts"><button onClick={() => onNavigate("/roster")}><Users size={17} /><span>Manage student roster</span><ArrowUpRight size={14} /></button><button onClick={() => onNavigate("/sections")}><GraduationCap size={17} /><span>Organize sections</span><ArrowUpRight size={14} /></button><button onClick={() => onNavigate("/engagement")}><Activity size={17} /><span>Export learning reports</span><ArrowUpRight size={14} /></button></div></DashboardCard>
+          <DashboardCard icon={GraduationCap} className="dash-tools-card" title="Your classroom"><div className="dash-shortcuts"><button onClick={() => onNavigate("/roster")}><Users size={17} /><span>Manage student roster</span></button><button onClick={() => onNavigate("/sections")}><GraduationCap size={17} /><span>Organize sections</span></button><button onClick={() => onNavigate("/engagement")}><Activity size={17} /><span>Export learning reports</span></button></div></DashboardCard>
         </div>
       </div>
       <DashboardCard icon={ShieldAlert} title="Students to check in with" description="Start a conversation around these learning gaps." action="View all" onAction={() => onNavigate(followUpPath)}><DataState state={state} sources={["students", "risk"]}><StudentTable students={summary.needsSupport.slice(0, 5)} risk={state.data.risk} onNavigate={onNavigate} followUps /></DataState></DashboardCard>

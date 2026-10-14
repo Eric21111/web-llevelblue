@@ -98,7 +98,7 @@ export default function SuperAdminSignupPage({ onComplete }) {
 
       <div style={{
         position: "absolute", inset: 0, opacity: 0.5, pointerEvents: "none",
-        backgroundImage: `radial-gradient(circle at 15% 15%, rgba(61,214,196,0.08), transparent 45%),
+        backgroundImage: `radial-gradient(circle at 15% 15%, rgba(61, 117, 214,0.08), transparent 45%),
                            radial-gradient(circle at 85% 85%, rgba(239,91,91,0.05), transparent 40%)`,
       }} />
 
@@ -111,7 +111,7 @@ export default function SuperAdminSignupPage({ onComplete }) {
         {success ? (
           <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 18 }}>
             <div style={{
-              width: 54, height: 54, borderRadius: "50%", background: "rgba(61,214,196,0.12)",
+              width: 54, height: 54, borderRadius: "50%", background: "rgba(61, 117, 214,0.12)",
               display: "flex", alignItems: "center", justifyContent: "center"
             }}>
               <CheckCircle2 size={32} color={COLORS.teal} />

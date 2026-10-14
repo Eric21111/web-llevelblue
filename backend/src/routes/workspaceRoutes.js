@@ -1,4 +1,5 @@
 import express from 'express';
+import {contactDetails,managementResult} from '../services/management.js';
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'node:crypto';
 import { fail, result, allRows, rowsForIds, handler, staffOnly, headOnly, sectionScope, learners, requireLearner } from '../services/access.js';
@@ -11,6 +12,11 @@ import {dashboardData,exportDashboard} from '../services/dashboardExport.js';
 export function createWorkspaceRoutes(db) {
   const router=express.Router();
   router.use(staffOnly);
+  router.get('/dashboard/activity',handler(async(req,res)=>{
+    const data=await dashboardData(db,req.user,req.query);
+    res.setHeader('Cache-Control','no-store');
+    res.json({period:data.day,recordedLearners:data.recordedLearners,assessments:data.evidence.assessments.length,cleared:data.evidence.cleared,failed:data.evidence.failed,incomplete:data.evidence.incomplete,feedback:data.feedback.length,interventions:data.interventions.length,topics:data.dailyTopics,limitation:data.limitation});
+  }));
   router.get('/dashboard/export',handler(async(req,res)=>{
     if(!['csv','pdf'].includes(req.query.format))throw fail(400,'Choose PDF or CSV.');
     exportDashboard(res,await dashboardData(db,req.user,req.query),req.query.format);
@@ -22,6 +28,10 @@ export function createWorkspaceRoutes(db) {
     if(typeof name!=='string' || !name.trim() || name.length>100 || !['Grade 11','Grade 12'].includes(gradeLevel)) throw fail(400,'Section name and Grade 11 or Grade 12 are required.');
     const data=await result(db.rpc('levelblue_create_section',{p_actor:String(req.user.id),p_name:name.trim(),p_subject:String(subject).slice(0,200),p_grade:gradeLevel}));
     res.status(201).json({...data,id:data.scope_id,gradeLevel:data.grade_level});
+  }));
+  router.patch('/sections/:id/details',handler(async(req,res)=>{
+    await sectionScope(db,req.user,{sectionId:req.params.id});
+    await managementResult(db.rpc('levelblue_manage_section',{p_actor:String(req.user.id),p_section:req.params.id,p_action:'edit',p_details:req.body}));res.json({success:true});
   }));
   router.patch('/sections/:id',headOnly,handler(async(req,res)=>{
     const {gradeLevel}=req.body;
@@ -35,10 +45,11 @@ export function createWorkspaceRoutes(db) {
     const data=await result(db.from('sections').update({grade_level:gradeLevel}).eq('scope_id',req.params.id).select().single());
     res.json(data);
   }));
-  router.delete('/sections/:id',(req,res)=>res.status(409).json({error:'Section removal is disabled to preserve enrollment and feedback history. Cohort archival will be introduced with promotion.'}));
+  router.delete('/sections/:id',headOnly,handler(async(req,res)=>{await managementResult(db.rpc('levelblue_manage_section',{p_actor:String(req.user.id),p_section:req.params.id,p_action:'delete',p_details:{}}));res.json({success:true});}));
   router.get('/students',handler(async(req,res)=>res.json((await learners(db,req.user,req.query)).students)));
   router.post('/students',handler(async(req,res)=>{
-    const {firstName,lastName,middleName='',email,technical}=req.body;
+    const details=contactDetails({...req.body,middleInitial:req.body.middleName||''});
+    const {firstName,lastName,email}=details;const middleName=details.middleInitial,technical=req.body.technical;
     if(![firstName,lastName,email].every(v=>typeof v==='string'&&v.trim())) throw fail(400,'First name, last name and email are required.');
     const sections=await sectionScope(db,req.user);
     const section=sections.find(s=>req.body.sectionId ? s.scope_id===req.body.sectionId : s.name===req.body.section);
@@ -46,24 +57,31 @@ export function createWorkspaceRoutes(db) {
     if(!section.grade_level) throw fail(409,'Ask your school head to confirm this section’s grade first.');
     if(req.body.gradeLevel && req.body.gradeLevel!==section.grade_level) throw fail(400,'Student grade must match the section.');
     const generatedPassword=randomBytes(9).toString('base64url');
-    const row=await result(db.from('students').insert({name:`${firstName.trim()} ${middleName ? middleName.trim()[0]+'. ' : ''}${lastName.trim()}`,first_name:firstName.trim(),last_name:lastName.trim(),middle_initial:middleName.trim()[0]||null,
+    const row=await managementResult(db.from('students').insert({name:`${firstName.trim()} ${middleName ? middleName.trim()[0]+'. ' : ''}${lastName.trim()}`,first_name:firstName.trim(),last_name:lastName.trim(),middle_initial:middleName.trim()[0]||null,
       email:email.trim().toLowerCase(),password:await bcrypt.hash(generatedPassword,10),requires_password_change:true,
       section:section.name,section_id:section.scope_id,grade_level:section.grade_level,technical:Boolean(technical),status:'Needs Review',pre:0,post:0,sessions:0,points:0,
       ...Object.fromEntries(TOPICS.map(t=>[`mastery_${t.toLowerCase()}`,0]))}).select().single());
     res.status(201).json({...mapLearner(row),generatedPassword});
   }));
+  router.patch('/students/:id',handler(async(req,res)=>{
+    requireLearner((await learners(db,req.user)).students,req.params.id);
+    const details=contactDetails(req.body);
+    if(typeof req.body.technical!=='boolean')throw fail(400,'Choose a valid technical background.');
+    await managementResult(db.rpc('levelblue_edit_student',{p_actor:String(req.user.id),p_student:req.params.id,p_details:{...details,technical:req.body.technical}}));res.json({success:true});
+  }));
   router.delete('/students/:id',handler(async(req,res)=>{
     requireLearner((await learners(db,req.user)).students,req.params.id);
-    throw fail(409,'Student deletion is disabled to preserve learning history. Graduation and archival are pending mobile compatibility verification.');
+    throw fail(409,'Student deletion is disabled to preserve learning history. Use Section Checklist to graduate and archive learners.');
   }));
   router.get('/students/:id/mentors',handler(async(req,res)=>{
     const {students}=await learners(db,req.user); const student=requireLearner(students,req.params.id);
     res.json({mentors:students.filter(s=>s._id!==student._id&&s.sectionId&&s.sectionId===student.sectionId).map(s=>({id:s._id,name:s.name,topics:student.failedTopics.filter(t=>s.mastery[t]!==null&&s.mastery[t]>.9)})).filter(s=>s.topics.length)});
   }));
   router.get('/teachers',headOnly,handler(async(req,res)=>{
-    const [teachers,assignments,students,sections]=await Promise.all([allRows(db.from('users').select('id,name,first_name,last_name,middle_initial,email,status,created_at').eq('role','admin').order('id')),allRows(db.from('teacher_sections').select('*').order('teacher_id').order('section_id')),allRows(db.from('students').select('section_id').order('id')),allRows(db.from('sections').select('*').order('id'))]);
-    res.json(teachers.map(t=>{const ids=assignments.filter(a=>a.teacher_id===String(t.id)).map(a=>a.section_id);return {...t,_id:t.id,firstName:t.first_name,lastName:t.last_name,middleInitial:t.middle_initial,role:'admin',roleLabel:'Teacher',createdAt:t.created_at,sectionIds:ids,sections:ids.length,students:students.filter(s=>ids.includes(s.section_id)).length,grades:[...new Set(sections.filter(s=>ids.includes(s.scope_id)).map(s=>s.grade_level).filter(Boolean))]};}));
+    const [teachers,assignments,students,sections]=await Promise.all([allRows(db.from('users').select('id,name,first_name,last_name,middle_initial,email,status,created_at').eq('role','admin').order('id')),allRows(db.from('teacher_sections').select('*').order('teacher_id').order('section_id')),allRows(db.from('students').select('section_id,enrollment_status').order('id')),allRows(db.from('sections').select('*').order('id'))]);
+    res.json(teachers.map(t=>{const ids=assignments.filter(a=>a.teacher_id===String(t.id)).map(a=>a.section_id);return {...t,_id:t.id,firstName:t.first_name,lastName:t.last_name,middleInitial:t.middle_initial,role:'admin',roleLabel:'Teacher',createdAt:t.created_at,sectionIds:ids,sections:ids.length,students:students.filter(s=>ids.includes(s.section_id)&&s.enrollment_status!=='graduated').length,grades:[...new Set(sections.filter(s=>ids.includes(s.scope_id)).map(s=>s.grade_level).filter(Boolean))]};}));
   }));
+  router.patch('/teachers/:id/details',headOnly,handler(async(req,res)=>{await managementResult(db.rpc('levelblue_edit_teacher',{p_actor:String(req.user.id),p_teacher:req.params.id,p_details:contactDetails(req.body)}));res.json({success:true});}));
   router.patch('/teachers/:id',headOnly,handler(async(req,res)=>{
     if(!['Active','Inactive','Invited'].includes(req.body.status)||!Array.isArray(req.body.sectionIds)||!req.body.sectionIds.every(s=>typeof s==='string')) throw fail(400,'Valid status and section assignments are required.');
     await result(db.rpc('levelblue_faculty',{p_actor:String(req.user.id),p_teacher:req.params.id,p_status:req.body.status,p_sections:req.body.sectionIds}));

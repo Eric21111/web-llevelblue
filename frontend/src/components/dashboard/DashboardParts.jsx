@@ -1,20 +1,24 @@
-import { ArrowUpRight, RefreshCw, AlertCircle, Inbox, CheckCircle2, Users, Activity, GraduationCap, ShieldAlert } from "lucide-react";
+import {useState} from 'react';
+import {DashboardPeriodActivity,localDate} from './DashboardPeriod';
+import { RefreshCw, AlertCircle, Inbox, CheckCircle2, Users, Activity, GraduationCap, ShieldAlert } from "lucide-react";
 import DashboardExports from './DashboardExports';
 import { formatLastActive } from "../../utils/time";
 import { initials, formatPercent, masteryPercent, studentId } from "../../utils/dashboard";
 
 export function DashboardCard({ icon: Icon, title, description, action, onAction, children, className = "" }) {
-  return <section className={`dash-card ${className}`}><header className="dash-card-header"><div><h2>{Icon && <Icon size={18} aria-hidden="true" />}{title}</h2>{description && <p>{description}</p>}</div>{action && <button className="dash-text-button" onClick={onAction}>{action}<ArrowUpRight size={14} aria-hidden="true" /></button>}</header>{children}</section>;
+  return <section className={`dash-card ${className}`}><header className="dash-card-header"><div><h2>{Icon && <Icon size={18} aria-hidden="true" />}{title}</h2>{description && <p>{description}</p>}</div>{action && <button className="dash-text-button" onClick={onAction}>{action}</button>}</header>{children}</section>;
 }
-export function DashboardHero({ user, school = false, stats, sectionName='' }) {
+export function DashboardHero({ user, school = false, stats, sectionName='', refreshKey }) {
+  const [date,setDate]=useState(localDate),[period,setPeriod]=useState('day');
   const now = new Date();
   const hour = now.getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const name = user?.firstName || user?.name?.split(" ")[0];
   const icons = school ? [GraduationCap, Users, Activity, ShieldAlert] : [Users, Activity, ShieldAlert, GraduationCap];
   return <section className={`dash-welcome ${school ? "is-school" : ""}`}>
-    <div className="dash-overview-heading"><div><span className="dash-eyebrow">{school ? 'School workspace' : 'Teacher workspace'}</span><h1>Dashboard</h1><p>{greeting}{name ? ', ' + name : ''}. {school ? 'Here’s how learning is progressing across your school.' : 'Here’s where your classroom needs you today.'}</p></div><DashboardExports sectionName={sectionName}/></div>
+    <div className="dash-overview-heading"><div><span className="dash-eyebrow">{school ? 'School workspace' : 'Teacher workspace'}</span><h1>Dashboard</h1><p>{greeting}{name ? ', ' + name : ''}. {school ? 'Here’s how learning is progressing across your school.' : 'Here’s where your classroom needs you today.'}</p></div><DashboardExports sectionName={sectionName} date={date} period={period} onDate={setDate} onPeriod={setPeriod}/></div>
     <div className="dash-overview-metrics">{stats.map((stat,index) => { const Icon=icons[index]; return <article key={stat.label}><div className="dash-overview-metric-label"><span>{stat.label}</span><Icon size={18} aria-hidden="true"/></div><strong>{stat.value ?? '—'}</strong><small>{stat.note}</small></article>; })}</div>
+    <DashboardPeriodActivity date={date} period={period} sectionName={sectionName} refreshKey={refreshKey}/>
   </section>;
 }
 export function DashboardToolbar({ title = "Your overview", state, children }) {
@@ -30,7 +34,7 @@ export function EmptyState({ title, text, success = false }) {
   return <div className="dash-empty"><Icon size={25} /><strong>{title}</strong><p>{text}</p></div>;
 }
 export function AttentionRow({ count, title, text, tone = "teal", onClick }) {
-  return <button className="dash-attention-row" onClick={onClick}><span className={`dash-count ${tone}`}>{count}</span><span><strong>{title}</strong><small>{text}</small></span><ArrowUpRight size={16} /></button>;
+  return <button className="dash-attention-row" onClick={onClick}><span className={`dash-count ${tone}`}>{count}</span><span><strong>{title}</strong><small>{text}</small></span></button>;
 }
 export function SkillBars({ skills }) {
   const available = skills.filter(skill => skill.value !== null);
@@ -39,7 +43,7 @@ export function SkillBars({ skills }) {
 }
 export function Participation({ summary }) {
   if (!summary.total) return <EmptyState title="No students yet" text="Participation will appear once students are added to a section." />;
-  const groups = [{ label: "Learning in progress", value: summary.progressing, color: "#0fa99c" }, { label: "Needs support", value: summary.needsSupport.length, color: "#eda545" }, { label: "Not started", value: summary.notStarted.length, color: "#d9e0ec" }];
+  const groups = [{ label: "Learning in progress", value: summary.progressing, color: "#2563eb" }, { label: "Needs support", value: summary.needsSupport.length, color: "#eda545" }, { label: "Not started", value: summary.notStarted.length, color: "#d9e0ec" }];
   return <div className="dash-distribution"><div className="dash-distribution-total"><strong>{summary.total}</strong><span>students in this view</span></div><div className="dash-distribution-track" role="img" aria-label={`${summary.total} students: ${groups.map(group => `${group.value} ${group.label}`).join(", ")}`}>{groups.filter(group => group.value > 0).map(group => <span key={group.label} style={{ flex: group.value, background: group.color }} />)}</div><div className="dash-legend">{groups.map(group => <div key={group.label}><i style={{ background: group.color }} /><span>{group.label}</span><strong>{group.value}</strong></div>)}</div></div>;
 }
 export function StudentActivity({ students }) {
@@ -50,7 +54,7 @@ export function StudentActivity({ students }) {
 export function StudentTable({ students, risk = [], onNavigate, followUps = false }) {
   if (!students.length) return <EmptyState title={followUps ? "No students need follow-up" : "No students to display"} text={followUps ? "No recorded skill is currently flagged below the support threshold for this selection." : "Try another section or add students to your roster."} success={followUps} />;
   const risks = new Map(risk.map(student => [studentId(student), student]));
-  return <div className="dash-table-wrap"><table className="dash-table"><thead><tr><th>Student</th><th>Section</th><th>{followUps ? "Practice needed" : "Mastery"}</th><th>Last active</th><th><span className="dash-sr-only">Action</span></th></tr></thead><tbody>{students.map(student => <tr key={studentId(student)}><td><div className="dash-student-name"><span className="dash-avatar soft">{initials(student.name)}</span><strong>{student.name}</strong></div></td><td>{student.section || "Unassigned"}</td><td>{followUps ? <div className="dash-tags">{(risks.get(studentId(student))?.failingSkills || []).map(skill => <span key={skill}>{skill}</span>)}</div> : formatPercent(masteryPercent(student))}</td><td>{formatLastActive(student.lastActive)}</td><td><button className="dash-text-button" onClick={() => onNavigate(`/roster?search=${encodeURIComponent(student.name || "")}`)} aria-label={`View ${student.name} in student roster`}>View<ArrowUpRight size={13} /></button></td></tr>)}</tbody></table></div>;
+  return <div className="dash-table-wrap"><table className="dash-table"><thead><tr><th>Student</th><th>Section</th><th>{followUps ? "Practice needed" : "Mastery"}</th><th>Last active</th><th><span className="dash-sr-only">Action</span></th></tr></thead><tbody>{students.map(student => <tr key={studentId(student)}><td><div className="dash-student-name"><span className="dash-avatar soft">{initials(student.name)}</span><strong>{student.name}</strong></div></td><td>{student.section || "Unassigned"}</td><td>{followUps ? <div className="dash-tags">{(risks.get(studentId(student))?.failingSkills || []).map(skill => <span key={skill}>{skill}</span>)}</div> : formatPercent(masteryPercent(student))}</td><td>{formatLastActive(student.lastActive)}</td><td><button className="dash-text-button" onClick={() => onNavigate(`/roster?search=${encodeURIComponent(student.name || "")}`)} aria-label={`View ${student.name} in student roster`}>View</button></td></tr>)}</tbody></table></div>;
 }
 export function SectionTable({ sections }) {
   if (!sections.length) return <EmptyState title="No sections to compare" text="Section summaries appear once sections or student records are available." />;

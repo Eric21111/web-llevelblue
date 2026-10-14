@@ -29,7 +29,7 @@ export default function LearningEvidence({data:provided,compact=false,sectionNam
  }
  const trends=learner?[...learnerDays.values()]:data.evidence.trends;
  return <section className="learning-card learning-evidence">
-  <h2>Recorded learning outcomes</h2><p>Evidence received from the mobile app. Earlier activity may not have records.</p>
+  <h2>{compact?'All-time recorded learning outcomes':'Recorded learning outcomes'}</h2><p>Evidence received from the mobile app. Earlier activity may not have records.</p>
   <div className="learning-stats"><article><span>Completed assessments</span><strong>{assessments.length}</strong></article><article><span>Recorded attempts</span><strong>{attempts.length}</strong></article><article><span>Cleared / finished attempts</span><strong>{cleared.length} / {finished.length}</strong><small>{percent(finished.length?cleared.length/finished.length:null)}</small></article><article><span>Comparable module pairs</span><strong>{pairs.length}</strong></article></div>
   {compact?<button className="learning-button secondary" onClick={()=>onNavigate?.(detailsPath)}>Explore learning records</button>:<>
    <label className="learning-evidence-filter">Learner<select value={learner} onChange={e=>setLearner(e.target.value)}><option value="">All learners in this selection</option>{data.students.map(s=><option key={s._id} value={s._id}>{s.name}</option>)}</select></label>

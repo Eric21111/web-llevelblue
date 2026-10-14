@@ -1,6 +1,5 @@
 # Dependencies
 node_modules/
-package-lock.json
 
 # Vite cache
 .vite/
@@ -16,3 +15,28 @@ npm-debug.log*
 # OS files
 .DS_Store
 Thumbs.db
+
+# Local verification and working notes (kept on the developer's laptop)
+*.md
+*.MD
+!README.md
+!readme.md
+backend/tests/
+frontend/src/tests/
+*.test.js
+*.test.jsx
+*.test.ts
+*.test.tsx
+backend/test_web_bounties.js
+**/test-results/
+**/playwright-report/
+**/coverage/
+**/*-test-results.json
+docs/*.png
+docs/*.jpg
+docs/*-gdscript.diff
+frontend/*-preview.html
+frontend/*-preview.jsx
+.local/
+# Production source images remain eligible for version control.
+dist/
