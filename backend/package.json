@@ -4,6 +4,9 @@
   "description": "Backend Express API for LEVELBLUE Security Awareness Analytics Console",
   "main": "server.js",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
