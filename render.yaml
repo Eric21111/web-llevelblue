@@ -1,0 +1,34 @@
+# Render Blueprint for the Express API.
+# In the Render dashboard, fill every env var marked sync:false.
+# Do not commit real values. Set CORS_ORIGINS to the Vercel site URL
+# (comma-separated, no trailing slash) after the frontend is deployed.
+services:
+  - type: web
+    name: levelblue-api
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: JWT_SECRET
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_SENDER_EMAIL
+        sync: false
+      - key: BREVO_SENDER_NAME
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      # Render is the single trusted proxy in front of this service.
+      - key: TRUST_PROXY_HOPS
+        value: "1"
