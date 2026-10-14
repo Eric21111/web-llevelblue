@@ -6,6 +6,7 @@ import Notifications from "./Notifications";
 import { initials } from "../utils/dashboard";
 import "../styles/console.css";
 import "../styles/workspace-refresh.css";
+import "../styles/workspace-controls.css";
 
 export default function ConsoleLayout({ user, role, pages, pageIndex, currentPath, onNavigate, onLogout, children }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -69,7 +70,7 @@ export default function ConsoleLayout({ user, role, pages, pageIndex, currentPat
           </div>}
         </div>
       </div>
-    </header><main id="console-main" ref={mainRef} tabIndex={-1} className="console-main">{!["/dashboard", "/follow-ups", "/school-progress", "/analytics", "/engagement", "/reports", "/interventions", "/sections", "/roster", "/teachers", "/password-assistance", "/enrollment", "/logs", "/content"].includes(page.path) && <div className="dash-page-intro"><span className="dash-eyebrow">{page.group}</span><h1>{page.label}</h1><p>{page.description}</p></div>}{children}</main></div>
+    </header><main id="console-main" ref={mainRef} tabIndex={-1} className="console-main">{!["/dashboard", "/follow-ups", "/school-progress", "/analytics", "/engagement", "/reports", "/interventions", "/sections", "/roster", "/teachers", "/password-assistance", "/enrollment", "/logs", "/teacher-activity", "/content"].includes(page.path) && <div className="dash-page-intro"><span className="dash-eyebrow">{page.group}</span><h1>{page.label}</h1><p>{page.description}</p></div>}{children}</main></div>
     {logoutOpen && <LogoutDialog onCancel={() => setLogoutOpen(false)} onConfirm={() => { setLogoutOpen(false); onLogout(); }} />}
   </div>;
 }

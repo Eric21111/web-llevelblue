@@ -1,3 +1,4 @@
+import {RefreshButton} from '../components/WorkspaceUI';
 import {SupportPagination,useSupportPage} from '../components/SupportUI';
 import '../styles/support.css';
 import { useState } from 'react';
@@ -23,7 +24,7 @@ export default function PasswordAssistance() {
   }
   return <div className="dashboard learning-workspace support-workspace">
     <div className="dash-page-intro"><h1>Password assistance</h1><p>Review requests from students in your assigned sections. Approval emails the address already on their account; it does not change their password yet.</p></div>
-    <section className="learning-card"><h2>Keep students connected</h2><p>Never ask for a student’s password or send them a temporary password. Reset links expire after 15 minutes. Learning progress and mastery stay unchanged.</p><button className="learning-button secondary" disabled={busy || refreshing} onClick={refresh}>{refreshing ? 'Refreshing…' : 'Refresh requests'}</button></section>
+    <section className="learning-card"><h2>Keep students connected</h2><p>Never ask for a student’s password or send them a temporary password. Reset links expire after 15 minutes. Learning progress and mastery stay unchanged.</p><RefreshButton label="Refresh requests" disabled={busy} loading={refreshing} onClick={refresh}/></section>
     {(error || errors.recovery) && <p className="learning-alert" role="alert">{error || errors.recovery}</p>}
     {message && <p className="learning-success" role="status">{message}</p>}
     {review && <section className="learning-card" aria-label="Confirm password assistance"><h2>{review.action === 'approve' ? 'Approve and email a reset link?' : 'Decline this request?'}</h2><p><strong>{review.item.student_name}</strong> · {review.item.section || 'No section assigned'}</p><p>Registered email: <strong>{review.item.email}</strong></p><p>{review.action === 'approve' ? 'Only the student who can access this inbox can complete the reset. Check that you recognize this student before approving.' : 'No email will be sent and the current password will remain unchanged.'}</p><div className="learning-actions"><button className="learning-button" disabled={busy} onClick={decide}>{busy ? 'Processing…' : 'Confirm'}</button><button className="learning-button secondary" disabled={busy} onClick={() => setReview(null)}>Cancel</button></div></section>}

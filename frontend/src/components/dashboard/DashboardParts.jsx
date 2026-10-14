@@ -1,3 +1,4 @@
+import {RefreshButton} from '../WorkspaceUI';
 import {useState} from 'react';
 import {DashboardPeriodActivity,localDate} from './DashboardPeriod';
 import { RefreshCw, AlertCircle, Inbox, CheckCircle2, Users, Activity, GraduationCap, ShieldAlert } from "lucide-react";
@@ -22,7 +23,7 @@ export function DashboardHero({ user, school = false, stats, sectionName='', ref
   </section>;
 }
 export function DashboardToolbar({ title = "Your overview", state, children }) {
-  return <div className="dash-toolbar"><div><h2>{title}</h2><span className={Object.keys(state.errors).length ? "dash-sync-error" : "dash-sync"}>{Object.keys(state.errors).length ? "Some information is unavailable" : state.loading ? "Loading your information…" : `Updated ${state.updatedAt?.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · refreshes every 30s`}</span></div><div className="dash-toolbar-actions">{children}<button className="dash-button" disabled={state.refreshing} onClick={state.refresh}><RefreshCw size={14} className={state.refreshing ? "dash-spin" : ""} />{state.refreshing ? "Refreshing" : "Refresh"}</button></div></div>;
+  return <div className="dash-toolbar"><div><h2>{title}</h2><span className={Object.keys(state.errors).length ? "dash-sync-error" : "dash-sync"}>{Object.keys(state.errors).length ? "Some information is unavailable" : state.loading ? "Loading your information…" : `Updated ${state.updatedAt?.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · refreshes every 30s`}</span></div><div className="dash-toolbar-actions">{children}<RefreshButton loading={state.refreshing} onClick={state.refresh}/></div></div>;
 }
 export function DataState({ state, sources, children }) {
   if (state.loading) return <div className="dash-empty" role="status"><RefreshCw size={22} className="dash-spin" /><strong>Loading your information…</strong></div>;
