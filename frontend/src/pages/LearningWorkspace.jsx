@@ -6,10 +6,11 @@ const TOPICS=['Phishing','Smishing','Vishing','Pretexting','Baiting'];
 const pct=v=>v===null||v===undefined?'—':`${Math.round(v*100)}%`;
 export default function LearningWorkspace({user,mode='diagnostics'}) {
  const head=user?.role==='super';
+ const [enrollment,setEnrollment]=useState('active');
  const [sections,setSections]=useState([]),[section,setSection]=useState(''),[grade,setGrade]=useState('');
  const [data,setData]=useState(null),[notes,setNotes]=useState([]),[bounties,setBounties]=useState([]),[error,setError]=useState(''),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[revision,setRevision]=useState(0),[message,setMessage]=useState('');
  const [studentId,setStudentId]=useState(''),[kind,setKind]=useState('review'),[topic,setTopic]=useState(TOPICS[0]),[note,setNote]=useState(''),[date,setDate]=useState(''),[outcome,setOutcome]=useState('Pending'),[bountyId,setBountyId]=useState('');
- const filters=new URLSearchParams({...section&&{sectionId:section},...grade&&{grade}}).toString();
+ const filters=new URLSearchParams({enrollment,...section&&{sectionId:section},...grade&&{grade}}).toString();
  useEffect(()=>{const abort=new AbortController();setLoading(true);setError('');setData(null);setStudentId('');
    Promise.all([apiRequest('/api/sections',{signal:abort.signal}),apiRequest(`/api/analytics?${filters}`,{signal:abort.signal}),apiRequest(`/api/interventions?${filters}`,{signal:abort.signal}),mode==='interventions'?apiRequest('/api/bounties',{signal:abort.signal}):Promise.resolve([])])
    .then(([s,d,n,b])=>{setSections(s);setData(d);setNotes(n);setBounties(b);})
@@ -22,7 +23,7 @@ export default function LearningWorkspace({user,mode='diagnostics'}) {
  }catch(e){setError(e.message);}finally{setBusy(false);}}
  async function update(id,value) {setBusy(true);setError('');try{await apiRequest(`/api/interventions/${id}`,{method:'PATCH',body:JSON.stringify({outcome:value})});setRevision(v=>v+1);setMessage('Outcome updated.');}catch(e){setError(e.message);}finally{setBusy(false);}}
  async function download(format) {setBusy(true);setError('');try{
-   const query=new URLSearchParams({...section&&{sectionId:section},...grade&&{grade},...studentId&&{studentId},format});
+   const query=new URLSearchParams({enrollment,...section&&{sectionId:section},...grade&&{grade},...studentId&&{studentId},format});
    const response=await apiFetch(`/api/reports/${studentId?'individual':'institutional'}?${query}`);
    if(!response.ok)throw new Error((await response.json()).error||'Export failed.');
    const url=URL.createObjectURL(await response.blob());const a=document.createElement('a');a.href=url;a.download=`LEVELBLUE-learning-report.${format}`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);setMessage('Report downloaded.');
@@ -30,6 +31,7 @@ export default function LearningWorkspace({user,mode='diagnostics'}) {
  return <div className="dashboard learning-workspace">
   <div className="dash-page-intro"><span className="dash-eyebrow">{head?'SCHOOL INSIGHTS':'TEACHING & SUPPORT'}</span><h1>{mode==='reports'?'Learning reports':mode==='interventions'?'Reviews & remediation':head?'Institutional diagnostics':'Classroom diagnostics'}</h1><p>{mode==='reports'?'Export recorded learning evidence with clear coverage and limitations.':mode==='interventions'?'Document a review, plan classroom support, and record the outcome.':'Find learning needs using recorded BKT mastery. Below 40% indicates a need for support, not an exam failure.'}</p></div>
   <div className="learning-filters"><label>Grade<select value={grade} onChange={e=>{setGrade(e.target.value);setSection('');}}><option value="">All grades</option><option>Grade 11</option><option>Grade 12</option></select></label><label>Section<select value={section} onChange={e=>setSection(e.target.value)}><option value="">{head?'All school sections':'All assigned sections'}</option>{sections.filter(s=>!grade||s.gradeLevel===grade).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label><button className="learning-button secondary" onClick={()=>setRevision(v=>v+1)} disabled={loading||busy}><RefreshCw size={15}/>Refresh</button></div>
+  {mode==='reports'&&<label className="learning-evidence-filter">Enrollment<select value={enrollment} onChange={e=>setEnrollment(e.target.value)}><option value="active">Active learners</option><option value="graduated">Graduated / archived</option><option value="all">All authorized learners</option></select></label>}
   {error&&<div className="learning-alert" role="alert">{error} <button onClick={()=>setRevision(v=>v+1)}>Retry loading</button></div>}{message&&<p role="status" className="learning-success"><CheckCircle size={16}/>{message}</p>}
   {loading?<div className="dash-empty" role="status">Loading authorized learning records…</div>:data&&<>
    <div className="learning-stats"><article><span>Learners in view</span><strong>{students.length}</strong></article><article><span>With recorded mastery</span><strong>{students.filter(s=>s.assessedTopics>0).length}</strong></article><article><span>Need topic support</span><strong>{students.filter(s=>s.failedTopics.length).length}</strong></article><article><span>Comparable assessment pairs</span><strong>{students.reduce((n,s)=>n+(s.gain!==null?1:0)+(s.evidence?.pairs.length||0),0)}</strong></article></div>

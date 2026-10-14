@@ -12,6 +12,7 @@ export function createAuthMiddleware(db, secret = () => process.env.JWT_SECRET) 
       if(error) return res.status(503).json({error:'Account verification is unavailable. Please retry.'});
       if(!user || (!student && (!['admin','super'].includes(user.role) || !['Active','Invited'].includes(user.status)))) return res.status(401).json({error:'Your account is inactive or no longer available.'});
       if(!student && decoded.role && decoded.role!==user.role) return res.status(401).json({error:'Please sign in again.'});
+      if(student && (decoded.sessionVersion ?? 0) !== (user.session_version ?? 0)) return res.status(401).json({error:'Your session has ended. Please sign in again.'});
       req.user={id:user.id,role:student?'student':user.role,status:user.status,email:user.email,name:user.name,firstName:user.first_name,lastName:user.last_name,roleLabel:user.role_label};
       next();
     } catch { res.status(503).json({error:'Account verification is unavailable.'}); }

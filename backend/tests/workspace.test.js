@@ -116,6 +116,18 @@ test('bounties enforce participant identity, mastery eligibility, state and secr
  await request(teacher).post('/api/bounties').send({mentor_id:'mentor',mentee_id:'s1',topics:['Baiting']}).expect(400);
  await request(teacher).post('/api/bounties').send({mentor_id:'mentor',mentee_id:'s1',topics:['Phishing']}).expect(201);
 });
+test('student reset rejects old web/mobile JWTs without revoking staff sessions', async () => {
+ const db=fakeDb(seed),a=express();a.use(createAuthMiddleware(db,()=> 'secret'));a.get('/',(req,res)=>res.json(req.user));
+ const old=jwt.sign({id:'s1',role:'student'},'secret');
+ await request(a).get('/').set('Authorization',`Bearer ${old}`).expect(200);
+ db.tables.students[0].session_version=1;
+ await request(a).get('/').set('Authorization',`Bearer ${old}`).expect(401);
+ const fresh=jwt.sign({id:'s1',role:'student',sessionVersion:1},'secret');
+ await request(a).get('/').set('Authorization',`Bearer ${fresh}`).expect(200);
+ const teacher=jwt.sign({id:'teacher',role:'admin'},'secret');
+ await request(a).get('/').set('Authorization',`Bearer ${teacher}`).expect(200);
+});
+
 test('existing tokens are rejected after deactivation, despite Active token claims',async()=>{
  const db=fakeDb(seed),a=express();a.use(createAuthMiddleware(db,()=> 'secret'));a.get('/',(req,res)=>res.json(req.user));
  const token=jwt.sign({id:'teacher',role:'admin',status:'Active',email:'old@example.org'},'secret');

@@ -7,6 +7,10 @@ export function notificationStorageKey(user, role) {
 
 export function buildNotifications(role, data, now = Date.now()) {
   const items = [];
+  for (const request of data.recovery || []) {
+    if (!['pending', 'delivery_failed'].includes(request.status)) continue;
+    items.push({ id: `recovery:${request.id}`, revision: `${request.status}:${request.updated_at}`, title: 'Student password assistance', text: `${request.student_name} · ${request.status === 'delivery_failed' ? 'Reset email needs retry' : 'Requested help signing in'}`, path: '/password-assistance', kind: 'support', time: request.requested_at });
+  }
   const add = (id, records, title, text, path, kind, revision = studentId) => {
     if (!records.length) return;
     // A changed set of students or topics is new information even if its count is unchanged.

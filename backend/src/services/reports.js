@@ -20,8 +20,9 @@ export function reportRows(data,filters,generatedAt) {
   topicSummary(data.students).forEach(t=>rows.push([t.topic,t.assessed,t.unassessed,t.support,t.supportProportion,t.mastery]));
   rows.push([],['Comparable assessment scale','Pairs','Mean pre','Mean post','Mean gain']);
   pairedSummaries(data.students).forEach(g=>rows.push([g.scale,g.count,g.pre,g.post,g.gain]));
-  rows.push([],['Student ID','Name','Grade','Section','Pre score','Pre confirmed','Post score','Post confirmed','Comparable scale','Gain',...TOPICS]);
-  data.students.forEach(s=>rows.push([s._id,s.name,s.gradeLevel,s.section,s.pre,s.preAssessment.confirmed,s.post,s.postAssessment.confirmed,s.gain!==null?s.preAssessment.scale:null,s.gain,...TOPICS.map(t=>s.mastery[t])]));
+  rows.push([],['Enrollment selection',filters.enrollment||'active']);
+  rows.push([],['Student ID','Name','Grade','Section','Pre score','Pre confirmed','Post score','Post confirmed','Comparable scale','Gain',...TOPICS,'Enrollment','Academic year']);
+  data.students.forEach(s=>rows.push([s._id,s.name,s.gradeLevel,s.section,s.pre,s.preAssessment.confirmed,s.post,s.postAssessment.confirmed,s.gain!==null?s.preAssessment.scale:null,s.gain,...TOPICS.map(t=>s.mastery[t]),s.enrollmentStatus,s.academicYear]));
   rows.push([],['Student ID','Action','Topic','Note','Scheduled','Outcome','Actor ID','Recorded','Updated','Updated by','Bounty ID']);
   data.interventions.forEach(i=>rows.push([i.student_id,i.kind,i.topic,i.note,i.scheduled_date,i.outcome,i.actor_id,i.created_at,i.updated_at,i.updated_by,i.bounty_id]));
   rows.push([],['Mobile learning records',data.evidence?.available?'Connected':data.evidence?.message||'Unavailable'],['Record coverage',RECORD_LIMITATION]);
@@ -31,6 +32,8 @@ export function reportRows(data,filters,generatedAt) {
   data.students.forEach(s=>s.evidence?.pairs.forEach(p=>rows.push([s._id,p.moduleId,p.comparisonKey,p.scale,p.pre,p.post,p.gain])));
   rows.push([],['Student ID','Module','Stage','Attempt ID','Outcome','Device time','Received']);
   data.students.forEach(s=>s.evidence?.attempts.forEach(r=>rows.push([s._id,r.module_id,r.data.stage,r.data.attempt_id,r.data.outcome,r.occurred_at,r.received_at])));
+  rows.push([],['Student ID','Attempt ID','Mobile-reported stage details']);
+  data.students.forEach(s=>s.evidence?.attempts.filter(r=>r.data.details).forEach(r=>rows.push([s._id,r.data.attempt_id,JSON.stringify(r.data.details)])));
   rows.push([],['Student ID','Recorded attempts','Finished attempts','Cleared attempts','Incomplete or abandoned','Unique stages cleared','Clearance among finished attempts']);
   data.students.forEach(s=>{if(s.evidence){const e=s.evidence;rows.push([s._id,e.started,e.finished,e.cleared,e.incomplete,e.uniqueStagesCleared,e.clearanceRate]);}});
   rows.push([],['Student ID','Topic','Recorded mastery','Device time','Received']);
@@ -53,6 +56,7 @@ export function exportReport(req,res,data) {
   doc.fontSize(10).fillColor('#172c32');
   rows.slice(1,10).forEach(r=>doc.text(`${r[0]}: ${r[1]}`).moveDown(.4));
   doc.text(data.evidence?.available?RECORD_LIMITATION:data.evidence?.message||'Mobile learning records unavailable.').moveDown();
+  doc.text(`Enrollment selection: ${req.query.enrollment||'active'}`).moveDown();
   doc.moveDown().fontSize(13).text('Topic summary').fontSize(10);
   topicSummary(data.students).forEach(t=>doc.text(`${t.topic}: ${t.assessed} assessed, ${t.unassessed} unassessed; ${t.support} below 0.40 (${t.supportProportion===null?'not available':Math.round(t.supportProportion*100)+'% of assessed'}). Mean BKT: ${t.mastery===null?'unavailable':t.mastery.toFixed(3)}.`).moveDown(.4));
   doc.moveDown().fontSize(13).text('Paired assessment outcomes').fontSize(10);
@@ -71,6 +75,7 @@ export function exportReport(req,res,data) {
     if(!evidence?.pairs.length)doc.text('No confirmed comparable mobile assessment pair.');
     if(evidence)doc.text(`Recorded attempts: ${evidence.started}; cleared: ${evidence.cleared}; failed: ${evidence.failed}; incomplete/abandoned: ${evidence.incomplete}. Clearance among finished attempts: ${evidence.clearanceRate===null?'unavailable':(evidence.clearanceRate*100).toFixed(1)+'%'}. Unique stages cleared: ${evidence.uniqueStagesCleared}.`);
     evidence?.attempts.forEach(r=>doc.text(`${r.module_id} stage ${r.data.stage}: ${r.data.outcome} | ${r.occurred_at}`));
+    evidence?.attempts.filter(r=>r.data.details).forEach(r=>{const d=r.data.details;doc.text(`Attempt ${r.data.attempt_id} (mobile-reported): phase ${d.phase}; health ${d.health}; answers ${d.correct??'unavailable'}/${d.answered??'unavailable'}; waves ${d.waves_completed??'unavailable'}/${d.waves_total??'unavailable'}; timeout recorded: ${d.timed_out?'yes':'no'}. Missed question references: ${d.missed_question_ids?.join(', ')||'none supplied'}.`);});
     if(evidence?.observations.length){doc.moveDown().text('Dated mastery observations (mobile-reported)');evidence.observations.forEach(r=>doc.text(`${r.occurred_at} | ${r.data.topic}: ${r.data.mastery.toFixed(3)}`));}
     doc.moveDown().text('Documented interventions');
     const notes=data.interventions.filter(i=>i.student_id===String(s._id));

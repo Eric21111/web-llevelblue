@@ -498,3 +498,12 @@
 .learning-evidence .learning-stats { margin: 20px 0; }
 .learning-evidence-filter { display: flex; flex-direction: column; gap: 8px; max-width: 360px; }
 .learning-evidence-filter select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cadbd6; background: #f7faf8; color: #203d39; font: inherit; }
+.cohort-controls { border: 0; padding: 0; margin: 0; min-width: 0; }
+.learning-workspace .cohort-check { display: flex; align-items: center; gap: .75rem; padding: .5rem 0; }
+.learning-workspace .cohort-check input { width: 1.1rem; height: 1.1rem; margin: 0; accent-color: #245e51; }
+.cohort-confirm { margin-top: 1.5rem; padding: 1.25rem; border: 1px solid #8cafa4; border-radius: 16px; }
+.cohort-confirm ul { max-height: 14rem; overflow: auto; }
+.stage-evidence { display: grid; grid-template-columns: minmax(8rem,1fr) minmax(5rem,1fr); gap: .4rem 1rem; }
+.stage-evidence dd { margin: 0; font-weight: 600; }
+.learning-table details { min-width: 14rem; max-width: 28rem; white-space: normal; overflow-wrap: anywhere; }
+.learning-table summary { cursor: pointer; color: #245e51; font-weight: 600; padding: .4rem 0; }

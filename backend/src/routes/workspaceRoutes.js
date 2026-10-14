@@ -5,10 +5,17 @@ import { fail, result, allRows, rowsForIds, handler, staffOnly, headOnly, sectio
 import { TOPICS, topicSummary, mapLearner } from '../services/learning.js';
 import { exportReport } from '../services/reports.js';
 import { attachLearningEvidence, RECORD_LIMITATION } from '../services/learningRecords.js';
+import {teacherOversight} from '../services/oversight.js';
+import {dashboardData,exportDashboard} from '../services/dashboardExport.js';
 
 export function createWorkspaceRoutes(db) {
   const router=express.Router();
   router.use(staffOnly);
+  router.get('/dashboard/export',handler(async(req,res)=>{
+    if(!['csv','pdf'].includes(req.query.format))throw fail(400,'Choose PDF or CSV.');
+    exportDashboard(res,await dashboardData(db,req.user,req.query),req.query.format);
+  }));
+  router.get('/teacher-activity',headOnly,handler(async(req,res)=>res.json(await teacherOversight(db,req.query))));
   router.get('/sections',handler(async(req,res)=>res.json((await sectionScope(db,req.user)).map(s=>({...s,id:s.scope_id,gradeLevel:s.grade_level,createdAt:s.created_at})))));
   router.post('/sections',handler(async(req,res)=>{
     const {name,subject='General Cybersecurity',gradeLevel}=req.body;

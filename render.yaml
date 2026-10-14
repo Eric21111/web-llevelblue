@@ -29,3 +29,6 @@ services:
         sync: false
       - key: CORS_ORIGINS
         sync: false
+      # Render is the single trusted proxy in front of this service.
+      - key: TRUST_PROXY_HOPS
+        value: "1"
