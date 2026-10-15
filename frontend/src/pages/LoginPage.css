@@ -151,3 +151,14 @@
 @media (prefers-reduced-motion: reduce) {
   .lb-login *, .lb-login *::before, .lb-login *::after { animation: none !important; transition: none !important; }
 }
+.lb-invite-form .lb-invite-email { font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; margin: 0 0 14px; }
+.lb-invite-form .lb-login-field { margin-bottom: 12px; }
+.lb-invite-form small { display: block; font-size: 11px; line-height: 1.5; margin-top: 5px; }
+.lb-invite-actions { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 14px; }
+.lb-invite-actions button { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 12px; background: transparent; border: 1px solid #375b85; border-radius: 8px; padding: 8px 10px; color: #a9cafa; cursor: pointer; }
+.lb-invite-actions button:hover { background: #203957; }
+.lb-invite-actions button:focus-visible { outline: 2px solid #88b8ff; outline-offset: 3px; }
+.lb-invite-actions button:disabled { opacity: .55; cursor: default; }
+.lb-invite-message { color: #a9cafa; font-size: 13px; }
+
+.lb-invite-step { color: #a9cafa; font-size: 12px; font-weight: 600; margin: 0 0 14px; }

@@ -1,6 +1,8 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { supabase } from "../config/db.js";
+import { createTeacherInvites, inviteChallenge } from "../services/teacherInvites.js";
+const teacherInvites = createTeacherInvites(supabase);
 
 // Helper: compute full name from parts
 function computeName(firstName, middleInitial, lastName) {
@@ -12,11 +14,46 @@ function escapeLikePattern(value) {
   return value.replace(/[\\%_]/g, "\\$&");
 }
 
+async function staffSession(user) {
+  const token = jwt.sign(
+    {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      roleLabel: user.role_label,
+      firstName: user.first_name,
+      lastName: user.last_name,
+      middleInitial: user.middle_initial,
+      imageUrl: user.image_url,
+      status: user.status,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+
+  await supabase.from("logs").insert({
+    user: user.name,
+    action: "Logged in",
+    details: `Role: ${user.role_label}`,
+  });
+
+  const { password: _, ...userObj } = user;
+  userObj._id = userObj.id;
+  userObj.roleLabel = userObj.role_label;
+  userObj.firstName = userObj.first_name;
+  userObj.lastName = userObj.last_name;
+  userObj.middleInitial = userObj.middle_initial;
+  userObj.createdAt = userObj.created_at;
+  userObj.updatedAt = userObj.updated_at;
+
+  return { token, user: userObj };
+}
+
 // Login controller
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password) {
+    if (typeof email !== "string" || typeof password !== "string" || !email.trim() || !password || email.length > 254 || password.length > 256) {
       return res.status(400).json({ error: "Email and password are required" });
     }
 
@@ -45,7 +82,9 @@ export const login = async (req, res) => {
         if (isMatch) {
           try {
             const hashedPassword = await bcrypt.hash(password, 10);
-            await supabase.from("users").update({ password: hashedPassword }).eq("id", user.id);
+            const { error } = await supabase.from("users").update({ password: hashedPassword }).eq("id", user.id);
+            if (error) throw error;
+            user.password = hashedPassword;
             console.log(`Auto-migrated password to bcrypt hash for user: ${normalizedEmail}`);
           } catch (migrationErr) {
             console.error("Failed to migrate plain text password:", migrationErr);
@@ -57,38 +96,10 @@ export const login = async (req, res) => {
         return res.status(401).json({ error: "Invalid email or password" });
       }
 
-      const token = jwt.sign(
-        {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          roleLabel: user.role_label,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          middleInitial: user.middle_initial,
-          imageUrl: user.image_url,
-          status: user.status,
-        },
-        process.env.JWT_SECRET,
-        { expiresIn: "7d" }
-      );
-
-      await supabase.from("logs").insert({
-        user: user.name,
-        action: "Logged in",
-        details: `Role: ${user.role_label}`,
-      });
-
-      const { password: _, ...userObj } = user;
-      userObj._id = userObj.id;
-      userObj.roleLabel = userObj.role_label;
-      userObj.firstName = userObj.first_name;
-      userObj.lastName = userObj.last_name;
-      userObj.middleInitial = userObj.middle_initial;
-      userObj.createdAt = userObj.created_at;
-      userObj.updatedAt = userObj.updated_at;
-
-      return res.json({ token, user: userObj });
+      if (user.role === 'admin' && user.status === 'Invited') {
+        return res.json({ requiresInviteVerification: true, challengeToken: inviteChallenge(user), email: user.email });
+      }
+      return res.json(await staffSession(user));
     }
 
     // ── 2. Fallback: check students table for mobile game login ──────────────
@@ -277,52 +288,35 @@ export const updateProfile = async (req, res) => {
   }
 };
 
-// Complete Invite controller (force password change on first login)
-export const completeInvite = async (req, res) => {
+// The former authenticated password-only endpoint cannot activate invitations.
+export const completeInvite = (_req, res) => res.status(403).json({ error: 'Sign in again and verify your email code to activate your teacher account.' });
+
+export const resendTeacherInvite = async (req, res) => {
   try {
-    const { password } = req.body;
-    const id = req.user.id;
-    if (req.user.role !== 'admin' || req.user.status !== 'Invited') return res.status(403).json({error:'An invited teacher account is required.'});
-    if (!id || !password) {
-      return res.status(400).json({ error: "User ID and new password are required" });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const { data: updatedUser, error: updateError } = await supabase
-      .from("users")
-      .update({ password: hashedPassword, status: "Active" })
-      .eq("id", id)
-      .eq("status", "Invited") // Ensure they are actually in Invited status
-      .select("*")
-      .single();
-
-    if (updateError || !updatedUser) {
-      console.error("Complete invite error:", updateError);
-      return res.status(400).json({ error: "Failed to update password or user not found" });
-    }
-
-    // Write audit log
-    await supabase.from("logs").insert({
-      user: updatedUser.name,
-      action: "Account Activated",
-      details: "User completed first-login password change",
-    });
-
-    const { password: _, ...userObj } = updatedUser;
-    userObj._id = userObj.id;
-    userObj.roleLabel = userObj.role_label;
-    userObj.firstName = userObj.first_name;
-    userObj.lastName = userObj.last_name;
-    userObj.middleInitial = userObj.middle_initial;
-    userObj.imageUrl = userObj.image_url;
-    userObj.createdAt = userObj.created_at;
-    userObj.updatedAt = userObj.updated_at;
-
-    res.json(userObj);
+    const user = await teacherInvites.authenticate(req.body.challengeToken);
+    await teacherInvites.send(user);
+    res.json({ message: 'A new code has been sent. It expires in 10 minutes.' });
   } catch (error) {
-    console.error("Complete invite error:", error);
-    res.status(500).json({ error: "Server error during password update" });
+    res.status(error.status || 503).json({ error: error.status ? error.message : 'Email verification is unavailable. Please try again.' });
+  }
+};
+
+export const verifyTeacherInvite = async (req, res) => {
+  try {
+    const user = await teacherInvites.authenticate(req.body.challengeToken);
+    const setupToken = await teacherInvites.verify(user, req.body.code);
+    res.json({ setupToken, message: 'Email verified. Choose your new password.' });
+  } catch (error) {
+    res.status(error.status || 503).json({ error: error.status ? error.message : 'Activation could not finish. Try signing in again with your new password.' });
+  }
+};
+
+export const activateTeacherInvite = async (req, res) => {
+  try {
+    const activated = await teacherInvites.activate(req.body.setupToken, req.body.password);
+    res.json(await staffSession(activated));
+  } catch (error) {
+    res.status(error.status || 503).json({ error: error.status ? error.message : 'Activation could not finish. Try signing in again with your new password.' });
   }
 };
 

@@ -4,6 +4,7 @@ import {
   GraduationCap, LoaderCircle, LockKeyhole, Mail, Shield, ShieldCheck, Users,
 } from "lucide-react";
 import FontImports from "../components/FontImports";
+import TeacherInviteForm from "../components/TeacherInviteForm";
 import { apiFetch } from "../utils/api";
 import "./LoginPage.css";
 
@@ -13,6 +14,8 @@ export default function LoginPage({ onLogin }) {
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [invitation, setInvitation] = useState(null);
+  const [inviteVerified, setInviteVerified] = useState(false);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -34,6 +37,11 @@ export default function LoginPage({ onLogin }) {
         throw new Error(res.status >= 500
           ? "We couldn’t connect to the sign-in service. Please try again in a moment."
           : data?.error || "We couldn’t sign you in. Check your email and password and try again.");
+      }
+      if (data?.requiresInviteVerification && data.challengeToken) {
+        setInvitation(data);
+        setPassword('');
+        return;
       }
       if (!data?.token || !data?.user?.role) {
         throw new Error("Sign-in could not be completed. Please try again.");
@@ -84,10 +92,10 @@ export default function LoginPage({ onLogin }) {
           <section className="lb-login-form-panel" aria-labelledby="login-title">
             <span className="lb-login-form-icon"><LockKeyhole size={21} aria-hidden="true" /></span>
             <span className="lb-login-eyebrow">YOUR LEVELBLUE CONSOLE</span>
-            <h1 id="login-title">Welcome back.</h1>
-            <p className="lb-login-intro">Sign in to see how learning is moving forward.</p>
+            <h1 id="login-title">{invitation ? (inviteVerified ? 'Choose a password.' : 'Verify your email.') : 'Welcome back.'}</h1>
+            <p className="lb-login-intro">{invitation ? (inviteVerified ? 'Replace your temporary password to finish setting up your account.' : 'Confirm your email before setting up your password.') : 'Sign in to see how learning is moving forward.'}</p>
 
-            <form onSubmit={handleSubmit} aria-busy={loading}>
+            {invitation ? <TeacherInviteForm invitation={invitation} onComplete={onLogin} onVerified={() => setInviteVerified(true)} onBack={() => { setInviteVerified(false); setInvitation(null); setError(''); }} /> : <form onSubmit={handleSubmit} aria-busy={loading}>
               <div className="lb-login-field">
                 <label htmlFor="login-email">Email address</label>
                 <div className="lb-login-input-wrap">
@@ -108,9 +116,9 @@ export default function LoginPage({ onLogin }) {
 
               <button className="lb-login-submit" type="submit" disabled={loading}>{loading ? <><LoaderCircle className="lb-login-spinner" size={18} aria-hidden="true" />Signing in…</> : <>Sign in<ArrowRight size={18} aria-hidden="true" /></>}</button>
               <p className="lb-login-role-hint"><ShieldCheck size={15} aria-hidden="true" />Your account opens the right console for your role.</p>
-            </form>
+            </form>}
 
-            <div className="lb-login-help"><span>Need help signing in?</span><p>Use the account provided by your school. For access or password assistance, contact your school administrator.</p></div>
+            {!invitation && <div className="lb-login-help"><span>Need help signing in?</span><p>Use the account provided by your school. For access or password assistance, contact your school administrator.</p></div>}
           </section>
         </div>
         <p className="lb-login-bottom-note"><LockKeyhole size={12} aria-hidden="true" />A dedicated space for your school’s learning insights.</p>
