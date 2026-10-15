@@ -8,6 +8,7 @@ import { exportReport } from '../services/reports.js';
 import { attachLearningEvidence, RECORD_LIMITATION } from '../services/learningRecords.js';
 import {teacherOversight} from '../services/oversight.js';
 import {dashboardData,exportDashboard} from '../services/dashboardExport.js';
+import {previewTemporaryPassword} from '../services/teacherCredentials.js';
 
 export function createWorkspaceRoutes(db) {
   const router=express.Router();
@@ -82,6 +83,10 @@ export function createWorkspaceRoutes(db) {
     res.json(teachers.map(t=>{const ids=assignments.filter(a=>a.teacher_id===String(t.id)).map(a=>a.section_id);return {...t,_id:t.id,firstName:t.first_name,lastName:t.last_name,middleInitial:t.middle_initial,role:'admin',roleLabel:'Teacher',createdAt:t.created_at,sectionIds:ids,sections:ids.length,students:students.filter(s=>ids.includes(s.section_id)&&s.enrollment_status!=='graduated').length,grades:[...new Set(sections.filter(s=>ids.includes(s.scope_id)).map(s=>s.grade_level).filter(Boolean))]};}));
   }));
   router.patch('/teachers/:id/details',headOnly,handler(async(req,res)=>{await managementResult(db.rpc('levelblue_edit_teacher',{p_actor:String(req.user.id),p_teacher:req.params.id,p_details:contactDetails(req.body)}));res.json({success:true});}));
+  router.get('/teachers/:id/temporary-password',headOnly,handler(async(req,res)=>{
+    res.setHeader('Cache-Control','no-store, private');
+    res.json(await previewTemporaryPassword(db,req.user,req.params.id));
+  }));
   router.patch('/teachers/:id',headOnly,handler(async(req,res)=>{
     if(!['Active','Inactive','Invited'].includes(req.body.status)||!Array.isArray(req.body.sectionIds)||!req.body.sectionIds.every(s=>typeof s==='string')) throw fail(400,'Valid status and section assignments are required.');
     await result(db.rpc('levelblue_faculty',{p_actor:String(req.user.id),p_teacher:req.params.id,p_status:req.body.status,p_sections:req.body.sectionIds}));

@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 import {contactDetails} from "../services/management.js";
 import { actorName } from "../utils/actor.js";
 import { createTeacherInvites } from "../services/teacherInvites.js";
+import { credentialStorageReady, storeTemporaryPassword } from "../services/teacherCredentials.js";
 const teacherInvites = createTeacherInvites(supabase);
 
 // Helper: map Supabase user row to frontend-expected shape
@@ -66,6 +67,7 @@ export const addTeacher = async (req, res) => {
 
     // Fail before creating an account if the required OTP schema is missing.
     await teacherInvites.ready();
+    await credentialStorageReady(supabase);
     const generatedPassword = randomBytes(9).toString("base64url");
     const hashedPassword = await bcrypt.hash(generatedPassword, 10);
 
@@ -91,6 +93,10 @@ export const addTeacher = async (req, res) => {
 
     if (insertError) throw insertError;
 
+    let temporaryPasswordStored = false;
+    try { temporaryPasswordStored = await storeTemporaryPassword(supabase, newTeacher, generatedPassword); }
+    catch { /* Keep the creation response usable if credential storage is temporarily unavailable. */ }
+
     let invitationEmailSent = true;
     try { await teacherInvites.send(newTeacher); }
     catch { invitationEmailSent = false; }
@@ -102,7 +108,8 @@ export const addTeacher = async (req, res) => {
       details: `Created teacher account for ${firstName} ${lastName} (${email})`,
     });
 
-    res.status(201).json({ ...mapUser(newTeacher), generatedPassword, invitationEmailSent });
+    res.setHeader('Cache-Control', 'no-store');
+    res.status(201).json({ ...mapUser(newTeacher), generatedPassword, invitationEmailSent, temporaryPasswordStored });
   } catch (error) {
     console.error("Add teacher error:", error);
     res.status(error.status || (error.code === "23505" ? 409 : 500)).json({ error: error.status ? error.message : error.code === "23505" ? "This email is already used by another staff account." : "Server error creating teacher account" });
