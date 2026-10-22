@@ -19,7 +19,7 @@ export default function StudentFollowUps({onNavigate}){
  const filtered=filterLearners(base,{need,topic});
  const latest=latestActions(data.notes),pagination=useSupportPage(filtered,`${selectedSection}|${grade}|${query}|${topic}|${need}`);
  return <div className="dashboard support-workspace">
-  <header className="support-page-heading"><div><h1>Student follow-ups</h1><p>Find a learning need, review the student’s progress, and decide what support to offer.</p></div><button className="dash-button" onClick={()=>onNavigate('/interventions')}><ClipboardCheck size={16}/>Reviews & remediation</button></header>
+  <header className="support-page-heading"><div><h1>Student Follow-ups</h1><p>Who needs practice, and the next step.</p></div><button className="dash-button" onClick={()=>onNavigate('/interventions')}><ClipboardCheck size={16}/>Reviews & remediation</button></header>
   <div className="support-guide"><strong>Start here</strong><span>Choose a student below. “Review student” opens their learning context and lets you record a review or schedule classroom support.</span></div>
   <section className="support-panel">
    <SupportFilters sections={data.sections} grade={grade} setGrade={v=>{setGrade(v);setUseInitial(false);}} section={selectedSection} setSection={v=>{setSection(v);setUseInitial(false);}} query={query} setQuery={setQuery}/>

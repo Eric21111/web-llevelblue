@@ -1,4 +1,5 @@
 import LearningEvidence from '../../components/LearningEvidence';
+import Term from '../../components/Term';
 import { useState } from "react";
 import { Activity, BookOpen, ClipboardCheck, GraduationCap, Users, Layers, Search } from "lucide-react";
 import { useWorkspaceData } from "../../context/WorkspaceDataContext";
@@ -28,13 +29,13 @@ export default function SuperAdminHome({ user, onNavigate, progress = false }) {
       { value: studentsUnavailable || state.errors.sections ? null : sections.length, label: "Sections", note: "Learning together" },
       { value: studentsUnavailable || state.errors.risk ? null : summary.needsSupport.length, label: "Need support", note: "At least one skill below 40%" },
     ]} />}
-    {progress && <div className="dash-page-intro"><span className="dash-eyebrow">SCHOOL INSIGHTS</span><h1>School progress</h1><p>Compare participation and learning needs across sections to guide your support.</p></div>}
+    {progress && <div className="dash-page-intro"><span className="dash-eyebrow">INSIGHTS</span><h1>School Progress</h1><p>Participation and support needs by section.</p></div>}
     <DashboardToolbar title={progress ? "Learning across your school" : "Your school at a glance"} state={state} />
 
     {progress ? <>
-      <div className="dash-summary-grid"><div><span>Students active in 7 days</span><strong>{studentsUnavailable ? "—" : `${summary.active} / ${summary.total}`}</strong><small>Based on last recorded activity</small></div><div><span>Average mastery</span><strong>{studentsUnavailable ? "—" : formatPercent(summary.mastery)}</strong><small>Among learners who have started</small></div><div><span>Students needing support</span><strong>{studentsUnavailable || state.errors.risk ? "—" : summary.needsSupport.length}</strong><small>At least one skill below 40%</small></div></div>
+      <div className="dash-summary-grid"><div><span>Active in 7 days</span><strong>{studentsUnavailable ? "—" : `${summary.active} / ${summary.total}`}</strong></div><div><span><Term name="mastery">Average mastery</Term></span><strong>{studentsUnavailable ? "Not recorded" : formatPercent(summary.mastery)}</strong></div><div><span>Need support</span><strong>{studentsUnavailable || state.errors.risk ? "—" : summary.needsSupport.length}</strong><small>At least one skill below 40%</small></div></div>
       <DashboardCard icon={GraduationCap} title="Section comparison" description="Use this view to discuss learning needs with your teachers."><label className="dash-search-inline"><Search size={16} /><input aria-label="Search sections" value={query} onChange={event => setQuery(event.target.value)} placeholder="Find a section…" /></label><DataState state={state} sources={["students", "risk", "sections"]}>{query && !sections.some(section => section.name.toLowerCase().includes(query.toLowerCase())) ? <EmptyState title="No matching sections" text="Try a different section name." /> : <SectionTable sections={sections.filter(section => section.name.toLowerCase().includes(query.toLowerCase()))} />}</DataState></DashboardCard>
-      <div className="dash-two-columns"><DashboardCard icon={BookOpen} title="School-wide skill mastery"><DataState state={state} sources={["students"]}><SkillBars skills={summary.skills} /></DataState></DashboardCard><DashboardCard icon={Users} className="dash-participation-card" title="Learning momentum"><DataState state={state} sources={["students", "risk"]}><Participation summary={summary} /></DataState><div className="dash-note"><strong>How to read these numbers</strong><p>“Needs support” identifies learners with at least one flagged skill. Students who haven’t started are shown separately. Missing mastery data appears as a dash.</p></div></DashboardCard></div>
+      <div className="dash-two-columns"><DashboardCard icon={BookOpen} title="School-wide skill mastery"><DataState state={state} sources={["students"]}><SkillBars skills={summary.skills} /></DataState></DashboardCard><DashboardCard icon={Users} className="dash-participation-card" title="Learning momentum"><DataState state={state} sources={["students", "risk"]}><Participation summary={summary} /></DataState><div className="dash-note"><strong>How to read this</strong><p>Needs support means at least one skill is below 40%. Students who have not started are separate. Missing mastery stays Not recorded.</p></div></DashboardCard></div>
     </> : <>
       <div className="dash-grid">
         <div className="dash-column"><DashboardCard icon={ClipboardCheck} className="dash-priorities" title="School priorities">
@@ -50,6 +51,6 @@ export default function SuperAdminHome({ user, onNavigate, progress = false }) {
       <DashboardCard icon={GraduationCap} title="Learning across sections" description="Participation and support needs, in one place." action="Full overview" onAction={() => onNavigate("/school-progress")}><DataState state={state} sources={["students", "risk", "sections"]}><SectionTable sections={sections.slice(0, 5)} /></DataState></DashboardCard>
     </>}
     <LearningEvidence compact detailsPath="/school-progress" onNavigate={onNavigate}/>
-    <p className="dash-footnote">Mastery reflects recorded skill estimates for learners who have started. Participation is based on activity in the last 7 days.</p>
+    <p className="dash-footnote"><Term name="mastery">Mastery</Term> uses recorded estimates for learners who have started. Active means activity in the last 7 days.</p>
   </div>;
 }

@@ -44,7 +44,7 @@ export default function ReviewsRemediation({onNavigate}){
   setMessage('Action outcome updated.');setEditing(null);refresh();
  }catch(e){setSaveError(e.message);}finally{setBusy(false);}}
  return <div className="dashboard support-workspace">
-  <header className="support-page-heading"><div><h1>Reviews & remediation</h1><p>Keep a record of the support you provide, then return to update what happened.</p></div><button className="dash-primary-action" disabled={loading||!!errors.students||!data.students.length} onClick={()=>openForm()}><Plus size={16}/>Record support</button></header>
+  <header className="support-page-heading"><div><h1>Reviews</h1><p>Record support, then update the outcome.</p></div><button className="dash-primary-action" disabled={loading||!!errors.students||!data.students.length} onClick={()=>openForm()}><Plus size={16}/>Record support</button></header>
   <div className="support-guide"><strong>How this works</strong><span>Review a learner → record your action → update its outcome after the session. Completing an action does not change mastery or confirm mentoring.</span></div>
   {message&&<p className="support-success" role="status">{message}</p>}{linkError&&<p className="support-error" role="alert">{linkError}</p>}
   <section className="support-panel"><SupportFilters sections={data.sections} grade={grade} setGrade={setGrade} section={section} setSection={setSection} query={query} setQuery={setQuery}/>

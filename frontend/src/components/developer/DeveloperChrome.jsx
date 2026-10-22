@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { apiRequest } from '../../utils/api';
 import { NOT_RECORDED } from '../../utils/developerConsole';
+import Term from '../Term';
 import '../../styles/developer.css';
 
 export function useDeveloperData(resource, filters) {
@@ -33,10 +34,16 @@ export function DeveloperState({ loading, error, children }) {
   return children;
 }
 export function ReadOnlyNote() {
-  return <p className="developer-readonly">Read only. Developer access can review records and cannot change students, assessments, or school settings.</p>;
+  return <p className="developer-readonly"><Term name="read-only">Read only</Term></p>;
 }
 export function Metric({ label, value, note }) {
-  return <article><span>{label}</span><strong>{value}</strong><small>{note}</small></article>;
+  return <article><span>{label}</span><strong>{value}</strong>{note ? <small>{note}</small> : null}</article>;
+}
+export function Details({ title, children, open = false }) {
+  return <details className="lb-details" open={open || undefined}><summary>{title}</summary><div>{children}</div></details>;
+}
+export function recorded(value, suffix = '') {
+  return value == null || Number.isNaN(value) ? NOT_RECORDED : `${value}${suffix}`;
 }
 export function EmptyNote({ children }) {
   return <p className="support-empty">{children || 'Nothing is recorded for these filters.'}</p>;

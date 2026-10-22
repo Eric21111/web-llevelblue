@@ -3,19 +3,19 @@ import { DeveloperFilters, DeveloperState, EmptyNote, ReadOnlyNote, useDeveloper
 
 const empty = { grade: '', sectionId: '', topic: '', from: '', to: '' };
 function EventList({ title, rows, empty }) {
-  return <section className="support-panel"><h2>{title}</h2>{!rows.length ? <EmptyNote>{empty}</EmptyNote> : <ul>{rows.map(row => <li key={row.id || `${row.studentId}-${row.kind}-${row.occurredAt}`}>{row.message || `${row.name || 'Record'} · ${row.kind || row.category} · ${row.topic || row.route || '—'} · ${row.occurredAt || row.answers || ''}`}</li>)}</ul>}</section>;
+  return <details className="lb-details" open={rows.length > 0 || undefined}><summary>{title} ({rows.length})</summary><div>{!rows.length ? <EmptyNote>{empty}</EmptyNote> : <ul>{rows.map(row => <li key={row.id || `${row.studentId}-${row.kind}-${row.occurredAt}`}>{row.message || `${row.name || 'Record'} · ${row.kind || row.category} · ${row.topic || row.route || 'Not recorded'} · ${row.occurredAt || row.answers || ''}`}</li>)}</ul>}</div></details>;
 }
 export default function DeveloperMonitoring() {
   const [filters, setFilters] = useState(empty);
   const state = useDeveloperData('monitoring', filters);
   const data = state.data;
   return <div className="dashboard support-workspace">
-    <header className="support-page-heading"><div><h1>Data monitoring</h1><p>Gaps and logged failures from stored records. Nothing here is sampled or invented.</p></div></header>
+    <header className="support-page-heading"><div><h1>Data monitoring</h1><p>Gaps and logged failures from stored records.</p></div></header>
     <ReadOnlyNote />
     <DeveloperFilters filters={filters} setFilters={setFilters} sections={data?.sections || []} />
     <DeveloperState {...state}>{data && <>
       <p>{data.note}</p>
-      {!data.available && <p className="support-error" role="alert">Operational logs are not available yet. Apply backend/migrations/20261022_developer_role.sql.</p>}
+      {!data.available && <p className="support-error" role="alert">Operational logs are not available yet.</p>}
       {!data.learningAvailable && <p className="support-error" role="alert">Learning records are not available yet.</p>}
       <EventList title="Incomplete assessments" rows={data.incompleteAssessments} empty="No incomplete assessment events for these filters." />
       <EventList title="Completed assessments without item answers" rows={data.missingAnswers} empty="No completed assessment is missing stored answers." />

@@ -118,36 +118,36 @@ function AppContent() {
 
   const teacherPages = [
     { label: "Dashboard", path: "/dashboard", group: "Overview", icon: LayoutDashboard, component: TeacherHome },
-    { label: 'Password Assistance', path: '/password-assistance', group: 'Teaching & support', icon: ShieldAlert, component: PasswordAssistance },
-    { label: "Section Checklist", path: "/enrollment", group: "Teaching & support", icon: GraduationCap, component: CohortChecklist },
-    { label: "Student Follow-ups", path: "/follow-ups", group: "Teaching & support", icon: ShieldAlert, component: StudentFollowUps },
-    { label: "Reviews & Remediation", path: "/interventions", group: "Teaching & support", icon: ClipboardList, component: ReviewsRemediation },
-    { label: "Student Roster", path: "/roster", group: "Teaching & support", icon: Users, component: ClassRoster, description: "Manage student records and keep your learners connected." },
-    { label: "Sections", path: "/sections", group: "Teaching & support", icon: GraduationCap, component: SectionsManagement, description: "Organize your classes and learning groups." },
-    { label: "Classroom Diagnostics", path: "/analytics", group: "Learning insights", icon: BookOpen, component: LearningWorkspace, description: "Explore strengths, learning gaps, and assessment results." },
-    { label: "Learning Reports", path: "/engagement", group: "Learning insights", icon: Activity, component: LearningWorkspace, mode: "reports", description: "Export individual recorded learning evidence." },
-    { label: "Student Feedback & Usability", path: "/survey", group: "Teaching & support", icon: ClipboardList, component: UsabilityFeedback, description: "Understand student satisfaction, difficulty fit, and feedback from the mobile app." },
-    { label: "My Teaching Content", path: "/content", group: "Teaching & support", icon: Database, component: CurriculumWorkspace },
-    { label: "Account Settings", path: "/settings", group: "Workspace", icon: Settings, component: TeacherSettings, description: "Manage your profile and sign-in details." },
+    { label: "Student Follow-ups", path: "/follow-ups", group: "Students", icon: ShieldAlert, component: StudentFollowUps },
+    { label: "Reviews", path: "/interventions", group: "Students", icon: ClipboardList, component: ReviewsRemediation },
+    { label: "Student Roster", path: "/roster", group: "Students", icon: Users, component: ClassRoster },
+    { label: "Student Feedback", path: "/survey", group: "Students", icon: ClipboardList, component: UsabilityFeedback, description: "Ratings and comments from the mobile app." },
+    { label: "Sections", path: "/sections", group: "Classes", icon: GraduationCap, component: SectionsManagement },
+    { label: "Enrollment", path: "/enrollment", group: "Classes", icon: GraduationCap, component: CohortChecklist },
+    { label: "Teaching Content", path: "/content", group: "Classes", icon: Database, component: CurriculumWorkspace },
+    { label: "Password Help", path: "/password-assistance", group: "Classes", icon: ShieldAlert, component: PasswordAssistance },
+    { label: "Diagnostics", path: "/analytics", group: "Insights", icon: BookOpen, component: LearningWorkspace },
+    { label: "Learning Reports", path: "/engagement", group: "Insights", icon: Activity, component: LearningWorkspace, mode: "reports" },
+    { label: "Account Settings", path: "/settings", group: "Workspace", icon: Settings, component: TeacherSettings, description: "Profile and sign-in." },
   ];
   const schoolPages = [
     { label: "Dashboard", path: "/dashboard", group: "Overview", icon: LayoutDashboard, component: SuperAdminHome },
-    { label: 'Password Assistance', path: '/password-assistance', group: 'Administration', icon: ShieldAlert, component: PasswordAssistance },
-    { label: "Section Checklist", path: "/enrollment", group: "Administration", icon: GraduationCap, component: CohortChecklist },
-    { label: "Teacher Activity", path: "/teacher-activity", group: "School insights", icon: UserCog, component: TeacherActivity },
-    { label: "School Progress", path: "/school-progress", group: "School insights", icon: BarChart3, component: LearningWorkspace },
-    { label: "Student Feedback & Usability", path: "/survey", group: "School insights", icon: ClipboardList, component: UsabilityFeedback, description: "Explore student experience across sections and training modules." },
-    { label: "Institutional Reports", path: "/reports", group: "School insights", icon: ClipboardList, component: LearningWorkspace, mode: "reports" },
-    { label: "Sections", path: "/sections", group: "Administration", icon: GraduationCap, component: SectionsManagement },
-    { label: "Teacher Accounts", path: "/teachers", group: "Administration", icon: UserCog, component: TeacherManagement, description: "Manage teacher access and account invitations." },
-    { label: "Developer Accounts", path: "/developers", group: "Administration", icon: UserCog, component: DeveloperAccounts, description: "Invite and deactivate developer access." },
-    { label: "Review & Publish", path: "/content", group: "Administration", icon: Database, component: CurriculumWorkspace },
-    { label: "Activity Log", path: "/logs", group: "Administration", icon: ServerCog, component: SystemLogs, description: "Keep track of account and content changes across your school." },
-    { label: "Account Settings", path: "/settings", group: "Workspace", icon: Settings, component: SuperAdminSettings, description: "Manage your profile and school administration settings." },
+    { label: "Teacher Accounts", path: "/teachers", group: "People", icon: UserCog, component: TeacherManagement },
+    { label: "Developer Accounts", path: "/developers", group: "People", icon: UserCog, component: DeveloperAccounts },
+    { label: "Sections", path: "/sections", group: "People", icon: GraduationCap, component: SectionsManagement },
+    { label: "Enrollment", path: "/enrollment", group: "People", icon: GraduationCap, component: CohortChecklist },
+    { label: "Password Help", path: "/password-assistance", group: "People", icon: ShieldAlert, component: PasswordAssistance },
+    { label: "School Progress", path: "/school-progress", group: "Insights", icon: BarChart3, component: LearningWorkspace },
+    { label: "Teacher Activity", path: "/teacher-activity", group: "Insights", icon: UserCog, component: TeacherActivity },
+    { label: "Student Feedback", path: "/survey", group: "Insights", icon: ClipboardList, component: UsabilityFeedback, description: "Student experience by section and module." },
+    { label: "Institutional Reports", path: "/reports", group: "Insights", icon: ClipboardList, component: LearningWorkspace, mode: "reports" },
+    { label: "Review & Publish", path: "/content", group: "Operations", icon: Database, component: CurriculumWorkspace },
+    { label: "Activity Log", path: "/logs", group: "Operations", icon: ServerCog, component: SystemLogs },
+    { label: "Account Settings", path: "/settings", group: "Workspace", icon: Settings, component: SuperAdminSettings, description: "Profile and sign-in." },
   ];
   const developerComponents = { '/dashboard': DeveloperOverview, '/answers': DeveloperAnswers, '/analytics': DeveloperAnalytics, '/bkt': DeveloperBkt, '/monitoring': DeveloperMonitoring, '/reports': DeveloperReports, '/settings': TeacherSettings };
   const developerIcons = { '/dashboard': LayoutDashboard, '/answers': ClipboardList, '/analytics': BarChart3, '/bkt': Activity, '/monitoring': ShieldAlert, '/reports': FileText, '/settings': Settings };
-  const developerPages = DEVELOPER_NAV.map(item => ({ ...item, icon: developerIcons[item.path], component: developerComponents[item.path], description: 'Read-only learning records and analytics.' }));
+  const developerPages = DEVELOPER_NAV.map(item => ({ ...item, icon: developerIcons[item.path], component: developerComponents[item.path], description: item.path === '/settings' ? 'Profile and sign-in.' : '' }));
   const pages = role === "admin" ? teacherPages : role === "developer" ? developerPages : schoolPages;
   const pageIndex = Math.max(0, pages.findIndex(page => page.path === currentPath));
   const page = pages[pageIndex];

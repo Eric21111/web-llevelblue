@@ -1,4 +1,5 @@
-.developer-readonly { margin: 0 0 16px; padding: 12px 14px; border-radius: 10px; background: #172d38; color: #d5e4ea; }
+.developer-readonly { display: inline-flex; margin: 0 0 12px; padding: 4px 8px; border-radius: 6px; background: #172d38; color: #d5e4ea; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.developer-readonly .lb-term-button { border-bottom-color: #9eb4c0; }
 .developer-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .developer-chart { width: 100%; height: 280px; min-width: 0; }
 .developer-threshold { margin-top: 12px; color: #46628e; }

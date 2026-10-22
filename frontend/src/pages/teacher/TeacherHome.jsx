@@ -1,4 +1,5 @@
 import LearningEvidence from '../../components/LearningEvidence';
+import Term from '../../components/Term';
 import { useState } from "react";
 import { Activity, BookOpen, ClipboardCheck, GraduationCap, ShieldAlert, Users, Search } from "lucide-react";
 import { useWorkspaceData } from "../../context/WorkspaceDataContext";
@@ -41,7 +42,7 @@ export default function TeacherHome({ user, onNavigate, followUps = false }) {
         </div>
         <div className="dash-column">
           <DashboardCard icon={BookOpen} className="dash-focus-card" title="Your next teaching focus" action="Details" onAction={() => onNavigate("/analytics")} description="Understand strengths and learning gaps."><DataState state={state} sources={["students"]}>
-            {lowestSkill && <div className="dash-insight"><span>LOWEST MASTERY</span><strong>{lowestSkill.name}<small>{lowestSkill.value}%</small></strong><p>{lowestSkill.value < 70 ? "Consider revisiting this topic in your next lesson." : "Keep reinforcing this skill with continued practice."}</p></div>}
+            {lowestSkill && <div className="dash-insight"><span><Term name="mastery">Lowest mastery</Term></span><strong>{lowestSkill.name}<small>{lowestSkill.value}%</small></strong><p>{lowestSkill.value < 70 ? "Revisit this topic in the next lesson." : "Keep reinforcing this skill."}</p></div>}
             <SkillBars skills={summary.skills} />
           </DataState></DashboardCard>
 
@@ -54,6 +55,6 @@ export default function TeacherHome({ user, onNavigate, followUps = false }) {
       <DashboardCard icon={ShieldAlert} title="Students to check in with" description="Start a conversation around these learning gaps." action="View all" onAction={() => onNavigate(followUpPath)}><DataState state={state} sources={["students", "risk"]}><StudentTable students={summary.needsSupport.slice(0, 5)} risk={state.data.risk} onNavigate={onNavigate} followUps /></DataState></DashboardCard>
     </>}
     <LearningEvidence compact sectionName={section} onNavigate={onNavigate}/>
-    <p className="dash-footnote">Based on available student records{section ? ` for ${section}` : " across sections"}. Participation uses recorded activity dates; mastery is an estimate, not a test grade.</p>
+    <p className="dash-footnote"><Term name="mastery">Mastery</Term> is a recorded estimate, not a test grade.</p>
   </div>;
 }

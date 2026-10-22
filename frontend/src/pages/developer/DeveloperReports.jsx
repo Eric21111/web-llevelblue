@@ -29,10 +29,10 @@ export default function DeveloperReports() {
     finally { setBusy(false); }
   }
   return <div className="dashboard support-workspace">
-    <header className="support-page-heading"><div><h1>Reports</h1><p>Download the assessment and analytics rows you are allowed to view. The file omits passwords, tokens, and email addresses.</p></div><button className="dash-primary-action" disabled={busy || state.loading} onClick={download}>{busy ? 'Preparing…' : 'Download CSV'}</button></header>
+    <header className="support-page-heading"><div><h1>Reports</h1><p>CSV of the rows you can view. No passwords, tokens, or email addresses.</p></div><button className="dash-primary-action" disabled={busy || state.loading} onClick={download}>{busy ? 'Preparing…' : 'Download CSV'}</button></header>
     <ReadOnlyNote />
     <DeveloperFilters filters={filters} setFilters={setFilters} sections={state.data?.sections || []} />
-    <DeveloperState {...state}>{state.data && <p>{state.data.exportRows} row{state.data.exportRows === 1 ? '' : 's'} match these filters. Item answers that were not stored are marked “Not recorded”.</p>}</DeveloperState>
+    <DeveloperState {...state}>{state.data && <p>{state.data.exportRows} row{state.data.exportRows === 1 ? '' : 's'} match these filters. Missing answers are marked “Not recorded”.</p>}</DeveloperState>
     {error && <p className="support-error" role="alert">{error}</p>}
     {message && <p className="support-success" role="status">{message}</p>}
   </div>;

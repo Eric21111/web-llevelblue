@@ -2,11 +2,11 @@ export const NOT_RECORDED = 'Not recorded';
 export const DEVELOPER_SOURCES = Object.freeze({});
 export const DEVELOPER_NAV = [
   { label: 'Overview', path: '/dashboard', group: 'Overview' },
-  { label: 'Assessment answers', path: '/answers', group: 'Evidence' },
-  { label: 'Learning analytics', path: '/analytics', group: 'Evidence' },
-  { label: 'BKT analytics', path: '/bkt', group: 'Evidence' },
-  { label: 'Data monitoring', path: '/monitoring', group: 'Evidence' },
-  { label: 'Reports', path: '/reports', group: 'Evidence' },
+  { label: 'Assessment answers', path: '/answers', group: 'Learning' },
+  { label: 'Learning analytics', path: '/analytics', group: 'Learning' },
+  { label: 'BKT', path: '/bkt', group: 'Learning' },
+  { label: 'Data monitoring', path: '/monitoring', group: 'Quality' },
+  { label: 'Reports', path: '/reports', group: 'Quality' },
   { label: 'Account settings', path: '/settings', group: 'Workspace' },
 ];
 export const DEVELOPER_EXCLUDED = ['/teachers', '/logs', '/roster', '/enrollment', '/content', '/follow-ups', '/interventions', '/password-assistance', '/teacher-activity', '/school-progress'];
@@ -16,11 +16,11 @@ export function consoleRole(role) {
   return 'admin';
 }
 export function showMetric(value, digits = 1) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
+  if (typeof value !== 'number' || !Number.isFinite(value)) return NOT_RECORDED;
   return digits === 0 ? String(Math.round(value)) : value.toFixed(digits);
 }
 export function showPercent(ratio) {
-  if (typeof ratio !== 'number' || !Number.isFinite(ratio)) return '—';
+  if (typeof ratio !== 'number' || !Number.isFinite(ratio)) return NOT_RECORDED;
   return `${(ratio * 100).toFixed(1)}%`;
 }
 export function answerState(attempt) {
@@ -40,7 +40,7 @@ export function compareAttempts(left, right) {
   }));
 }
 export function workspaceCopy(role) {
-  if (role === 'admin') return { icon: 'T', title: 'Teacher workspace', nav: 'Teacher navigation', crumb: 'Teaching', helpTitle: 'Your teacher workspace', help: 'Start with student follow-ups to find learning gaps. Use the roster for student records and sections to organize classes.', account: 'Teacher' };
-  if (role === 'developer') return { icon: 'DV', title: 'Developer workspace', nav: 'Developer navigation', crumb: 'Development', helpTitle: 'Your developer workspace', help: 'Review recorded assessments, learning analytics, and data quality. This workspace is read only.', account: 'Developer' };
-  return { icon: 'SH', title: 'School head workspace', nav: 'School head navigation', crumb: 'Administration', helpTitle: 'Your school head workspace', help: 'Manage teacher accounts and training content, then use School Progress to compare participation and support needs.', account: 'School head' };
+  if (role === 'admin') return { icon: 'T', title: 'Teacher workspace', nav: 'Teacher navigation', crumb: 'Teaching', helpTitle: 'Teacher workspace', help: 'Start with follow-ups, then the roster and sections.', account: 'Teacher' };
+  if (role === 'developer') return { icon: 'DV', title: 'Developer workspace', nav: 'Developer navigation', crumb: 'Development', helpTitle: 'Developer workspace', help: 'Review recorded learning data. This workspace is read only.', account: 'Developer' };
+  return { icon: 'SH', title: 'School head workspace', nav: 'School head navigation', crumb: 'Administration', helpTitle: 'School head workspace', help: 'Manage people and content, then compare progress across sections.', account: 'School head' };
 }

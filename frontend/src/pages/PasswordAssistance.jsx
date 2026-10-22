@@ -23,7 +23,7 @@ export default function PasswordAssistance() {
     finally { setBusy(false); refresh(); }
   }
   return <div className="dashboard learning-workspace support-workspace">
-    <div className="dash-page-intro"><h1>Password assistance</h1><p>Review requests from students in your assigned sections. Approval emails the address already on their account; it does not change their password yet.</p></div>
+    <div className="dash-page-intro"><h1>Password Help</h1><p>Review student requests. Approval emails the address already on the account and does not change the password yet.</p></div>
     <section className="learning-card"><h2>Keep students connected</h2><p>Never ask for a student’s password or send them a temporary password. Reset links expire after 15 minutes. Learning progress and mastery stay unchanged.</p><RefreshButton label="Refresh requests" disabled={busy} loading={refreshing} onClick={refresh}/></section>
     {(error || errors.recovery) && <p className="learning-alert" role="alert">{error || errors.recovery}</p>}
     {message && <p className="learning-success" role="status">{message}</p>}
