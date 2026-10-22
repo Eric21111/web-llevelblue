@@ -5,8 +5,10 @@ import { ContactFields, CredentialsDialog, DirectoryState, ManagementDialog, con
 import TeacherPasswordPreview from '../../components/TeacherPasswordPreview';
 import { WorkspaceButton } from '../../components/WorkspaceUI';
 
+const sources = { developers: '/api/developers' };
+
 export default function DeveloperAccounts() {
-  const state = useDirectory({ developers: '/api/developers' });
+  const state = useDirectory(sources);
   const developers = state.data.developers || [];
   const [form, setForm] = useState(null);
   const [credentials, setCredentials] = useState(null);
@@ -37,7 +39,7 @@ export default function DeveloperAccounts() {
     finally { setBusy(false); }
   }
   return <div className="dashboard support-workspace">
-    <header className="support-page-heading"><div><h1>Developer accounts</h1><p>Only a school head can invite or deactivate developer access. Developers can review learning records and cannot manage the school.</p></div><WorkspaceButton variant="primary" disabled={state.loading || !!state.error} onClick={() => { setError(''); setForm(contactForm()); }}><Plus size={16} />Invite developer</WorkspaceButton></header>
+    <header className="support-page-heading"><div><h1>Developer accounts</h1><p>Only a school head can invite or deactivate developer access. Developers can review learning records and cannot manage the school.</p></div><WorkspaceButton variant="primary" disabled={busy} onClick={() => { setError(''); setForm(contactForm()); }}><Plus size={16} />Invite developer</WorkspaceButton></header>
     {message && <p className="support-success" role="status">{message}</p>}
     {error && !form && <p className="support-error" role="alert">{error}</p>}
     <section className="support-panel"><DirectoryState {...state}>{!developers.length ? <p className="support-empty">No developer accounts yet.</p> : <div className="support-table-scroll" tabIndex={0} aria-label="Developer accounts"><table className="support-table"><thead><tr><th>Developer</th><th>Status</th><th>Actions</th></tr></thead><tbody>{developers.map(developer => <tr key={developer._id}><th>{developer.name}<small>{developer.email}</small></th><td>{developer.status}</td><td><div className="management-actions">{developer.status === 'Invited' && <WorkspaceButton onClick={() => setPasswordPreview(developer)}>Temporary password</WorkspaceButton>}<WorkspaceButton disabled={busy} onClick={() => setStatus(developer, developer.status === 'Inactive' ? 'Active' : 'Inactive')}>{developer.status === 'Inactive' ? 'Reactivate' : 'Deactivate'}</WorkspaceButton></div></td></tr>)}</tbody></table></div>}</DirectoryState></section>

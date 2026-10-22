@@ -2,14 +2,26 @@ import {WorkspaceButton} from './WorkspaceUI';
 import {useEffect,useState} from 'react';
 import {SupportDialog,SupportPagination,useSupportPage} from './SupportUI';
 import {apiRequest} from '../utils/api';
+import {directorySourceKey} from '../utils/directory';
 import '../styles/support.css';
 import '../styles/management.css';
 export {SupportDialog as ManagementDialog,SupportPagination as ManagementPagination,useSupportPage as useManagementPage};
+export {directorySourceKey} from '../utils/directory';
 export function useDirectory(sources){
+ const sourceKey=directorySourceKey(sources);
  const [data,setData]=useState({}),[loading,setLoading]=useState(true),[error,setError]=useState(''),[revision,setRevision]=useState(0);
- useEffect(()=>{const controller=new AbortController();setLoading(true);setError('');
-  Promise.all(Object.entries(sources).map(async([key,url])=>{const rows=await apiRequest(url,{signal:AbortSignal.any([controller.signal,AbortSignal.timeout(25000)])});if(!Array.isArray(rows))throw new Error('Unexpected directory response.');return [key,rows];})).then(rows=>{if(!controller.signal.aborted)setData(Object.fromEntries(rows));}).catch(e=>{if(!controller.signal.aborted)setError(e.message);}).finally(()=>{if(!controller.signal.aborted)setLoading(false);});return()=>controller.abort();
- },[sources,revision]);
+ useEffect(()=>{
+  const current=Object.fromEntries(JSON.parse(sourceKey));
+  const controller=new AbortController();
+  let active=true;
+  setLoading(true);setError('');
+  Promise.all(Object.entries(current).map(async([key,url])=>{
+   const rows=await apiRequest(url,{signal:AbortSignal.any([controller.signal,AbortSignal.timeout(25000)])});
+   if(!Array.isArray(rows))throw new Error('Unexpected directory response.');
+   return [key,rows];
+  })).then(rows=>{if(active)setData(Object.fromEntries(rows));}).catch(error=>{if(active)setError(error.message||'The directory could not be loaded.');}).finally(()=>{if(active)setLoading(false);});
+  return()=>{active=false;controller.abort();};
+ },[sourceKey,revision]);
  return {data,loading,error,refresh:()=>setRevision(v=>v+1)};
 }
 export function DirectoryState({loading,error,refresh,children}){return loading?<p className="support-empty" role="status">Loading records…</p>:error?<p className="support-error" role="alert">{error} <WorkspaceButton  onClick={refresh}>Retry</WorkspaceButton></p>:children;}
