@@ -1,7 +1,7 @@
 import { useState, useEffect, Suspense, lazy } from "react";
 import {
   LayoutDashboard, Users, BookOpen, Activity, ClipboardList,
-  UserCog, Database, ServerCog, Settings, GraduationCap, ShieldAlert, BarChart3
+  UserCog, Database, ServerCog, Settings, GraduationCap, ShieldAlert, BarChart3, FileText
 } from "lucide-react";
 import FontImports from "./components/FontImports";
 import ConsoleLayout from "./components/ConsoleLayout";
@@ -13,6 +13,7 @@ import ForcePasswordChangeModal from "./components/ForcePasswordChangeModal";
 import { COLORS } from "./constants/colors";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { DEVELOPER_NAV } from "./utils/developerConsole";
 
 // Lazy load pages for code splitting and faster initial load
 const StudentFollowUps = lazy(() => import("./pages/StudentFollowUps"));
@@ -34,6 +35,13 @@ const TeacherManagement = lazy(() => import("./pages/super/TeacherManagement"));
 const CurriculumWorkspace = lazy(() => import("./pages/CurriculumWorkspace"));
 const SystemLogs = lazy(() => import("./pages/super/SystemLogs"));
 const SuperAdminSettings = lazy(() => import("./pages/super/SuperAdminSettings"));
+const DeveloperOverview = lazy(() => import("./pages/developer/DeveloperOverview"));
+const DeveloperAnswers = lazy(() => import("./pages/developer/DeveloperAnswers"));
+const DeveloperAnalytics = lazy(() => import("./pages/developer/DeveloperAnalytics"));
+const DeveloperBkt = lazy(() => import("./pages/developer/DeveloperBkt"));
+const DeveloperMonitoring = lazy(() => import("./pages/developer/DeveloperMonitoring"));
+const DeveloperReports = lazy(() => import("./pages/developer/DeveloperReports"));
+const DeveloperAccounts = lazy(() => import("./pages/super/DeveloperAccounts"));
 
 function AppContent() {
   const { authed, role, user, setUser, loadingSession, login, logout } = useAuth();
@@ -48,6 +56,14 @@ function AppContent() {
     window.addEventListener("popstate", handleLocationChange);
     return () => window.removeEventListener("popstate", handleLocationChange);
   }, []);
+
+  useEffect(() => {
+    if (!authed || role !== "developer") return;
+    if (DEVELOPER_NAV.some(item => item.path === currentPath)) return;
+    window.history.replaceState({}, "", "/dashboard");
+    setCurrentPath("/dashboard");
+    setCurrentSearch("");
+  }, [authed, role, currentPath]);
 
   const handleLogin = (r, loginResponse) => {
     login(loginResponse);
@@ -124,11 +140,15 @@ function AppContent() {
     { label: "Institutional Reports", path: "/reports", group: "School insights", icon: ClipboardList, component: LearningWorkspace, mode: "reports" },
     { label: "Sections", path: "/sections", group: "Administration", icon: GraduationCap, component: SectionsManagement },
     { label: "Teacher Accounts", path: "/teachers", group: "Administration", icon: UserCog, component: TeacherManagement, description: "Manage teacher access and account invitations." },
+    { label: "Developer Accounts", path: "/developers", group: "Administration", icon: UserCog, component: DeveloperAccounts, description: "Invite and deactivate developer access." },
     { label: "Review & Publish", path: "/content", group: "Administration", icon: Database, component: CurriculumWorkspace },
     { label: "Activity Log", path: "/logs", group: "Administration", icon: ServerCog, component: SystemLogs, description: "Keep track of account and content changes across your school." },
     { label: "Account Settings", path: "/settings", group: "Workspace", icon: Settings, component: SuperAdminSettings, description: "Manage your profile and school administration settings." },
   ];
-  const pages = role === "admin" ? teacherPages : schoolPages;
+  const developerComponents = { '/dashboard': DeveloperOverview, '/answers': DeveloperAnswers, '/analytics': DeveloperAnalytics, '/bkt': DeveloperBkt, '/monitoring': DeveloperMonitoring, '/reports': DeveloperReports, '/settings': TeacherSettings };
+  const developerIcons = { '/dashboard': LayoutDashboard, '/answers': ClipboardList, '/analytics': BarChart3, '/bkt': Activity, '/monitoring': ShieldAlert, '/reports': FileText, '/settings': Settings };
+  const developerPages = DEVELOPER_NAV.map(item => ({ ...item, icon: developerIcons[item.path], component: developerComponents[item.path], description: 'Read-only learning records and analytics.' }));
+  const pages = role === "admin" ? teacherPages : role === "developer" ? developerPages : schoolPages;
   const pageIndex = Math.max(0, pages.findIndex(page => page.path === currentPath));
   const page = pages[pageIndex];
   const Active = page.component;

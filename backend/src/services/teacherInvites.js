@@ -30,15 +30,15 @@ function checked({ data, error }) {
   return data;
 }
 
-export async function sendTeacherInviteEmail(email, code) {
+export async function sendTeacherInviteEmail(email, code, roleLabel = 'teacher') {
   if (!process.env.BREVO_API_KEY || !process.env.BREVO_SENDER_EMAIL) throw fail(503, 'Email delivery is not configured. Contact your school head.');
   const response = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST', signal: AbortSignal.timeout(15000),
     headers: { accept: 'application/json', 'api-key': process.env.BREVO_API_KEY, 'content-type': 'application/json' },
     body: JSON.stringify({
       sender: { name: process.env.BREVO_SENDER_NAME || 'LEVELBLUE Security', email: process.env.BREVO_SENDER_EMAIL },
-      to: [{ email }], subject: 'Your LEVELBLUE teacher activation code',
-      textContent: `Your school head has invited you to LEVELBLUE.\n\nYour activation code is: ${code}\n\nSign in with the temporary password provided separately by your school head, then enter this code and choose a new password. This code expires in 10 minutes. You can request a fresh code after signing in.\n\nDo not share this code. If you were not expecting an account, contact your school head.`,
+      to: [{ email }], subject: `Your LEVELBLUE ${roleLabel} activation code`,
+      textContent: `Your school head has invited you to LEVELBLUE as a ${roleLabel}.\n\nYour activation code is: ${code}\n\nSign in with the temporary password provided separately by your school head, then enter this code and choose a new password. This code expires in 10 minutes. You can request a fresh code after signing in.\n\nDo not share this code. If you were not expecting an account, contact your school head.`,
     }),
   });
   if (!response.ok) throw fail(503, 'The email service could not send your code. Please try again later.');
@@ -51,7 +51,7 @@ export function createTeacherInvites(db, sendEmail = sendTeacherInviteEmail) {
       catch { throw fail(401, 'Your invitation session has expired. Sign in again.'); }
       if (claims.purpose !== purpose || typeof claims.id !== 'string') throw fail(401, 'Sign in with your temporary password first.');
       const user = checked(await db.from('users').select('*').eq('id', claims.id).maybeSingle());
-      if (!user || user.role !== 'admin' || user.status !== 'Invited' || user.email !== claims.email || inviteDigest(user, 'credential') !== claims.credential) throw fail(401, 'Your invitation has changed or is no longer active. Sign in again or contact your school head.');
+      if (!user || !['admin', 'developer'].includes(user.role) || user.status !== 'Invited' || user.email !== claims.email || inviteDigest(user, 'credential') !== claims.credential) throw fail(401, 'Your invitation has changed or is no longer active. Sign in again or contact your school head.');
       return { user, claims };
   }
   return {
@@ -60,7 +60,7 @@ export function createTeacherInvites(db, sendEmail = sendTeacherInviteEmail) {
       const code = String(randomInt(100000, 1000000));
       const digest = inviteDigest(user, code);
       checked(await db.rpc('levelblue_invite_send', { p_user: String(user.id), p_email: user.email, p_password: user.password, p_hash: digest }));
-      try { await sendEmail(user.email, code); }
+      try { await sendEmail(user.email, code, user.role === 'developer' ? 'developer' : 'teacher'); }
       catch {
         // Revoke only this send, without clearing a concurrently replaced code.
         await db.from('teacher_invites').update({ code_hash: null, expires_at: null }).eq('user_id', String(user.id)).eq('code_hash', digest);

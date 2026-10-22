@@ -1,0 +1,12 @@
+.developer-readonly { margin: 0 0 16px; padding: 12px 14px; border-radius: 10px; background: #172d38; color: #d5e4ea; }
+.developer-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.developer-chart { width: 100%; height: 280px; min-width: 0; }
+.developer-threshold { margin-top: 12px; color: #46628e; }
+.developer-answer { display: grid; gap: 6px; }
+.developer-answer small, .developer-muted { color: #6c7e97; }
+.developer-correct { color: #0b6b4a; font-weight: 700; }
+.developer-incorrect { color: #9d2c3a; font-weight: 700; }
+.developer-compare { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+@media (max-width: 800px) {
+  .developer-charts, .developer-compare { grid-template-columns: 1fr; }
+}
