@@ -36,7 +36,9 @@
 .support-tags span { padding: 5px 8px; background: #fff4e7; color: #8b591f; border-radius: 6px; font-size: 11px; }
 .support-tags .neutral { background: #edf3fd; color: #3a608f; }
 .support-status { display: inline-block; padding: 5px 9px; border-radius: 6px; background: #fff4e7; color: #8b591f; white-space: nowrap; }
-.support-status.is-complete { background: #edf3ff; color: #2563c8; }
+.support-status.is-complete, .support-status.is-active { background: #e7f6ee; color: #0b6b4a; }
+.support-status.is-invited { background: #fff4e7; color: #8b591f; }
+.support-status.is-inactive { background: #fdecee; color: #9d2c3a; }
 .support-pagination,.support-pagination > div { display: flex; align-items: center; gap: 12px; }
 .support-pagination { justify-content: space-between; margin-top: 18px; color: #75849a; font-size: 11px; flex-wrap: wrap; }
 .support-empty { text-align: center; padding: 35px 20px; color: #6b7f9d; }
@@ -62,4 +64,5 @@
 .support-form-columns { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
 .support-dialog-actions { display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #e4eaf3; padding-top: 18px; }
 .support-note { white-space: pre-wrap; color: #344764!important; }
-@media(max-width:700px) { .support-page-heading,.support-section-heading { align-items: flex-start; flex-wrap: wrap; }.support-guide { flex-direction: column; gap: 5px; }.support-summary { grid-template-columns: 1fr; gap: 10px; }.support-summary > :is(button,article) { padding: 14px; }.support-summary strong { font-size: 25px; }.support-panel { padding: 16px; }.support-dialog { padding: 18px; }.support-form-columns { grid-template-columns: 1fr; } }
+@media(max-width:1100px) { .support-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media(max-width:700px) { .support-page-heading,.support-section-heading { align-items: flex-start; flex-wrap: wrap; }.support-guide { flex-direction: column; gap: 5px; }.support-summary { grid-template-columns: 1fr; gap: 10px; }.support-summary > :is(button,article) { padding: 14px; }.support-summary strong { font-size: 25px; }.support-panel { padding: 16px; }.support-dialog { padding: 18px; }.support-form-columns { grid-template-columns: 1fr; } .support-table th,.support-table td { padding: 12px 10px; } }

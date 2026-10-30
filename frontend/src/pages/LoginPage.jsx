@@ -86,7 +86,7 @@ export default function LoginPage({ onLogin }) {
               <div className="lb-login-insight"><span><Check size={15} /></span><div>Small insights. Meaningful progress.<small>Every learner’s journey matters.</small></div></div>
             </div>
 
-            <div className="lb-login-story-footer"><GraduationCap size={18} aria-hidden="true" /><span>Built for teachers and school heads.</span></div>
+            <div className="lb-login-story-footer"><GraduationCap size={18} aria-hidden="true" /><span>Built for teachers, developers, and school heads.</span></div>
           </aside>
 
           <section className="lb-login-form-panel" aria-labelledby="login-title">

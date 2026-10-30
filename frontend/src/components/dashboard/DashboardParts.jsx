@@ -40,7 +40,7 @@ export function AttentionRow({ count, title, text, tone = "teal", onClick }) {
 export function SkillBars({ skills }) {
   const available = skills.filter(skill => skill.value !== null);
   if (!available.length) return <EmptyState title="Learning insights will appear here" text="Once students start training, you’ll see which topics need more practice." />;
-  return <div className="dash-bars">{skills.map(skill => <div key={skill.name}><div className="dash-bar-label"><span>{skill.name}</span><strong>{formatPercent(skill.value)}</strong></div><div className="dash-bar-track"><span className={skill.value < 40 ? "amber" : ""} style={{ width: `${skill.value ?? 0}%` }} /></div></div>)}<p className="dash-caption">Estimated mastery among students who have started. A score below 40% suggests more practice.</p></div>;
+  return <div className="dash-bars">{skills.map(skill => <div key={skill.name}><div className="dash-bar-label"><span>{skill.name}</span><strong>{formatPercent(skill.value)}</strong></div><div className="dash-bar-track">{skill.value == null ? null : <span className={skill.value < 40 ? "amber" : ""} style={{ width: `${skill.value}%` }} />}</div></div>)}<p className="dash-caption">Recorded mastery for students who have started. Below 40% needs more practice.</p></div>;
 }
 export function Participation({ summary }) {
   if (!summary.total) return <EmptyState title="No students yet" text="Participation will appear once students are added to a section." />;
@@ -59,5 +59,5 @@ export function StudentTable({ students, risk = [], onNavigate, followUps = fals
 }
 export function SectionTable({ sections }) {
   if (!sections.length) return <EmptyState title="No sections to compare" text="Section summaries appear once sections or student records are available." />;
-  return <div className="dash-table-wrap"><table className="dash-table"><thead><tr><th>Section</th><th>Students</th><th>Active in 7 days</th><th>Avg. mastery</th><th>Needs support</th></tr></thead><tbody>{sections.map(section => <tr key={section.name}><td><strong>{section.name}</strong></td><td>{section.total}</td><td>{section.active}</td><td><span className="dash-mastery-cell">{formatPercent(section.mastery)}<span className="dash-bar-track"><span style={{ width: `${section.mastery ?? 0}%` }} /></span></span></td><td><span className={`dash-pill ${section.needsSupport.length ? "amber" : ""}`}>{section.needsSupport.length}</span></td></tr>)}</tbody></table></div>;
+  return <div className="dash-table-wrap"><table className="dash-table"><thead><tr><th>Section</th><th>Students</th><th>Active in 7 days</th><th>Avg. mastery</th><th>Needs support</th></tr></thead><tbody>{sections.map(section => <tr key={section.name}><td><strong>{section.name}</strong></td><td>{section.total}</td><td>{section.active}</td><td><span className="dash-mastery-cell">{formatPercent(section.mastery)}<span className="dash-bar-track">{section.mastery == null ? null : <span style={{ width: `${section.mastery}%` }} />}</span></span></td><td><span className={`dash-pill ${section.needsSupport.length ? "amber" : ""}`}>{section.needsSupport.length}</span></td></tr>)}</tbody></table></div>;
 }

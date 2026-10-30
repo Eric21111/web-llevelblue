@@ -36,4 +36,4 @@ export function sectionSummaries(students, atRisk, sections = []) {
   return names.sort((a, b) => a.localeCompare(b)).map(name => ({ name, ...summarizeStudents(students.filter(student => (student.section || "Unassigned") === name), atRisk) }));
 }
 export function initials(name = "") { return name.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join("").toUpperCase() || "LB"; }
-export function formatPercent(value) { return value === null || value === undefined ? "—" : `${value}%`; }
+export function formatPercent(value) { return value === null || value === undefined ? "Not recorded" : `${value}%`; }

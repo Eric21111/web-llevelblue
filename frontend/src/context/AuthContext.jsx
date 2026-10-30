@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { apiFetch } from "../utils/api";
+import { consoleRole } from "../utils/developerConsole";
 
 /**
  * AuthContext — Centralized authentication state for LEVELBLUE.
@@ -31,7 +32,7 @@ export function AuthProvider({ children }) {
       })
       .then((userData) => {
         setUser(userData);
-        setRole(userData.role === "super" ? "super" : "admin");
+        setRole(consoleRole(userData.role));
         setAuthed(true);
       })
       .catch((err) => {
@@ -46,7 +47,7 @@ export function AuthProvider({ children }) {
   const login = useCallback((loginResponse) => {
     const { token, user: userData } = loginResponse;
     localStorage.setItem("token", token);
-    setRole(userData.role === "super" ? "super" : "admin");
+    setRole(consoleRole(userData.role));
     setUser(userData);
     setAuthed(true);
   }, []);

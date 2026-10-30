@@ -96,7 +96,7 @@ export const login = async (req, res) => {
         return res.status(401).json({ error: "Invalid email or password" });
       }
 
-      if (user.role === 'admin' && user.status === 'Invited') {
+      if (['admin', 'developer'].includes(user.role) && user.status === 'Invited') {
         return res.json({ requiresInviteVerification: true, challengeToken: inviteChallenge(user), email: user.email });
       }
       return res.json(await staffSession(user));
@@ -229,7 +229,7 @@ export const updateProfile = async (req, res) => {
   try {
     const { firstName, lastName, middleInitial, email, password, imageUrl } = req.body;
     const id = req.user.id;
-    if (!['admin','super'].includes(req.user.role)) return res.status(403).json({error:'Staff profile required.'});
+    if (!['admin','super','developer'].includes(req.user.role)) return res.status(403).json({error:'Staff profile required.'});
     if (!id || !email) {
       return res.status(400).json({ error: "User ID and Email are required" });
     }

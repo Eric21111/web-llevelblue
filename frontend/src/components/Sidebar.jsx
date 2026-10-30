@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Shield, X, PanelLeftClose, PanelLeftOpen, ChevronDown } from "lucide-react";
+import { workspaceCopy } from "../utils/developerConsole";
 
 export default function Sidebar({ role, page, setPage, pages, open, onClose, collapsed, onToggle }) {
   const groups = [...new Set(pages.filter(item => item.group !== 'Workspace').map(item => item.group))];
@@ -23,13 +24,14 @@ export default function Sidebar({ role, page, setPage, pages, open, onClose, col
     document.addEventListener('keydown', trap);
     return () => { cancelAnimationFrame(frame); clearTimeout(focusTimer); document.removeEventListener('keydown', trap); };
   }, [open]);
+  const workspace = workspaceCopy(role);
   const pageButton = (item, index) => <button key={item.path} title={item.label} aria-label={item.label} onClick={() => { setPage(index); if (open) onClose(); }} className={page === index ? "is-active" : ""} aria-current={page === index ? "page" : undefined}><item.icon size={18} strokeWidth={1.8} /><span>{item.label}</span></button>;
   return <>
     {open && <button className="console-sidebar-backdrop" aria-label="Close navigation" onClick={onClose} />}
     <aside ref={sidebarRef} id="console-sidebar" className={`console-sidebar ${open ? "is-open" : ""}`} role={open ? 'dialog' : undefined} aria-modal={open ? true : undefined} aria-label="Workspace navigation">
       <div className="console-brand"><span><Shield size={21} /></span><div>LEVEL<span>BLUE</span></div><button className="console-collapse" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!collapsed} onClick={onToggle}>{collapsed ? <PanelLeftOpen size={17}/> : <PanelLeftClose size={17}/>}</button><button className="console-sidebar-close" aria-label="Close navigation" onClick={onClose}><X size={18} /></button></div>
-      <div className="console-workspace"><span className="console-workspace-icon">{role === "admin" ? "T" : "SH"}</span><div><strong>{role === "admin" ? "Teacher workspace" : "School head workspace"}</strong><small>Cybersecurity awareness</small></div></div>
-      <nav aria-label={role === "admin" ? "Teacher navigation" : "School head navigation"}>{groups.map((group, groupIndex) => <div className="console-nav-group" key={group}>{group !== 'Overview' && <button className="console-group-toggle" aria-expanded={!closed[group] || (collapsed && !open)} aria-controls={`nav-group-${groupIndex}`} onClick={() => { if (collapsed && !open) onToggle(); setClosed(previous => ({...previous, [group]: !previous[group]})); }}><span>{group}</span><ChevronDown size={13}/></button>}<div id={`nav-group-${groupIndex}`} hidden={group !== 'Overview' && closed[group] && !(collapsed && !open)}>{pages.map((item, index) => item.group === group && pageButton(item, index))}</div></div>)}</nav>
+      <div className="console-workspace"><span className="console-workspace-icon">{workspace.icon}</span><div><strong>{workspace.title}</strong><small>Cybersecurity awareness</small></div></div>
+      <nav aria-label={workspace.nav}>{groups.map((group, groupIndex) => <div className="console-nav-group" key={group}>{group !== 'Overview' && <button className="console-group-toggle" aria-expanded={!closed[group] || (collapsed && !open)} aria-controls={`nav-group-${groupIndex}`} onClick={() => { if (collapsed && !open) onToggle(); setClosed(previous => ({...previous, [group]: !previous[group]})); }}><span>{group}</span><ChevronDown size={13}/></button>}<div id={`nav-group-${groupIndex}`} hidden={group !== 'Overview' && closed[group] && !(collapsed && !open)}>{pages.map((item, index) => item.group === group && pageButton(item, index))}</div></div>)}</nav>
 
     </aside>
   </>;

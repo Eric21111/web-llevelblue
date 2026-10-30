@@ -17,6 +17,7 @@ export async function rowsForIds(db,table,column,ids,columns='*') {
 }
 export const staffOnly = (req,res,next) => ['admin','super'].includes(req.user?.role) && req.user.status === 'Active' ? next() : res.status(403).json({error:'An active staff account is required.'});
 export const headOnly = (req,res,next) => req.user?.role === 'super' && req.user.status === 'Active' ? next() : res.status(403).json({error:'School-head access is required.'});
+export const developerOnly = (req,res,next) => req.user?.role === 'developer' && req.user.status === 'Active' ? next() : res.status(403).json({error:'Developer access is required.'});
 export const handler = fn => async (req,res,next) => { try { await fn(req,res); } catch(e) { next(e); } };
 export async function sectionScope(db, user, filters = {}) {
   if (!['admin','super'].includes(user?.role)) throw fail(403,'Staff access is required.');

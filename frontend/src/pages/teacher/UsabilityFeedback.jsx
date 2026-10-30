@@ -6,7 +6,7 @@ import { feedbackSummary, studentFeedback, filterFeedback, feedbackSection, feed
 import { formatLastActive } from "../../utils/time";
 
 const SOURCES = { feedback: "/api/usability-feedback" };
-const scoreLabel = value => value === null ? "—" : value.toFixed(1);
+const scoreLabel = value => value === null ? "Not recorded" : value.toFixed(1);
 const ratingCount = count => `${count} rating${count === 1 ? "" : "s"}`;
 
 export default function UsabilityFeedback() {

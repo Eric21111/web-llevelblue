@@ -507,3 +507,12 @@
 .stage-evidence dd { margin: 0; font-weight: 600; }
 .learning-table details { min-width: 14rem; max-width: 28rem; white-space: normal; overflow-wrap: anywhere; }
 .learning-table summary { cursor: pointer; color: #24395e; font-weight: 600; padding: .4rem 0; }
+.lb-term { position: relative; display: inline-flex; }
+.lb-term-button { border: 0; border-bottom: 1px dotted currentColor; background: transparent; color: inherit; font: inherit; padding: 0; min-height: 24px; cursor: help; }
+.lb-term-bubble { display: none; position: absolute; z-index: 30; left: 0; top: calc(100% + 6px); width: min(280px, 72vw); padding: 8px 10px; border-radius: 8px; background: #172d38; color: #e7eef2; font-size: 12px; font-weight: 500; line-height: 1.45; letter-spacing: 0; text-align: left; text-transform: none; white-space: normal; box-shadow: 0 8px 24px rgba(16, 32, 48, .18); }
+.lb-term:hover .lb-term-bubble, .lb-term:focus-within .lb-term-bubble { display: block; }
+.lb-details { margin: 12px 0 16px; border: 1px solid #e3e9f2; border-radius: 12px; background: #fff; }
+.lb-details summary { cursor: pointer; padding: 12px 14px; font-weight: 600; color: #243148; }
+.lb-details summary:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+.lb-details > div { padding: 0 14px 14px; color: #4d5e76; }
+.lb-details li + li { margin-top: 6px; }

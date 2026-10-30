@@ -27,6 +27,10 @@ import feedbackRoutes from "./src/routes/feedbackRoutes.js";
 import settingsRoutes from "./src/routes/settingsRoutes.js";
 import { authMiddleware } from "./src/middleware/auth.js";
 import { createRecoveryRoutes } from './src/routes/recoveryRoutes.js';
+import { developerOnly } from './src/services/access.js';
+import { createDeveloperRoutes } from './src/routes/developerRoutes.js';
+import { createDeveloperAdminRoutes } from './src/routes/developerAdminRoutes.js';
+import { logOperationalEvent, safeRoute } from './src/services/operationalEvents.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -78,6 +82,8 @@ app.use("/api/auth", authLimiter, authRoutes); // Rate-limit all auth endpoints
 const recovery = createRecoveryRoutes(supabase);
 app.use('/api/student-recovery', recovery.publicRoutes);
 app.use('/api/password-assistance', authMiddleware, recovery.staffRoutes);
+app.use('/api/developer', authMiddleware, developerOnly, createDeveloperRoutes(supabase));
+app.use('/api/developers', authMiddleware, headOnly, createDeveloperAdminRoutes(supabase));
 
 
 app.use("/api/content-bank", authMiddleware, headOnly, contentBankRoutes);
@@ -97,8 +103,10 @@ app.use((error, req, res, next) => {
   console.error('Workspace request failed:', error.code || error.message);
   if(res.headersSent) return next(error);
   const setup=['42P01','42703','PGRST204','PGRST202','PGRST205'].includes(error.code);
+  const status = error.status || (setup ? 503 : error.code==='23505' || error.code==='P0001' ? 409 : 500);
+  if (status >= 500) logOperationalEvent(supabase, { category: 'api-error', status, code: String(error.code || 'server-error'), route: safeRoute(req), message: 'The request could not be completed.' });
   if(setup&&(req.originalUrl.startsWith('/api/enrollment')||req.originalUrl.startsWith('/api/teacher-activity')))return res.status(503).json({error:'Apply backend/migrations/20261011_enrollment.sql to enable the enrollment checklist and current enrollment counts.'});
-  res.status(error.status || (setup ? 503 : error.code==='23505' || error.code==='P0001' ? 409 : 500)).json({error: setup ? (req.originalUrl.startsWith('/api/curriculum') || req.originalUrl.startsWith('/api/mobile/content') ? 'Curriculum publishing is not configured yet. Apply backend/migrations/20261008_curriculum.sql.' : 'Web foundations are not configured yet. Apply the database migrations and assign faculty sections.') : error.status || error.code==='P0001' ? error.message : 'This request could not be completed. Please retry.'});
+  res.status(status).json({error: setup ? (req.originalUrl.startsWith('/api/curriculum') || req.originalUrl.startsWith('/api/mobile/content') ? 'Curriculum publishing is not configured yet. Apply backend/migrations/20261008_curriculum.sql.' : 'Web foundations are not configured yet. Apply the database migrations and assign faculty sections.') : error.status || error.code==='P0001' ? error.message : 'This request could not be completed. Please retry.'});
 });
 
 app.listen(PORT, "0.0.0.0", () => {
