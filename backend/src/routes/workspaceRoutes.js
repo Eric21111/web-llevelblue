@@ -9,10 +9,23 @@ import { attachLearningEvidence, RECORD_LIMITATION } from '../services/learningR
 import {teacherOversight} from '../services/oversight.js';
 import {dashboardData,exportDashboard} from '../services/dashboardExport.js';
 import {previewTemporaryPassword} from '../services/teacherCredentials.js';
+import {assessmentRecords,assessmentCsv} from '../services/assessmentRecords.js';
 
 export function createWorkspaceRoutes(db) {
   const router=express.Router();
   router.use(staffOnly);
+  router.get('/assessments/export',handler(async(req,res)=>{
+    const data=await assessmentRecords(db,req.user,req.query);
+    res.setHeader('Cache-Control','no-store');
+    res.setHeader('Content-Disposition','attachment; filename="LEVELBLUE-assessment-responses.csv"');
+    res.type('text/csv').send(assessmentCsv(data));
+  }));
+  router.get('/assessments/:id',handler(async(req,res)=>{
+    const scope=await learners(db,req.user,{enrollment:'all'});
+    const row=await result(db.from('learning_records').select('*').eq('id',req.params.id).maybeSingle());
+    if(!row||!['pretest','posttest'].includes(row.kind)||!scope.students.some(s=>String(s._id)===String(row.student_id)))throw fail(404,'Assessment not available in your sections.');
+    res.setHeader('Cache-Control','no-store');res.json(row);
+  }));
   router.get('/dashboard/activity',handler(async(req,res)=>{
     const data=await dashboardData(db,req.user,req.query);
     res.setHeader('Cache-Control','no-store');

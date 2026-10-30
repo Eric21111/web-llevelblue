@@ -24,7 +24,8 @@ export function summarizeEvidence(records = []) {
   const finished = stages.filter(r=>['cleared','failed'].includes(r.data.outcome));
   const cleared = finished.filter(r=>r.data.outcome==='cleared');
   const observations = ordered.filter(r=>r.kind==='mastery'&&typeof r.data.mastery==='number');
-  return {assessments,pairs,attempts:stages,observations,started:stages.length,finished:finished.length,
+  const assessmentSummaries=assessments.map(r=>{const {responses,...data}=r.data;return {...r,data:{...data,response_count:Array.isArray(responses)?responses.length:0}};});
+  return {assessments:assessmentSummaries,pairs,attempts:stages,observations,started:stages.length,finished:finished.length,
     cleared:cleared.length,failed:finished.length-cleared.length,
     incomplete:stages.length-finished.length,
     uniqueStagesCleared:new Set(cleared.map(r=>`${r.module_id}:${r.data.stage}`)).size,
