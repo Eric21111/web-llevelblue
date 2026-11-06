@@ -31,6 +31,7 @@ export function AuthProvider({ children }) {
         return res.json();
       })
       .then((userData) => {
+        if (!["admin","super","developer"].includes(userData.role)) throw new Error("Staff access required");
         setUser(userData);
         setRole(consoleRole(userData.role));
         setAuthed(true);

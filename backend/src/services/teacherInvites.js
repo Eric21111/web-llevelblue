@@ -60,7 +60,7 @@ export function createTeacherInvites(db, sendEmail = sendTeacherInviteEmail) {
       const code = String(randomInt(100000, 1000000));
       const digest = inviteDigest(user, code);
       checked(await db.rpc('levelblue_invite_send', { p_user: String(user.id), p_email: user.email, p_password: user.password, p_hash: digest }));
-      try { await sendEmail(user.email, code, user.role === 'developer' ? 'developer' : 'teacher'); }
+      try { await sendEmail(user.email, code, user.role === 'developer' ? 'developer' : user.is_head_admin ? 'Head Admin' : 'teacher'); }
       catch {
         // Revoke only this send, without clearing a concurrently replaced code.
         await db.from('teacher_invites').update({ code_hash: null, expires_at: null }).eq('user_id', String(user.id)).eq('code_hash', digest);

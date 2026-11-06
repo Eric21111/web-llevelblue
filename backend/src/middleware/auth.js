@@ -15,7 +15,7 @@ export function createAuthMiddleware(db, secret = () => process.env.JWT_SECRET) 
       if(!student && user.status==='Invited') return res.status(403).json({error:'Verify your email and set a new password before accessing the console.'});
       if(!student && decoded.role && decoded.role!==user.role) return res.status(401).json({error:'Please sign in again.'});
       if(student && (decoded.sessionVersion ?? 0) !== (user.session_version ?? 0)) return res.status(401).json({error:'Your session has ended. Please sign in again.'});
-      req.user={id:user.id,role:student?'student':user.role,status:user.status,email:user.email,name:user.name,firstName:user.first_name,lastName:user.last_name,roleLabel:user.role_label};
+      req.user={id:user.id,role:student?'student':user.role,status:user.status,email:user.email,name:user.name,firstName:user.first_name,lastName:user.last_name,roleLabel:user.role_label,isHeadAdmin:!student && user.is_head_admin===true};
       next();
     } catch { res.status(503).json({error:'Account verification is unavailable.'}); }
   };

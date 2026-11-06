@@ -1,8 +1,8 @@
 import express from 'express';
-import {contactDetails,managementResult} from '../services/management.js';
+import {contactDetails,facultyProfile,managementResult} from '../services/management.js';
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'node:crypto';
-import { fail, result, allRows, rowsForIds, handler, staffOnly, headOnly, sectionScope, learners, requireLearner } from '../services/access.js';
+import { fail, result, allRows, rowsForIds, handler, staffOnly, headOnly, facultyManagerOnly, sectionScope, learners, requireLearner } from '../services/access.js';
 import { TOPICS, topicSummary, mapLearner } from '../services/learning.js';
 import { exportReport } from '../services/reports.js';
 import { attachLearningEvidence, RECORD_LIMITATION } from '../services/learningRecords.js';
@@ -91,11 +91,30 @@ export function createWorkspaceRoutes(db) {
     const {students}=await learners(db,req.user); const student=requireLearner(students,req.params.id);
     res.json({mentors:students.filter(s=>s._id!==student._id&&s.sectionId&&s.sectionId===student.sectionId).map(s=>({id:s._id,name:s.name,topics:student.failedTopics.filter(t=>s.mastery[t]!==null&&s.mastery[t]>.9)})).filter(s=>s.topics.length)});
   }));
-  router.get('/teachers',headOnly,handler(async(req,res)=>{
-    const [teachers,assignments,students,sections]=await Promise.all([allRows(db.from('users').select('id,name,first_name,last_name,middle_initial,email,status,created_at').eq('role','admin').order('id')),allRows(db.from('teacher_sections').select('*').order('teacher_id').order('section_id')),allRows(db.from('students').select('section_id,enrollment_status').order('id')),allRows(db.from('sections').select('*').order('id'))]);
-    res.json(teachers.map(t=>{const ids=assignments.filter(a=>a.teacher_id===String(t.id)).map(a=>a.section_id);return {...t,_id:t.id,firstName:t.first_name,lastName:t.last_name,middleInitial:t.middle_initial,role:'admin',roleLabel:'Teacher',createdAt:t.created_at,sectionIds:ids,sections:ids.length,students:students.filter(s=>ids.includes(s.section_id)&&s.enrollment_status!=='graduated').length,grades:[...new Set(sections.filter(s=>ids.includes(s.scope_id)).map(s=>s.grade_level).filter(Boolean))]};}));
+  router.get('/teachers',facultyManagerOnly,handler(async(req,res)=>{
+    if(req.user.role!=='super'){
+      const sections=await sectionScope(db,req.user);
+      const assignments=sections.length?await allRows(db.from('teacher_sections').select('teacher_id,section_id').in('section_id',sections.map(s=>s.scope_id)).order('teacher_id').order('section_id')):[];
+      const ids=[...new Set(assignments.map(a=>a.teacher_id))];
+      const staff=await rowsForIds(db,'users','id',ids,'id,name,status,role,is_head_admin');
+      const counts=await rowsForIds(db,'students','section_id',sections.map(s=>s.scope_id),'id,section_id,enrollment_status');
+      return res.json(staff.filter(t=>t.role==='admin').map(t=>{
+        const sectionIds=assignments.filter(a=>a.teacher_id===String(t.id)).map(a=>a.section_id);
+        return {_id:t.id,name:t.name,status:t.status,roleLabel:t.is_head_admin?'Head Admin':'Teacher',sectionIds,sections:sectionIds.length,grades:[...new Set(sections.filter(s=>sectionIds.includes(s.scope_id)).map(s=>s.grade_level).filter(Boolean))],students:counts.filter(s=>sectionIds.includes(s.section_id)&&s.enrollment_status!=='graduated').length};
+      }));
+    }
+    const [teachers,assignments,students,sections,profiles]=await Promise.all([allRows(db.from('users').select('id,name,first_name,last_name,middle_initial,email,status,created_at,is_head_admin').eq('role','admin').order('id')),allRows(db.from('teacher_sections').select('*').order('teacher_id').order('section_id')),allRows(db.from('students').select('section_id,enrollment_status').order('id')),allRows(db.from('sections').select('*').order('id')),allRows(db.from('faculty_contact_profiles').select('id,birthday,contact_number').order('id'))]);
+    const contacts=new Map(profiles.map(p=>[String(p.id),p]));
+    res.json(teachers.map(t=>{const ids=assignments.filter(a=>a.teacher_id===String(t.id)).map(a=>a.section_id);return {...t,...contacts.get(String(t.id)),_id:t.id,firstName:t.first_name,lastName:t.last_name,middleInitial:t.middle_initial,role:'admin',roleLabel:t.is_head_admin?'Head Admin':'Teacher',createdAt:t.created_at,sectionIds:ids,sections:ids.length,students:students.filter(s=>ids.includes(s.section_id)&&s.enrollment_status!=='graduated').length,grades:[...new Set(sections.filter(s=>ids.includes(s.scope_id)).map(s=>s.grade_level).filter(Boolean))]};}));
   }));
-  router.patch('/teachers/:id/details',headOnly,handler(async(req,res)=>{await managementResult(db.rpc('levelblue_edit_teacher',{p_actor:String(req.user.id),p_teacher:req.params.id,p_details:contactDetails(req.body)}));res.json({success:true});}));
+  router.patch('/teachers/:id/role',headOnly,handler(async(req,res)=>{
+    const {tier}=req.body;
+    if(!['teacher','subadmin'].includes(tier))throw fail(400,'Choose Teacher or Head Admin.');
+    await result(db.rpc('levelblue_set_staff_tier',{p_actor:String(req.user.id),p_staff:req.params.id,p_head_admin:tier==='subadmin'}));
+    res.json({success:true});
+  }));
+  router.patch('/teachers/:id/details',headOnly,handler(async(req,res)=>{const profile='birthday' in req.body||'contactNumber' in req.body?facultyProfile(req.body):null;
+    await managementResult(db.rpc(profile?'levelblue_edit_faculty_profile':'levelblue_edit_teacher',{p_actor:String(req.user.id),p_teacher:req.params.id,p_details:{...contactDetails(req.body),...profile}}));res.json({success:true});}));
   router.get('/teachers/:id/temporary-password',headOnly,handler(async(req,res)=>{
     res.setHeader('Cache-Control','no-store, private');
     res.json(await previewTemporaryPassword(db,req.user,req.params.id));

@@ -14,3 +14,34 @@
 .management-preview-list { padding:0; list-style:none; }
 .management-preview-list li { padding:10px 0; border-bottom:1px solid #e2e9f3; }
 @media(max-width:650px){.management-name-fields{grid-template-columns:1fr;}.management-summary{grid-template-columns:1fr;}.management-actions{width:100%;}.management-actions button{flex:1;}}
+
+.faculty-role { display:inline-block; padding:3px 9px; border-radius:999px; font:600 12px/1.4 Inter,sans-serif; white-space:nowrap; }
+.faculty-role-teacher { background:#e8f1ff; color:#214e91; }
+.faculty-role-head { background:#f0eafe; color:#61349d; }
+.management-table .faculty-role { margin-top:5px; }
+.faculty-role-filter { display:inline-flex; gap:3px; flex-wrap:wrap; padding:3px; margin-bottom:16px; border:1px solid #d8e2ef; border-radius:12px; background:#f4f7fb; }
+.faculty-role-filter .workspace-button { min-height:36px; padding:6px 12px; background:transparent; border-color:transparent; color:#495b72; }
+.faculty-role-filter .workspace-button[aria-pressed=true] { background:white; color:#214e91; border-color:#b3c7e6; box-shadow:0 1px 3px #20375416; }
+.faculty-role-change { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:0; padding:14px; border-radius:10px; background:#f5f7fb; }
+.faculty-role-change dt { font-size:12px; color:#526379; margin-bottom:5px; }
+.faculty-role-change dd { margin:0; }
+
+.faculty-row-actions { display:flex; gap:6px; flex-wrap:wrap; }
+.faculty-row-actions .workspace-button { min-height:38px; padding:8px 11px; }
+.faculty-row-actions [aria-expanded=true] { background:#eaf2ff; border-color:#91b3e8; color:#204c90; }
+.faculty-row-actions [aria-expanded=true] svg:last-child { transform:rotate(180deg); }
+.faculty-selected-row { background:#f7faff; }
+.management-table td.faculty-action-cell { padding:0; }
+.faculty-action-panel { padding:16px 20px; text-align:left; background:#f5f8fd; border-inline-start:3px solid #6294df; white-space:normal; }
+.faculty-action-panel h3,.faculty-action-panel h4 { margin:0 0 9px; color:#233951; }
+.faculty-action-panel h3 { font-size:15px; }
+.faculty-action-panel h4 { margin-top:14px; border-top:1px solid #dbe4ef; padding-top:12px; font-size:13px; }
+.faculty-action-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,175px),1fr)); gap:8px; }
+.faculty-action-grid .faculty-action { justify-content:flex-start; text-align:left; gap:10px; padding:10px 12px; }
+.faculty-action strong,.faculty-action small { display:block; }
+.management-table .faculty-action small { max-width:none; margin:3px 0 0; color:#4b6076; font-size:12px; font-weight:400; line-height:1.4; }
+.faculty-action-grid .faculty-action-caution { color:#923b36; }
+.faculty-action-grid .faculty-action-caution:hover { background:#fff5f4; border-color:#c58c88; }
+@media(max-width:650px){.faculty-action-panel{padding:12px;}.faculty-action-grid{grid-template-columns:1fr;}}
+
+.faculty-contact-fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,175px),1fr)); gap:12px; }

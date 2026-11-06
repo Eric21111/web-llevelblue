@@ -188,7 +188,7 @@ export default function SuperAdminSettings({ user, setUser }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24, maxWidth: 900 }}>
       {/* Security Key Settings */}
-      <Panel title="System Security" sub="Manage the global registration key for new Super Admins" icon={<KeyRound size={18} />}>
+      <Panel title="System Security" sub="Manage the global registration key for new Principals" icon={<KeyRound size={18} />}>
         {keyMsg.text && (
           <div style={{
             display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 8, marginBottom: 16,
@@ -204,7 +204,7 @@ export default function SuperAdminSettings({ user, setUser }) {
 
         <form onSubmit={handleKeySubmit}>
           <div style={{ marginBottom: 16 }}>
-            <label style={{ fontFamily: "Inter", fontSize: 12, fontWeight: 600, color: COLORS.sub, display: "block", marginBottom: 6 }}>Super Admin Registration Key</label>
+            <label style={{ fontFamily: "Inter", fontSize: 12, fontWeight: 600, color: COLORS.sub, display: "block", marginBottom: 6 }}>Principal Registration Key</label>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <input
                 type="text" value={securityKey} onChange={(e) => setSecurityKey(e.target.value)}
@@ -224,7 +224,7 @@ export default function SuperAdminSettings({ user, setUser }) {
               </button>
             </div>
             <p style={{ fontFamily: "Inter", fontSize: 12, color: COLORS.sub, marginTop: 8, maxWidth: 600, lineHeight: 1.5 }}>
-              This key is required when registering a new Super Admin account via the hidden registration endpoint (`/create-super-admin`). Ensure it is kept secure.
+              This key is required when registering a new Principal account via the hidden registration endpoint (`/create-super-admin`). Ensure it is kept secure.
             </p>
           </div>
         </form>

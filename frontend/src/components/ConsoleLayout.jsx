@@ -25,7 +25,7 @@ export default function ConsoleLayout({ user, role, pages, pageIndex, currentPat
   const helpRef = useRef(null);
   const logoutTriggerRef = useRef(null);
   const page = pages[pageIndex];
-  const workspace = workspaceCopy(role);
+  const workspace = workspaceCopy(role,user?.is_head_admin);
   useEffect(() => {
     const desktop = window.matchMedia('(min-width: 901px)');
     const closeDrawer = () => { if (desktop.matches) setMenuOpen(false); };

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Shield, X, PanelLeftClose, PanelLeftOpen, ChevronDown } from "lucide-react";
 import { workspaceCopy } from "../utils/developerConsole";
 
-export default function Sidebar({ role, page, setPage, pages, open, onClose, collapsed, onToggle }) {
+export default function Sidebar({ role, user, page, setPage, pages, open, onClose, collapsed, onToggle }) {
   const groups = [...new Set(pages.filter(item => item.group !== 'Workspace').map(item => item.group))];
   const [closed, setClosed] = useState({});
   const sidebarRef = useRef(null);
@@ -24,7 +24,7 @@ export default function Sidebar({ role, page, setPage, pages, open, onClose, col
     document.addEventListener('keydown', trap);
     return () => { cancelAnimationFrame(frame); clearTimeout(focusTimer); document.removeEventListener('keydown', trap); };
   }, [open]);
-  const workspace = workspaceCopy(role);
+  const workspace = workspaceCopy(role,user?.is_head_admin);
   const pageButton = (item, index) => <button key={item.path} title={item.label} aria-label={item.label} onClick={() => { setPage(index); if (open) onClose(); }} className={page === index ? "is-active" : ""} aria-current={page === index ? "page" : undefined}><item.icon size={18} strokeWidth={1.8} /><span>{item.label}</span></button>;
   return <>
     {open && <button className="console-sidebar-backdrop" aria-label="Close navigation" onClick={onClose} />}

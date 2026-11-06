@@ -106,7 +106,7 @@ export default function LandingPage() {
             <h1 id="hero-title">A safer digital world.<br /><span>One learner<br className="lb-desktop-break" /> at a time.</span></h1>
             <p>See how your students learn to spot a threat.<br className="lb-desktop-break" /> Turn cybersecurity learning into meaningful insights for your classroom and your school.</p>
             <div className="lb-hero-actions"><a className="lb-button" href="/login">Log in to LEVELBLUE <ArrowRight size={17} /></a><a className="lb-text-link" href="#features">Explore the features <ArrowDown size={15} /></a></div>
-            <div className="lb-hero-footnote"><GraduationCap size={16} /><span>Built for teachers. Designed for school heads.</span></div>
+            <div className="lb-hero-footnote"><GraduationCap size={16} /><span>For teachers, Head Admins, and the Principal.</span></div>
           </div>
           <div className="lb-hero-visual"><div className="lb-orbit lb-orbit-one" aria-hidden="true" /><div className="lb-orbit lb-orbit-two" aria-hidden="true" /><DashboardPreview /></div>
         </section>
@@ -119,7 +119,7 @@ export default function LandingPage() {
         </section>
 
         <section className="lb-audience-section" id="for-educators" aria-labelledby="audience-title"><div className="lb-container">
-          <div className="lb-audience-header"><span className="lb-eyebrow">DIFFERENT ROLES. ONE SHARED PURPOSE.</span><h2 id="audience-title">Built around the work you do.</h2><div className="lb-role-switch" role="group" aria-label="Choose your role"><button type="button" aria-pressed={audience === "teachers"} onClick={() => setAudience("teachers")}><GraduationCap size={17} />For teachers</button><button type="button" aria-pressed={audience === "heads"} onClick={() => setAudience("heads")}><ShieldCheck size={17} />For school heads</button></div></div>
+          <div className="lb-audience-header"><span className="lb-eyebrow">DIFFERENT ROLES. ONE SHARED PURPOSE.</span><h2 id="audience-title">Built around the work you do.</h2><div className="lb-role-switch" role="group" aria-label="Choose your role"><button type="button" aria-pressed={audience === "teachers"} onClick={() => setAudience("teachers")}><GraduationCap size={17} />For teachers</button><button type="button" aria-pressed={audience === "heads"} onClick={() => setAudience("heads")}><ShieldCheck size={17} />For school leaders</button></div></div>
           <div className="lb-audience-content"><div className="lb-audience-copy"><span className="lb-mini-label">{selected.eyebrow}</span><h3>{selected.title}</h3><p>{selected.text}</p><ul>{selected.items.map(item => <li key={item}><Check size={16} />{item}</li>)}</ul><a className="lb-text-link lb-teal" href="/login">Go to your console <ArrowRight size={16} /></a></div><div className="lb-role-preview"><span className="lb-mini-label">{selected.label}</span>{selected.cards.map(({ icon: Icon, title, text }, index) => <div className="lb-role-card" key={title}><span className={`lb-icon-box lb-role-icon-${index}`}><Icon size={22} /></span><div><h4>{title}</h4><p>{text}</p></div><ChevronRight size={16} /></div>)}<div className="lb-role-note"><LockKeyhole size={13} />Your account opens the tools for your role.</div></div></div>
         </div></section>
 
@@ -129,7 +129,7 @@ export default function LandingPage() {
           ["03", "Make your next move count", "Use what you discover to guide follow-ups, support teachers, and strengthen awareness."],
         ].map(([number, title, text]) => <article key={number}><span className="lb-step-number">{number}</span><h3>{title}</h3><p>{text}</p></article>)}</div></section>
 
-        <section className="lb-container lb-cta-wrap"><div className="lb-cta"><div className="lb-cta-emblem" aria-hidden="true"><ShieldCheck size={42} /></div><span className="lb-eyebrow">BETTER INSIGHTS. STRONGER AWARENESS.</span><h2>Help your learners stay one step ahead.</h2><p>Your next teaching insight is waiting in LEVELBLUE.</p><a className="lb-button" href="/login">Log in to your console <ArrowRight size={17} /></a><small>For teachers and school heads with an existing account.</small></div></section>
+        <section className="lb-container lb-cta-wrap"><div className="lb-cta"><div className="lb-cta-emblem" aria-hidden="true"><ShieldCheck size={42} /></div><span className="lb-eyebrow">BETTER INSIGHTS. STRONGER AWARENESS.</span><h2>Help your learners stay one step ahead.</h2><p>Your next teaching insight is waiting in LEVELBLUE.</p><a className="lb-button" href="/login">Log in to your console <ArrowRight size={17} /></a><small>For teachers and school leaders with an existing account.</small></div></section>
       </main>
       <footer className="lb-container lb-footer"><a href="#top" className="lb-brand-link" aria-label="LEVELBLUE, back to top"><Brand /></a><p>Building awareness. Empowering educators.</p><a href="/login">Log in <ArrowUpRightIcon /></a></footer>
     </div>

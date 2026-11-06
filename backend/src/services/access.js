@@ -16,7 +16,9 @@ export async function rowsForIds(db,table,column,ids,columns='*') {
   return rows;
 }
 export const staffOnly = (req,res,next) => ['admin','super'].includes(req.user?.role) && req.user.status === 'Active' ? next() : res.status(403).json({error:'An active staff account is required.'});
-export const headOnly = (req,res,next) => req.user?.role === 'super' && req.user.status === 'Active' ? next() : res.status(403).json({error:'School-head access is required.'});
+export const headOnly = (req,res,next) => req.user?.role === 'super' && req.user.status === 'Active' ? next() : res.status(403).json({error:'Principal access is required.'});
+export const managesFaculty = user => user?.role==='super' || (user?.role==='admin' && user.isHeadAdmin===true);
+export const facultyManagerOnly = (req,res,next) => managesFaculty(req.user) && req.user.status==='Active' ? next() : res.status(403).json({error:'Principal or Head Admin access required.'});
 export const developerOnly = (req,res,next) => req.user?.role === 'developer' && req.user.status === 'Active' ? next() : res.status(403).json({error:'Developer access is required.'});
 export const handler = fn => async (req,res,next) => { try { await fn(req,res); } catch(e) { next(e); } };
 export async function sectionScope(db, user, filters = {}) {

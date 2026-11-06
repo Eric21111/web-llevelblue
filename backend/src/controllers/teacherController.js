@@ -1,7 +1,7 @@
 import { supabase } from "../config/db.js";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "node:crypto";
-import {contactDetails} from "../services/management.js";
+import {contactDetails,facultyProfile,managementResult} from "../services/management.js";
 import { actorName } from "../utils/actor.js";
 import { createTeacherInvites } from "../services/teacherInvites.js";
 import { credentialStorageReady, storeTemporaryPassword } from "../services/teacherCredentials.js";
@@ -32,38 +32,14 @@ function computeName(firstName, middleInitial, lastName) {
   return `${firstName}${mi} ${lastName}`;
 }
 
-export const getTeachers = async (req, res) => {
-  try {
-    const { data: teachers, error } = await supabase
-      .from("users")
-      .select("*")
-      .eq("role", "admin")
-      .order("created_at", { ascending: false });
-
-    if (error) throw error;
-    res.json(teachers.map(mapUser));
-  } catch (error) {
-    console.error("Get teachers error:", error);
-    res.status(500).json({ error: "Server error fetching teachers" });
-  }
-};
-
 export const addTeacher = async (req, res) => {
   try {
     const { firstName, lastName, middleInitial, email } = contactDetails(req.body);
-    if (!firstName || !lastName || !email) {
-      return res.status(400).json({ error: "First name, last name, and email are required" });
-    }
-
-    const { data: existingUser } = await supabase
-      .from("users")
-      .select("id")
-      .eq("email", email.toLowerCase().trim())
-      .single();
-
-    if (existingUser) {
-      return res.status(400).json({ error: "Teacher with this email already exists" });
-    }
+    const profile = facultyProfile(req.body);
+    const tier=req.body.tier ?? 'teacher';
+    if(!['teacher','subadmin'].includes(tier) || (tier==='subadmin' && req.user.role!=='super')) return res.status(403).json({error:'Only the Principal can appoint Head Admins.'});
+    const sectionIds=req.body.sectionIds;
+    if(!Array.isArray(sectionIds)||!sectionIds.length||sectionIds.some(id=>typeof id!=='string'||!id))return res.status(400).json({error:'Choose at least one assigned section.'});
 
     // Fail before creating an account if the required OTP schema is missing.
     await teacherInvites.ready();
@@ -73,25 +49,8 @@ export const addTeacher = async (req, res) => {
 
     const name = computeName(firstName.trim(), middleInitial?.trim(), lastName.trim());
 
-    const { data: newTeacher, error: insertError } = await supabase
-      .from("users")
-      .insert({
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        middle_initial: middleInitial ? middleInitial.trim() : "",
-        name,
-        email: email.toLowerCase().trim(),
-        password: hashedPassword,
-        role: "admin",
-        role_label: "Teacher",
-        sections: 0,
-        students: 0,
-        status: "Invited",
-      })
-      .select()
-      .single();
-
-    if (insertError) throw insertError;
+    const newTeacher=await managementResult(supabase.rpc('levelblue_invite_faculty',{p_actor:String(req.user.id),p_details:{firstName,lastName,middleInitial,email,name,tier,...profile},p_hash:hashedPassword,p_sections:sectionIds}));
+    newTeacher.password=hashedPassword; // existing OTP binding and encrypted temporary credential
 
     let temporaryPasswordStored = false;
     try { temporaryPasswordStored = await storeTemporaryPassword(supabase, newTeacher, generatedPassword); }
@@ -103,50 +62,15 @@ export const addTeacher = async (req, res) => {
 
     // Audit log
     await supabase.from("logs").insert({
-      user: actorName(req, "Super Admin"),
-      action: "Create Teacher Account",
-      details: `Created teacher account for ${firstName} ${lastName} (${email})`,
+      user: actorName(req, "Staff manager"),
+      action: "Create staff account",
+      details: `Created ${newTeacher.role_label} account for ${firstName} ${lastName} (${email})`,
     });
 
     res.setHeader('Cache-Control', 'no-store');
     res.status(201).json({ ...mapUser(newTeacher), generatedPassword, invitationEmailSent, temporaryPasswordStored });
   } catch (error) {
-    console.error("Add teacher error:", error);
+    if(!error.status||error.status>=500) console.error("Staff invitation failed:",error.code||error.status||"unknown");
     res.status(error.status || (error.code === "23505" ? 409 : 500)).json({ error: error.status ? error.message : error.code === "23505" ? "This email is already used by another staff account." : "Server error creating teacher account" });
-  }
-};
-
-export const deleteTeacher = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const { data: teacher, error: findError } = await supabase
-      .from("users")
-      .select("*")
-      .eq("id", id)
-      .single();
-
-    if (findError || !teacher || teacher.role !== "admin") {
-      return res.status(404).json({ error: "Teacher not found" });
-    }
-
-    const { error: deleteError } = await supabase
-      .from("users")
-      .delete()
-      .eq("id", id);
-
-    if (deleteError) throw deleteError;
-
-    // Audit log
-    await supabase.from("logs").insert({
-      user: actorName(req, "Super Admin"),
-      action: "Delete Teacher Account",
-      details: `Removed teacher account for ${teacher.name} (${teacher.email})`,
-    });
-
-    res.json({ message: "Teacher account deleted successfully" });
-  } catch (error) {
-    console.error("Delete teacher error:", error);
-    res.status(500).json({ error: "Server error deleting teacher account" });
   }
 };

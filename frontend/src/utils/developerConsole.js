@@ -39,8 +39,9 @@ export function compareAttempts(left, right) {
     right: right?.answers?.find(answer => answer.questionId === questionId) || null,
   }));
 }
-export function workspaceCopy(role) {
+export function workspaceCopy(role,subAdmin=false) {
+  if(role==='admin' && subAdmin) return {icon:'HA',title:'Head Admin workspace',nav:'Head Admin navigation',crumb:'Head Admin',helpTitle:'Head Admin workspace',help:'View your section faculty and support your assigned learners.',account:'Head Admin'};
   if (role === 'admin') return { icon: 'T', title: 'Teacher workspace', nav: 'Teacher navigation', crumb: 'Teaching', helpTitle: 'Teacher workspace', help: 'Start with follow-ups, then the roster and sections.', account: 'Teacher' };
   if (role === 'developer') return { icon: 'DV', title: 'Developer workspace', nav: 'Developer navigation', crumb: 'Development', helpTitle: 'Developer workspace', help: 'Review recorded learning data. This workspace is read only.', account: 'Developer' };
-  return { icon: 'SH', title: 'School head workspace', nav: 'School head navigation', crumb: 'Administration', helpTitle: 'School head workspace', help: 'Manage people and content, then compare progress across sections.', account: 'School head' };
+  return { icon: 'P', title: 'Principal workspace', nav: 'Principal navigation', crumb: 'Administration', helpTitle: 'Principal workspace', help: 'Manage people and content, then compare progress across sections.', account: 'Principal' };
 }

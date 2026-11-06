@@ -46,6 +46,7 @@ export default function LoginPage({ onLogin }) {
       if (!data?.token || !data?.user?.role) {
         throw new Error("Sign-in could not be completed. Please try again.");
       }
+      if(!["admin","super","developer"].includes(data.user.role))throw new Error("Student accounts sign in through the LEVELBLUE mobile app.");
       onLogin(data.user.role, data);
     } catch (err) {
       setError(err instanceof TypeError
@@ -86,7 +87,7 @@ export default function LoginPage({ onLogin }) {
               <div className="lb-login-insight"><span><Check size={15} /></span><div>Small insights. Meaningful progress.<small>Every learner’s journey matters.</small></div></div>
             </div>
 
-            <div className="lb-login-story-footer"><GraduationCap size={18} aria-hidden="true" /><span>Built for teachers, developers, and school heads.</span></div>
+            <div className="lb-login-story-footer"><GraduationCap size={18} aria-hidden="true" /><span>For teachers, Head Admins, the Principal, and authorized developers.</span></div>
           </aside>
 
           <section className="lb-login-form-panel" aria-labelledby="login-title">

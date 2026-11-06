@@ -43,7 +43,7 @@ export function buildNotifications(role, data, now = Date.now()) {
   }
   if(role === 'admin') {
     const returned = (data.content || []).filter(item => item.status === 'changes_requested');
-    add('content-changes', returned, `${returned.length} draft${returned.length === 1 ? ' needs' : 's need'} changes`, 'Read the school head’s review and update your draft.', '/content', 'learning', item => `${item.id}:${item.version}`);
+    add('content-changes', returned, `${returned.length} draft${returned.length === 1 ? ' needs' : 's need'} changes`, 'Read the Principal’s review and update your draft.', '/content', 'learning', item => `${item.id}:${item.version}`);
   }
   return items;
 }
