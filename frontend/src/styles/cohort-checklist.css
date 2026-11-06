@@ -1,0 +1,66 @@
+/* Section checklist: setup, selection, and a separate confirmation dialog. */
+.cohort-navigation { width:min(100%,350px); margin:0 0 22px; }
+.cohort-layout { display:grid; grid-template-columns:minmax(275px,325px) minmax(0,1fr); gap:22px; align-items:start; }
+.cohort-card { min-width:0; background:#fff; border:1px solid #e0e7f1; border-radius:16px; box-shadow:0 2px 5px #233b5c03; overflow:hidden; }
+.cohort-card-heading { display:flex; align-items:center; gap:12px; padding:22px; border-bottom:1px solid #edf0f5; }
+.cohort-card-heading > div { min-width:0; }
+.cohort-card-heading h2 { margin:0; color:#263b59; font-size:16px; line-height:1.4; }
+.cohort-card-heading p { margin-top:4px; font-size:12px; }
+.cohort-step { display:grid; place-items:center; width:30px; height:30px; flex-shrink:0; border-radius:9px; background:#edf3ff; color:#315fa8; font-weight:700; font-size:13px; }
+.cohort-fields { display:grid; gap:16px; border:0; margin:0; padding:22px; min-width:0; }
+.cohort-fields .workspace-control-label { font-size:12px; }
+.cohort-fields .cohort-field-hint { font-size:11px; line-height:1.6; margin-top:-9px; }
+.cohort-fields > div > .cohort-field-hint { margin-top:7px; }
+.cohort-inline-notice { padding:12px; border:1px solid #dbe6f7; border-radius:9px; background:#f5f8ff; color:#526985; font-size:12px; line-height:1.6; }
+.cohort-inline-notice strong { display:block; color:#345783; margin-bottom:3px; }
+.cohort-preservation { display:flex; align-items:flex-start; gap:9px; color:#6681a6; padding:16px 22px; background:#f8fafd; border-top:1px solid #edf0f5; }
+.cohort-preservation svg { flex-shrink:0; margin-top:2px; }
+.cohort-preservation p { font-size:11px; line-height:1.65; margin:0; }
+.cohort-count { margin-left:auto; padding:4px 9px; border-radius:7px; background:#edf3ff; color:#315fa8; font-size:11px; white-space:nowrap; }
+.cohort-student-controls { border:0; margin:0; padding:0; min-width:0; }
+.cohort-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:56px 24px; min-height:260px; text-align:center; box-sizing:border-box; }
+.cohort-empty > svg { color:#7c96bb; margin-bottom:4px; }
+.cohort-empty h3 { margin:0; color:#344c6a; font-size:16px; }
+.cohort-empty p { max-width:310px; font-size:12px; line-height:1.7; }
+.cohort-selection-bar { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:12px 22px; background:#f8fafd; border-bottom:1px solid #edf0f5; }
+.cohort-selection-bar > span { color:#60718b; font-size:12px; white-space:nowrap; }
+.cohort-workspace .cohort-check { display:flex; align-items:center; gap:10px; cursor:pointer; }
+.cohort-workspace .cohort-check:has(input:disabled) { cursor:default; }
+.cohort-workspace .cohort-check input { width:16px; height:16px; flex-shrink:0; padding:0; margin:0; accent-color:#2563eb; }
+.cohort-table { width:100%; }
+.cohort-table :is(th,td) { padding:15px 22px; }
+.cohort-table tbody th { font-weight:500; }
+.cohort-table tbody tr.is-selected { background:#f5f8ff; }
+.cohort-table tbody tr { transition:background .15s; }
+.cohort-table tbody tr:hover { background:#f8faff; }
+.cohort-table small { display:block; margin-top:4px; font-size:11px; color:#71829b; }
+.cohort-readiness { display:inline-block; padding:4px 8px; border-radius:6px; background:#edf3ff; color:#315fa8; font-size:11px; line-height:1.5; }
+.cohort-readiness.needs-review { background:#fff5e9; color:#805329; }
+.cohort-workspace .cohort-attention { padding:10px 22px; background:#fffaf3; color:#805329; font-size:12px; border-bottom:1px solid #f1e7da; }
+.cohort-card .support-pagination { margin:0; padding:16px 22px; border-top:1px solid #edf0f5; }
+.cohort-list-note { padding:0 22px 18px; font-size:11px; line-height:1.6; }
+.cohort-action-footer { display:flex; align-items:center; justify-content:space-between; gap:18px; padding:18px 22px; border-top:1px solid #e6ecf5; }
+.cohort-action-footer strong { display:block; font-size:12px; color:#354e70; }
+.cohort-action-footer p { margin-top:3px; font-size:11px; }
+.cohort-notice { display:flex; align-items:center; gap:12px; padding:14px 16px; margin-bottom:18px; border-radius:10px; border:1px solid #d9e6f7; background:#f0f6ff; color:#305e99; }
+.cohort-notice > svg { flex-shrink:0; }
+.cohort-notice.is-error { background:#fff5f3; border-color:#f0d5d1; }
+.cohort-notice.is-error p { color:#984637; flex:1; }
+.cohort-history .cohort-card-heading > svg { color:#6681a6; }
+.cohort-history .cohort-card-heading > label { margin-left:auto; min-width:200px; }
+.cohort-review { display:grid; gap:18px; }
+.cohort-review > p { margin:0; }
+.cohort-review h3 { margin:0; font-size:14px; }
+.cohort-review-route { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; padding:18px; margin:0; border:1px solid #dce7f6; border-radius:12px; background:#f6f9ff; }
+.cohort-review-route dt { color:#6d7d93; font-size:11px; margin-bottom:6px; }
+.cohort-review-route dd { margin:0; color:#2b486e; font-size:14px; font-weight:600; overflow-wrap:anywhere; }
+.cohort-review-route small { display:block; margin-top:5px; color:#6d7d93; font-size:11px; font-weight:400; }
+.cohort-review-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 20px; list-style:none; margin:0; padding:0; }
+.cohort-review-list li { padding:9px 0; border-bottom:1px solid #edf0f5; overflow-wrap:anywhere; }
+.cohort-review .support-pagination { margin:0; }
+.cohort-review .cohort-preservation { border:1px solid #e5ecf7; border-radius:10px; padding:14px; }
+.cohort-review .cohort-notice { margin:0; }
+@media(max-width:1100px){.cohort-layout{grid-template-columns:minmax(255px,285px) minmax(0,1fr);gap:16px;}.cohort-card-heading,.cohort-fields{padding:18px;}.cohort-action-footer{align-items:flex-start;flex-direction:column;}.cohort-action-footer > button{width:100%;}}
+@media(max-width:800px){.cohort-layout{grid-template-columns:1fr;}.cohort-empty{min-height:210px;padding-block:34px;}.cohort-selection-bar{align-items:flex-start;flex-wrap:wrap;}.cohort-history .cohort-card-heading{flex-wrap:wrap;}.cohort-history .cohort-card-heading > label{margin:0;width:100%;}.cohort-notice{flex-wrap:wrap;}}
+@media(max-width:480px){.cohort-review-route,.cohort-review-list{grid-template-columns:1fr;}.cohort-review .support-dialog-actions{flex-wrap:wrap;}.cohort-review .support-dialog-actions button{flex:1;}.cohort-card .support-pagination{padding-inline:14px;}}
+@media(prefers-reduced-motion:reduce){.cohort-table tbody tr{transition:none;}}

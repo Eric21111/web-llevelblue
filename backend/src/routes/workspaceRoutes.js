@@ -107,6 +107,21 @@ export function createWorkspaceRoutes(db) {
     const contacts=new Map(profiles.map(p=>[String(p.id),p]));
     res.json(teachers.map(t=>{const ids=assignments.filter(a=>a.teacher_id===String(t.id)).map(a=>a.section_id);return {...t,...contacts.get(String(t.id)),_id:t.id,firstName:t.first_name,lastName:t.last_name,middleInitial:t.middle_initial,role:'admin',roleLabel:t.is_head_admin?'Head Admin':'Teacher',createdAt:t.created_at,sectionIds:ids,sections:ids.length,students:students.filter(s=>ids.includes(s.section_id)&&s.enrollment_status!=='graduated').length,grades:[...new Set(sections.filter(s=>ids.includes(s.scope_id)).map(s=>s.grade_level).filter(Boolean))]};}));
   }));
+  router.get('/faculty/coverage-options',facultyManagerOnly,handler(async(req,res)=>{
+    // Staffing choices expose only names and roles, never contacts or other classes.
+    const staff=await allRows(db.from('users').select('id,name,is_head_admin').eq('role','admin').eq('status','Active').order('id'));
+    res.json(staff.filter(t=>req.user.role==='super'||!t.is_head_admin).map(t=>({id:t.id,name:t.name,roleLabel:t.is_head_admin?'Head Admin':'Teacher'})));
+  }));
+  router.post('/teachers/:id/handoff',facultyManagerOnly,handler(async(req,res)=>{
+    const {sourceId,targetId=null,replacementId=null,action}=req.body;
+    if(typeof sourceId!=='string'||!sourceId.trim()||![targetId,replacementId].every(v=>v===null||(typeof v==='string'&&v.trim()))||!['transfer','replace','cover','remove'].includes(action))throw fail(400,'Choose an assignment action and valid sections.');
+    await sectionScope(db,req.user,{sectionId:sourceId});
+    if(targetId!==null)await sectionScope(db,req.user,{sectionId:targetId});
+    try{
+      await managementResult(db.rpc('levelblue_staff_handoff',{p_actor:String(req.user.id),p_teacher:req.params.id,p_source:sourceId,p_target:targetId,p_replacement:replacementId,p_action:action}));
+    }catch(e){if(e.status===503)throw fail(503,'Apply 20261106_staff_assignments.sql before changing staff assignments.');throw e;}
+    res.json({success:true});
+  }));
   router.patch('/teachers/:id/role',headOnly,handler(async(req,res)=>{
     const {tier}=req.body;
     if(!['teacher','subadmin'].includes(tier))throw fail(400,'Choose Teacher or Head Admin.');
