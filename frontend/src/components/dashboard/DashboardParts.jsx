@@ -17,7 +17,7 @@ export function DashboardHero({ user, school = false, stats, sectionName='', ref
   const name = user?.firstName || user?.name?.split(" ")[0];
   const icons = school ? [GraduationCap, Users, Activity, ShieldAlert] : [Users, Activity, ShieldAlert, GraduationCap];
   return <section className={`dash-welcome ${school ? "is-school" : ""}`}>
-    <div className="dash-overview-heading"><div><span className="dash-eyebrow">{school ? 'School workspace' : 'Teacher workspace'}</span><h1>Dashboard</h1><p>{greeting}{name ? ', ' + name : ''}. {school ? 'Here’s how learning is progressing across your school.' : 'Here’s where your classroom needs you today.'}</p></div><DashboardExports sectionName={sectionName} date={date} period={period} onDate={setDate} onPeriod={setPeriod}/></div>
+    <div className="dash-overview-heading"><div><span className="dash-eyebrow">{school ? 'Principal workspace' : user?.is_head_admin ? 'Head Admin workspace' : 'Teacher workspace'}</span><h1>Dashboard</h1><p>{greeting}{name ? ', ' + name : ''}. {school ? 'Here’s how learning is progressing across your school.' : 'Here’s where your classroom needs you today.'}</p></div><DashboardExports sectionName={sectionName} date={date} period={period} onDate={setDate} onPeriod={setPeriod}/></div>
     <div className="dash-overview-metrics">{stats.map((stat,index) => { const Icon=icons[index]; return <article key={stat.label}><div className="dash-overview-metric-label"><span>{stat.label}</span><Icon size={18} aria-hidden="true"/></div><strong>{stat.value ?? '—'}</strong><small>{stat.note}</small></article>; })}</div>
     <DashboardPeriodActivity date={date} period={period} sectionName={sectionName} refreshKey={refreshKey}/>
   </section>;

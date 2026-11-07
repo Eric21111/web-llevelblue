@@ -201,7 +201,7 @@ export const registerSuperAdmin = async (req, res) => {
       email: email.toLowerCase().trim(),
       password: hashedPassword,
       role: "super",
-      role_label: "Department Head",
+      role_label: "Principal",
       status: "Active",
     });
 
@@ -324,6 +324,7 @@ export const activateTeacherInvite = async (req, res) => {
 // Get current logged-in user profile (always fetch fresh from DB to sync UI state)
 export const getMe = async (req, res) => {
   try {
+    if(req.user.role==="student")return res.status(403).json({error:"Staff console access required."});
     const { data: user, error } = await supabase
       .from("users")
       .select("*")

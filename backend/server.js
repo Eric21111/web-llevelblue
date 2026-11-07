@@ -27,7 +27,7 @@ import feedbackRoutes from "./src/routes/feedbackRoutes.js";
 import settingsRoutes from "./src/routes/settingsRoutes.js";
 import { authMiddleware } from "./src/middleware/auth.js";
 import { createRecoveryRoutes } from './src/routes/recoveryRoutes.js';
-import { developerOnly } from './src/services/access.js';
+import { developerOnly, facultyManagerOnly } from './src/services/access.js';
 import { createDeveloperRoutes } from './src/routes/developerRoutes.js';
 import { createDeveloperAdminRoutes } from './src/routes/developerAdminRoutes.js';
 import { logOperationalEvent, safeRoute } from './src/services/operationalEvents.js';
@@ -98,7 +98,7 @@ app.use('/api/curriculum', authMiddleware, createCurriculumRoutes(supabase));
 app.use('/api/mobile/content', authMiddleware, createMobileContentRoutes(supabase));
 app.use('/api', authMiddleware, createWorkspaceRoutes(supabase));
 app.use('/api/enrollment', authMiddleware, createEnrollmentRoutes(supabase));
-app.use('/api/teachers', headOnly, teacherRoutes);
+app.use('/api/teachers', facultyManagerOnly, teacherRoutes);
 app.use((error, req, res, next) => {
   console.error('Workspace request failed:', error.code || error.message);
   if(res.headersSent) return next(error);

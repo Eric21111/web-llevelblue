@@ -3,7 +3,7 @@ export async function teacherOversight(db,filters={}) {
  const days=Number(filters.days||30);if(![7,30,90].includes(days))throw fail(400,'Choose 7, 30 or 90 days.');
  const since=new Date(Date.now()-days*86400000).toISOString();
  const [teachers,assignments,sections,actions,bounties,students]=await Promise.all([
-  allRows(db.from('users').select('id,name,status').eq('role','admin').order('id')),
+  allRows(db.from('users').select('id,name,status,is_head_admin').eq('role','admin').order('id')),
   allRows(db.from('teacher_sections').select('*').order('teacher_id').order('section_id')),
   allRows(db.from('sections').select('*').order('id')),
   allRows(db.from('staff_events').select('*').order('created_at').order('id')),
@@ -11,7 +11,7 @@ export async function teacherOversight(db,filters={}) {
   allRows(db.from('students').select('id,section_id,enrollment_status').order('id'))]);
  if(filters.sectionId&&!sections.some(s=>s.scope_id===filters.sectionId))throw fail(400,'Unknown section.');
  const recent=actions.filter(e=>e.created_at>=since);
- return {since,days,sections,teachers:teachers.map(t=>{
+ return {since,days,sections,teachers:teachers.filter(t=>!t.is_head_admin).map(t=>{
   const assigned=assignments.filter(a=>a.teacher_id===String(t.id)&&(!filters.sectionId||a.section_id===filters.sectionId)).map(a=>a.section_id);
   const events=recent.filter(e=>e.actor_id===String(t.id)&&assigned.includes(e.details?.section_id));
   const reviews=events.filter(e=>e.event_type==='review'),remediation=events.filter(e=>e.event_type==='remediation'),bountyReviews=events.filter(e=>e.event_type==='bounty-review');

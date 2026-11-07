@@ -14,3 +14,57 @@
 .management-preview-list { padding:0; list-style:none; }
 .management-preview-list li { padding:10px 0; border-bottom:1px solid #e2e9f3; }
 @media(max-width:650px){.management-name-fields{grid-template-columns:1fr;}.management-summary{grid-template-columns:1fr;}.management-actions{width:100%;}.management-actions button{flex:1;}}
+
+.faculty-role { display:inline-block; padding:3px 9px; border-radius:999px; font:600 12px/1.4 Inter,sans-serif; white-space:nowrap; }
+.faculty-role-teacher { background:#e8f1ff; color:#214e91; }
+.faculty-role-head { background:#f0eafe; color:#61349d; }
+.management-table .faculty-role { margin-top:5px; }
+.faculty-role-filter { width:min(100%,420px); margin-bottom:20px; }
+.faculty-role-change { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:0; padding:14px; border-radius:10px; background:#f5f7fb; }
+.faculty-role-change dt { font-size:12px; color:#526379; margin-bottom:5px; }
+.faculty-role-change dd { margin:0; }
+
+.faculty-row-actions { display:flex; gap:6px; flex-wrap:wrap; }
+.faculty-row-actions .workspace-button { min-height:38px; padding:8px 11px; }
+.faculty-action-panel { padding:0; text-align:left; white-space:normal; }
+.faculty-action-panel h3,.faculty-action-panel h4 { margin:0 0 9px; color:#233951; }
+.faculty-action-panel h3 { font-size:15px; }
+.faculty-action-panel h4 { margin-top:14px; border-top:1px solid #dbe4ef; padding-top:12px; font-size:13px; }
+.faculty-action-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.faculty-action-grid .faculty-action { justify-content:flex-start; text-align:left; gap:12px; padding:16px; border-radius:12px; transition:background .18s,border-color .18s,box-shadow .18s; }
+.faculty-action strong,.faculty-action small { display:block; }
+.faculty-action small { max-width:none; margin:3px 0 0; color:#4b6076; font-size:12px; font-weight:400; line-height:1.4; }
+.faculty-action-grid .faculty-action-caution { color:#923b36; }
+.faculty-action-grid .faculty-action-caution:hover { background:#fff5f4; border-color:#c58c88; }
+@media(max-width:650px){.faculty-action-panel{padding:12px;}.faculty-action-grid{grid-template-columns:1fr;}}
+
+.faculty-contact-fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,175px),1fr)); gap:12px; }
+
+.faculty-action > svg { padding:9px; box-sizing:content-box; border-radius:10px; background:#edf4ff; }
+.faculty-action-caution > svg { background:#fff0ee; }
+.faculty-action:hover { box-shadow:0 3px 12px #2339510b; }
+.faculty-manage-summary { display:flex; align-items:center; gap:14px; margin:4px 0 24px; padding:18px; background:#f5f8fd; border:1px solid #e0e8f4; border-radius:14px; }
+.faculty-manage-summary > div { min-width:0; }
+.faculty-manage-summary strong,.faculty-manage-summary small { display:block; overflow-wrap:anywhere; }
+.faculty-manage-summary small { color:#60738c; margin:4px 0 8px; }
+.faculty-manage-avatar { display:grid; place-items:center; flex-shrink:0; width:48px; height:48px; border-radius:14px; background:#e1ebfc; color:#315a9a; font-size:22px; font-weight:700; }
+.faculty-type-picker { padding:16px; border:1px solid #dfe7f4; border-radius:12px; background:#f8faff; }
+.faculty-type-picker p { font-size:12px; color:#60738c; margin:10px 0 0; }
+@media(prefers-reduced-motion:reduce){.faculty-action-grid .faculty-action{transition:none;}}
+
+.faculty-form .faculty-form-intro { margin:0; color:#60718a; font-size:13px; line-height:1.6; }
+.faculty-form-section { display:grid; gap:16px; padding-top:6px; }
+.faculty-form-section + .faculty-form-section { border-top:1px solid #e4eaf4; padding-top:20px; }
+.faculty-form-section h3 { font-size:14px; margin:0; color:#263c5c; }
+.faculty-form-section p { margin:-6px 0 0; color:#60718a; font-size:12px; }
+.faculty-form-section-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.faculty-form-section-heading > span { color:#315a9a; background:#edf3fd; padding:4px 9px; border-radius:7px; font-size:11px; }
+.faculty-form .field-requirement { display:block; color:#6a7c94; font-size:10px; font-weight:400; margin-top:-3px; }
+.faculty-form .management-name-fields { grid-template-columns:1fr .7fr 1fr; align-items:start; }
+.faculty-form .management-section-list { background:#f9fbff; padding:4px 14px; }
+.faculty-form .management-check + .management-check { border-top:1px solid #e6edf7; }
+.faculty-form .management-check { padding:12px 0; }
+@media(max-width:650px){.faculty-form .management-name-fields{grid-template-columns:1fr;}.faculty-form .faculty-contact-fields{grid-template-columns:1fr;}}
+
+.faculty-handoff-summary { border:1px solid #d8e4f5; background:#f5f8fe; border-radius:12px; padding:16px; }
+.faculty-handoff-summary p { margin-top:8px; }

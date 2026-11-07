@@ -132,7 +132,7 @@ function AppContent() {
   ];
   const schoolPages = [
     { label: "Dashboard", path: "/dashboard", group: "Overview", icon: LayoutDashboard, component: SuperAdminHome },
-    { label: "Teacher Accounts", path: "/teachers", group: "People", icon: UserCog, component: TeacherManagement },
+    { label: "Staff Accounts", path: "/teachers", group: "People", icon: UserCog, component: TeacherManagement },
     { label: "Developer Accounts", path: "/developers", group: "People", icon: UserCog, component: DeveloperAccounts },
     { label: "Sections", path: "/sections", group: "People", icon: GraduationCap, component: SectionsManagement },
     { label: "Enrollment", path: "/enrollment", group: "People", icon: GraduationCap, component: CohortChecklist },
@@ -148,7 +148,8 @@ function AppContent() {
   const developerComponents = { '/dashboard': DeveloperOverview, '/answers': DeveloperAnswers, '/analytics': DeveloperAnalytics, '/bkt': DeveloperBkt, '/monitoring': DeveloperMonitoring, '/reports': DeveloperReports, '/settings': TeacherSettings };
   const developerIcons = { '/dashboard': LayoutDashboard, '/answers': ClipboardList, '/analytics': BarChart3, '/bkt': Activity, '/monitoring': ShieldAlert, '/reports': FileText, '/settings': Settings };
   const developerPages = DEVELOPER_NAV.map(item => ({ ...item, icon: developerIcons[item.path], component: developerComponents[item.path], description: item.path === '/settings' ? 'Profile and sign-in.' : '' }));
-  const pages = role === "admin" ? teacherPages : role === "developer" ? developerPages : schoolPages;
+  const facultyPage = schoolPages.find(item=>item.path==='/teachers');
+  const pages = role === "admin" ? (user?.is_head_admin ? [...teacherPages,{...facultyPage,group:'Classes',label:'Section faculty'}] : teacherPages) : role === "developer" ? developerPages : schoolPages;
   const pageIndex = Math.max(0, pages.findIndex(page => page.path === currentPath));
   const page = pages[pageIndex];
   const Active = page.component;

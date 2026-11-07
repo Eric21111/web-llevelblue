@@ -119,7 +119,7 @@ export default function SuperAdminSignupPage({ onComplete }) {
             <div>
               <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 22, fontWeight: 700, margin: "0 0 8px" }}>Account Created!</h2>
               <p style={{ fontSize: 13.5, color: COLORS.sub, lineHeight: 1.6, margin: 0 }}>
-                The Super Admin (Department Head) account for <strong>{displayName}</strong> was registered in the database.
+                The Principal account for <strong>{displayName}</strong> was registered in the database.
               </p>
             </div>
             <button
@@ -149,7 +149,7 @@ export default function SuperAdminSignupPage({ onComplete }) {
             </div>
 
             <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 22, fontWeight: 600, margin: "0 0 6px" }}>
-              Super Admin Setup
+              Principal Setup
             </h2>
             <p style={{ fontSize: 13, color: COLORS.sub, lineHeight: 1.5, margin: "0 0 24px" }}>
               Create a secure administrator credential to configure teacher credentials and audit institution learning logs.

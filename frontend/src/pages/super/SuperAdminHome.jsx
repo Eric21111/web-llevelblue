@@ -11,7 +11,7 @@ export default function SuperAdminHome({ user, onNavigate, progress = false }) {
   const state = useWorkspaceData();
   const [query, setQuery] = useState("");
   const students = state.data.students || [];
-  const teachers = state.data.teachers || [];
+  const teachers = (state.data.teachers || []).filter(t=>t.roleLabel!=='Head Admin');
   const content = state.data.content || [];
   const summary = summarizeStudents(students, state.data.risk || []);
   const sections = sectionSummaries(students, state.data.risk || [], state.data.sections || []);

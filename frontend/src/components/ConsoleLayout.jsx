@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Search, Menu, HelpCircle, ChevronRight, X, Settings, LogOut } from "lucide-react";
 import Sidebar from "./Sidebar";
+import { useWorkspaceData } from "../context/WorkspaceDataContext";
 import LogoutDialog from "./LogoutDialog";
 import Notifications from "./Notifications";
 import { initials } from "../utils/dashboard";
@@ -24,8 +25,11 @@ export default function ConsoleLayout({ user, role, pages, pageIndex, currentPat
   const searchRef = useRef(null);
   const helpRef = useRef(null);
   const logoutTriggerRef = useRef(null);
+  const {data,errors} = useWorkspaceData();
+  const assignedSections=(data.sections||[]).map(section=>`${section.gradeLevel||'Grade unconfirmed'} · ${section.name}`).join('; ');
+  const assignmentText=errors.sections?'Assignments unavailable':!data.sections?'Loading assignments…':assignedSections||'No assigned sections';
   const page = pages[pageIndex];
-  const workspace = workspaceCopy(role);
+  const workspace = workspaceCopy(role,user?.is_head_admin);
   useEffect(() => {
     const desktop = window.matchMedia('(min-width: 901px)');
     const closeDrawer = () => { if (desktop.matches) setMenuOpen(false); };
@@ -56,7 +60,7 @@ export default function ConsoleLayout({ user, role, pages, pageIndex, currentPat
     <Sidebar collapsed={collapsed} onToggle={toggleSidebar} role={role} user={user} pages={pages} page={pageIndex} setPage={index => onNavigate(pages[index].path)} open={menuOpen} onClose={() => { setMenuOpen(false); requestAnimationFrame(() => menuRef.current?.focus()); }} />
     <div className="console-workarea" inert={menuOpen ? true : undefined}><header className="console-topbar">
       <button ref={menuRef} className="console-menu-button" aria-label="Open navigation" aria-expanded={menuOpen} aria-controls="console-sidebar" onClick={() => setMenuOpen(!menuOpen)}><Menu size={20} /></button>
-      <div className="console-breadcrumb"><span>{workspace.crumb}</span><ChevronRight size={13} /><strong>{page.label}</strong></div>
+      <div className="console-page-context"><div className="console-breadcrumb"><span>{workspace.crumb}</span><ChevronRight size={13} /><strong>{page.label}</strong></div>{role==='admin'&&<small className="console-assignment" title={assignmentText}>Assigned: {assignmentText}</small>}</div>
       <div className="console-topbar-actions"><div className="console-search" ref={searchRef}><Search size={16} /><input aria-label="Find a page" placeholder="Find a page…" value={search} onChange={event => setSearch(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && matches.length === 1) { onNavigate(matches[0].path); setSearch(""); } }} />{search && <div className="console-search-results">{matches.length ? matches.map(item => <button key={item.path} onClick={() => { onNavigate(item.path); setSearch(""); }}><item.icon size={15} />{item.label}<ChevronRight size={13} /></button>) : <p>No matching pages.</p>}</div>}</div>
         <div className="console-help" ref={helpRef}><button className="console-icon-button" aria-label="Workspace help" aria-expanded={helpOpen} onClick={() => setHelpOpen(!helpOpen)}><HelpCircle size={19} /></button>{helpOpen && <div className="console-help-popover"><strong>{workspace.helpTitle}</strong><p>{workspace.help}</p><button className="dash-text-button" onClick={() => setHelpOpen(false)}>Got it<X size={12} /></button></div>}</div>
         <Notifications key={`${role}:${user?._id ?? user?.id ?? user?.email ?? "session"}`} user={user} role={role} currentPath={currentPath} onNavigate={onNavigate} />

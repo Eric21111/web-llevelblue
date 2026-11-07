@@ -90,7 +90,7 @@ export function createTeacherInvites(db, sendEmail = sendTeacherInviteEmail) {
       const code = String(randomInt(100000, 1000000));
       const digest = inviteDigest(user, code);
       checked(await db.rpc('levelblue_invite_send', { p_user: String(user.id), p_email: user.email, p_password: user.password, p_hash: digest }));
-      try { await sendEmail(user.email, code, user.role === 'developer' ? 'developer' : 'teacher'); }
+      try { await sendEmail(user.email, code, user.role === 'developer' ? 'developer' : user.is_head_admin ? 'Head Admin' : 'teacher'); }
       catch (error) {
         console.warn(`Teacher invite email was not sent: ${error?.name === 'TimeoutError' ? 'provider-timeout' : error?.status ? 'provider-rejected' : 'provider-unreachable'}`);
         await logOperationalEvent(db, { category: 'api-error', code: 'invite-email-failed', route: '/api/auth/teacher-invite', status: 503, message: 'A teacher invitation code could not be emailed.' });

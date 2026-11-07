@@ -41,7 +41,7 @@ export async function dashboardData(db,user,query) {
     rowsForIds(db,'learning_records','student_id',ids),
     rowsForIds(db,'feedback','student_id',ids),
     rowsForIds(db,'learning_interventions','student_id',ids),
-    user.role==='super'?allRows(db.from('users').select('id,status').eq('role','admin').order('id')):Promise.resolve(null),
+    user.role==='super'?allRows(db.from('users').select('id,status,is_head_admin').eq('role','admin').order('id')):Promise.resolve(null),
   ]);
   const inDay=value=>{const time=Date.parse(value);return time>=Date.parse(day.start)&&time<Date.parse(day.end);};
   const selectedRecords=records.filter(r=>inDay(r.occurred_at));
@@ -52,17 +52,17 @@ export async function dashboardData(db,user,query) {
     const values=[...latest.values()].filter(r=>r.data.topic===topic).map(r=>r.data.mastery);
     return {topic,assessed:values.length,mastery:values.length?values.reduce((a,b)=>a+b,0)/values.length:null,support:values.filter(v=>v<.4).length};
   });
-  return {...data,day,faculty,evidence,dailyTopics,
+  return {...data,day,faculty:faculty?.filter(t=>!t.is_head_admin)??null,evidence,dailyTopics,
     feedback:feedback.filter(f=>allowed.has(f.section_id)&&f.respondent_role==='student'&&inDay(f.created_at)),
     interventions:interventions.filter(i=>allowed.has(i.section_id)&&inDay(i.created_at)),
     topics:topicSummary(data.students),recordedLearners:new Set(selectedRecords.map(r=>String(r.student_id))).size,
-    generatedAt:new Date().toISOString(),role:user.role,limitation:DASHBOARD_DATE_NOTE};
+    generatedAt:new Date().toISOString(),role:user.isHeadAdmin?'subadmin':user.role,limitation:DASHBOARD_DATE_NOTE};
 }
 
 export function dashboardRows(data) {
   const pct=v=>v==null?'Unavailable':`${(v*100).toFixed(1)}%`;
   const name=id=>data.students.find(s=>String(s._id)===String(id))?.name||'Learner';
-  const rows=[['LEVELBLUE dashboard export'],['Selected local period',data.day.date],['Period starts (UTC, inclusive)',data.day.start],['Period ends (UTC, exclusive)',data.day.end],['Generated (UTC)',data.generatedAt],['Workspace',data.role==='super'?'School head':'Teacher'],['Scope',data.sections.map(s=>s.name).join(', ')||'No assigned sections'],['Report basis',data.limitation],[],['CURRENT OVERVIEW'],['Active enrollment',data.students.length],['Sections',data.sections.length],['Learners active in last 7 days',data.students.filter(s=>{const t=Date.parse(s.lastActive),now=Date.parse(data.generatedAt);return t<=now&&t>=now-7*86400000;}).length],['Learners needing support',data.students.filter(s=>s.failedTopics.length).length],['Learners with no recorded mastery',data.students.filter(s=>!s.assessedTopics).length]];
+  const rows=[['LEVELBLUE dashboard export'],['Selected local period',data.day.date],['Period starts (UTC, inclusive)',data.day.start],['Period ends (UTC, exclusive)',data.day.end],['Generated (UTC)',data.generatedAt],['Workspace',data.role==='super'?'Principal':data.role==='subadmin'?'Head Admin':'Teacher'],['Scope',data.sections.map(s=>s.name).join(', ')||'No assigned sections'],['Report basis',data.limitation],[],['CURRENT OVERVIEW'],['Active enrollment',data.students.length],['Sections',data.sections.length],['Learners active in last 7 days',data.students.filter(s=>{const t=Date.parse(s.lastActive),now=Date.parse(data.generatedAt);return t<=now&&t>=now-7*86400000;}).length],['Learners needing support',data.students.filter(s=>s.failedTopics.length).length],['Learners with no recorded mastery',data.students.filter(s=>!s.assessedTopics).length]];
   if(data.faculty)rows.push(['Active teachers',data.faculty.filter(t=>t.status==='Active').length],['Pending teacher invitations',data.faculty.filter(t=>t.status==='Invited').length]);
   rows.push([],['CURRENT TOPIC MASTERY'],['Topic','Assessed learners','Unassessed','Below 40%','Mean BKT mastery']);
   data.topics.forEach(t=>rows.push([t.topic,t.assessed,t.unassessed,t.support,pct(t.mastery)]));

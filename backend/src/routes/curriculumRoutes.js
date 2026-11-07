@@ -24,7 +24,7 @@ export function createCurriculumRoutes(db){
   res.json(await withStaffNames(await allRows(db.from('curriculum_events').select('*').eq('item_id',revision.item_id).order('created_at').order('id')),'actor_id'));
  }));
  router.post('/',handler(async(req,res)=>{
-  if(req.user.role!=='admin')throw fail(403,'Teachers author drafts; school heads review and publish them.');
+  if(req.user.role!=='admin')throw fail(403,'Teachers and Head Admins author drafts; the Principal reviews and publishes them.');
   res.status(201).json(await write(req,'create',validateContent(req.body)));
  }));
  router.patch('/:id',handler(async(req,res)=>{
