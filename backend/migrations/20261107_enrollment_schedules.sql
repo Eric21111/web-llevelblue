@@ -3,6 +3,13 @@
 -- mobile enrollment guard behave exactly as in the manual checklist.
 -- This file does not enable a scheduler; see the pg_cron note at the end.
 begin;
+do $$
+declare transition regprocedure:=to_regprocedure('public.levelblue_transition_enrollment(text,uuid,jsonb)');
+begin
+ if transition is null or (select prorettype from pg_proc where oid=transition) is distinct from 'jsonb'::regtype then
+  raise exception 'Apply 20261106_cohort_promotion.sql first: public.levelblue_transition_enrollment(text,uuid,jsonb) returning jsonb is required.';
+ end if;
+end $$;
 create table if not exists public.enrollment_schedules (
  id uuid primary key default gen_random_uuid(),
  created_by text not null,
@@ -151,23 +158,27 @@ begin
  return jsonb_build_object('processed',jsonb_array_length(outcomes),'schedules',outcomes);
 end $$;
 
+-- Supabase grants new functions to anon, authenticated and service_role directly, so revoke from each.
 revoke all on function public.levelblue_schedule_skip_reason(text,integer,text,text,text),
  public.levelblue_create_enrollment_schedule(text,jsonb,timestamptz),
  public.levelblue_cancel_enrollment_schedule(text,uuid,timestamptz),
  public.levelblue_execute_enrollment_schedule(public.enrollment_schedules),
- public.levelblue_run_due_enrollment_schedules(timestamptz) from public,anon,authenticated;
+ public.levelblue_run_due_enrollment_schedules(timestamptz) from public,anon,authenticated,service_role;
+-- The web backend creates and cancels. These functions run with the caller's privileges, so creating a
+-- schedule also needs the read-only eligibility check. The executor and runner stay with the owner,
+-- which is the role pg_cron runs the job as.
 grant execute on function public.levelblue_schedule_skip_reason(text,integer,text,text,text),
  public.levelblue_create_enrollment_schedule(text,jsonb,timestamptz),
- public.levelblue_cancel_enrollment_schedule(text,uuid,timestamptz),
- public.levelblue_execute_enrollment_schedule(public.enrollment_schedules),
- public.levelblue_run_due_enrollment_schedules(timestamptz) to service_role;
+ public.levelblue_cancel_enrollment_schedule(text,uuid,timestamptz) to service_role;
 commit;
 notify pgrst,'reload schema';
 
 -- Scheduler activation (manual, after review; not run by this file):
 --   1. Supabase dashboard → Database → Extensions → enable pg_cron.
---   2. select cron.schedule('levelblue-enrollment-schedules','5 * * * *',
---        $$select public.levelblue_run_due_enrollment_schedules()$$);
+--   2. As the role that applied this migration (postgres in the Supabase SQL editor), run:
+--        select cron.schedule('levelblue-enrollment-schedules','5 * * * *',
+--          $$select public.levelblue_run_due_enrollment_schedules()$$);
+--      pg_cron runs a job as the role that scheduled it; service_role, anon and authenticated cannot run it.
 -- Hourly at :05 UTC. A schedule runs at the first tick on or after 00:00 Asia/Manila of its date
 -- (normally 00:05), and a missed tick is caught up by the next one.
 -- Disable with: select cron.unschedule('levelblue-enrollment-schedules');

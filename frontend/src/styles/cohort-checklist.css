@@ -1,5 +1,5 @@
 /* Section checklist: setup, selection, and a separate confirmation dialog. */
-.cohort-navigation { width:min(100%,350px); margin:0 0 22px; }
+.cohort-navigation { width:min(100%,520px); margin:0 0 22px; }
 .cohort-layout { display:grid; grid-template-columns:minmax(275px,325px) minmax(0,1fr); gap:22px; align-items:start; }
 .cohort-card { min-width:0; background:#fff; border:1px solid #e0e7f1; border-radius:16px; box-shadow:0 2px 5px #233b5c03; overflow:hidden; }
 .cohort-card-heading { display:flex; align-items:center; gap:12px; padding:22px; border-bottom:1px solid #edf0f5; }
@@ -63,14 +63,48 @@
  .cohort-transition { padding:12px; border:1px solid #dbe6f7; border-radius:9px; background:#f5f8ff; }
  .cohort-transition strong { display:block; color:#1e3a8a; font-size:15px; margin:4px 0 2px; }
  .cohort-transition .cohort-field-hint { margin-top:0 !important; }
- .cohort-schedule { display:grid; gap:12px; padding-top:14px; border-top:1px solid #e5ecf6; }
  .cohort-switch { display:flex !important; align-items:center; gap:10px; min-height:44px; cursor:pointer; font-weight:600; }
  .cohort-switch input { appearance:none; width:42px; height:24px; flex-shrink:0; margin:0; padding:0; border-radius:999px; background:#cbd5e1; position:relative; cursor:pointer; transition:background .15s; }
  .cohort-switch input::after { content:''; position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:#fff; transition:transform .15s; }
  .cohort-switch input:checked { background:#2e6bff; }
  .cohort-switch input:checked::after { transform:translateX(18px); }
  .cohort-switch input:focus-visible { outline:2px solid #4fe0d4; outline-offset:2px; }
+/* Automatic Advancement: one column of stage cards; the pending plan in the database drives the switch. */
+.advancement { display:grid; gap:18px; }
+.advancement-switch-row { display:grid; gap:6px; padding:18px 22px; }
+.advancement-switch-row .cohort-field-hint { margin:0; font-size:12px; }
+.advancement-inline { margin:0 22px 18px; }
+.advancement-legacy { display:grid; gap:12px; padding:0 22px 22px; }
+.advancement-list { display:grid; gap:0; list-style:none; margin:0; padding:0; }
+.advancement-list li { display:flex; align-items:center; justify-content:space-between; gap:14px; min-height:48px; padding:10px 0; border-bottom:1px solid #edf0f5; }
+.advancement-list li > div { min-width:0; }
+.advancement-list small { display:block; margin-top:3px; color:#71829b; font-size:11px; }
+.advancement-list span { color:#2b486e; font-weight:600; overflow-wrap:anywhere; }
+.advancement-fields { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.advancement-fields > div > .cohort-field-hint, .advancement-fields > div > .cohort-inline-notice { margin-top:7px; }
+.advancement-body { display:grid; gap:10px; padding:18px 22px; }
+.advancement-body h3 { margin:0; font-size:14px; color:#263b59; }
+.advancement-body .cohort-field-hint { margin:0; font-size:12px; line-height:1.6; }
+.advancement-mapping { display:grid; gap:10px; border:0; margin:0; padding:18px 22px; min-width:0; }
+.advancement-mapping label { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; gap:12px; padding:12px; border:1px solid #e0e7f1; border-radius:10px; }
+.advancement-mapping label > svg { color:#6681a6; }
+.advancement-mapping small { display:block; margin-top:3px; color:#71829b; font-size:11px; font-weight:400; }
+.advancement-mapping select { min-height:44px; }
+.advancement-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:0; padding:18px 22px; }
+.advancement-stats > div { padding:14px; border:1px solid #dce7f6; border-radius:12px; background:#f6f9ff; }
+.advancement-stats dt { color:#6d7d93; font-size:11px; margin-bottom:6px; }
+.advancement-stats dd { margin:0; color:#1e3a8a; font-size:22px; font-weight:700; }
+.advancement-stats small { display:block; margin-top:3px; color:#6d7d93; font-size:11px; font-weight:400; }
+.advancement-issues { margin:4px 0 0; padding-left:18px; color:#805329; font-size:11px; line-height:1.6; }
+.advancement-reasons { margin:6px 0 0; padding-left:16px; font-size:11px; line-height:1.6; color:#60718b; }
+.advancement-history { list-style:none; margin:0; padding:0; }
+.advancement-history > li { border-bottom:1px solid #edf0f5; }
+.advancement-details > summary { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; min-height:48px; padding:12px 22px; cursor:pointer; color:#344c6a; font-size:13px; }
+.advancement-details > summary small { flex-basis:100%; color:#71829b; font-size:11px; }
+.advancement-details > summary:focus-visible { outline:2px solid #4fe0d4; outline-offset:-2px; }
+.cohort-card > .advancement-details { border-top:1px solid #edf0f5; }
  @media(max-width:1100px){.cohort-layout{grid-template-columns:minmax(255px,285px) minmax(0,1fr);gap:16px;}.cohort-card-heading,.cohort-fields{padding:18px;}.cohort-action-footer{align-items:flex-start;flex-direction:column;}.cohort-action-footer > button{width:100%;}}
 @media(max-width:800px){.cohort-layout{grid-template-columns:1fr;}.cohort-empty{min-height:210px;padding-block:34px;}.cohort-selection-bar{align-items:flex-start;flex-wrap:wrap;}.cohort-history .cohort-card-heading{flex-wrap:wrap;}.cohort-history .cohort-card-heading > label{margin:0;width:100%;}.cohort-notice{flex-wrap:wrap;}}
+@media(max-width:700px){.advancement-fields{grid-template-columns:1fr;}.advancement-mapping label{grid-template-columns:1fr;}.advancement-mapping label > svg{transform:rotate(90deg);}.advancement-list li{flex-wrap:wrap;}}
 @media(max-width:480px){.cohort-review-route,.cohort-review-list{grid-template-columns:1fr;}.cohort-review .support-dialog-actions{flex-wrap:wrap;}.cohort-review .support-dialog-actions button{flex:1;}.cohort-card .support-pagination{padding-inline:14px;}}
  @media(prefers-reduced-motion:reduce){.cohort-table tbody tr,.cohort-switch input,.cohort-switch input::after{transition:none;}}
