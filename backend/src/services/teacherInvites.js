@@ -1,6 +1,7 @@
 import { createHmac, randomInt, randomUUID } from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import { logOperationalEvent } from './operationalEvents.js';
 
 const fail = (status, message) => Object.assign(new Error(message), { status });
 export function inviteDigest(user, value, secret = process.env.JWT_SECRET) {
@@ -30,8 +31,23 @@ function checked({ data, error }) {
   return data;
 }
 
+// Mailbox providers publish DMARC policies that reject or spam-folder mail relayed by Brevo under their domain.
+const FREE_MAIL_DOMAINS = new Set(['gmail.com', 'googlemail.com', 'yahoo.com', 'ymail.com', 'outlook.com', 'hotmail.com', 'live.com', 'icloud.com', 'aol.com']);
+let senderWarningShown = false;
+
+export function inviteEmailConfigured() {
+  return Boolean(process.env.BREVO_API_KEY && process.env.BREVO_SENDER_EMAIL);
+}
+export function freeMailSender(sender = process.env.BREVO_SENDER_EMAIL) {
+  return FREE_MAIL_DOMAINS.has(String(sender || '').split('@').pop().trim().toLowerCase());
+}
+
 export async function sendTeacherInviteEmail(email, code, roleLabel = 'teacher') {
-  if (!process.env.BREVO_API_KEY || !process.env.BREVO_SENDER_EMAIL) throw fail(503, 'Email delivery is not configured. Contact your school head.');
+  if (!inviteEmailConfigured()) throw fail(503, 'Email delivery is not configured. Contact your school head.');
+  if (freeMailSender() && !senderWarningShown) {
+    senderWarningShown = true;
+    console.warn('BREVO_SENDER_EMAIL uses a free mailbox domain. Gmail and other providers may reject or spam-folder these codes; use a sender on a domain authenticated in Brevo.');
+  }
   const response = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST', signal: AbortSignal.timeout(15000),
     headers: { accept: 'application/json', 'api-key': process.env.BREVO_API_KEY, 'content-type': 'application/json' },
@@ -41,7 +57,15 @@ export async function sendTeacherInviteEmail(email, code, roleLabel = 'teacher')
       textContent: `Your school head has invited you to LEVELBLUE as a ${roleLabel}.\n\nYour activation code is: ${code}\n\nSign in with the temporary password provided separately by your school head, then enter this code and choose a new password. This code expires in 10 minutes. You can request a fresh code after signing in.\n\nDo not share this code. If you were not expecting an account, contact your school head.`,
     }),
   });
-  if (!response.ok) throw fail(503, 'The email service could not send your code. Please try again later.');
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const providerCode = String(result?.code || 'unknown').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40);
+    console.warn(`Teacher invite email rejected by Brevo: status=${response.status} code=${providerCode}`);
+    throw fail(503, 'The email service could not send your code. Please try again later.');
+  }
+  // Acceptance is not inbox delivery; the message ID locates the outcome in Brevo's transactional logs.
+  const messageId = String(result?.messageId || 'none').replace(/[^A-Za-z0-9<>@._-]/g, '').slice(0, 120);
+  console.info(`Teacher invite email accepted by Brevo: messageId=${messageId}`);
 }
 
 export function createTeacherInvites(db, sendEmail = sendTeacherInviteEmail) {
@@ -57,11 +81,19 @@ export function createTeacherInvites(db, sendEmail = sendTeacherInviteEmail) {
   return {
     async ready() { checked(await db.from('teacher_invites').select('user_id', { head: true }).limit(1)); },
     async send(user) {
+      // Check before reserving a send so a missing provider does not consume the cooldown or hourly limit.
+      if (sendEmail === sendTeacherInviteEmail && !inviteEmailConfigured()) {
+        console.warn('Teacher invite email skipped: BREVO_API_KEY or BREVO_SENDER_EMAIL is not set.');
+        await logOperationalEvent(db, { category: 'api-error', code: 'invite-email-unconfigured', route: '/api/auth/teacher-invite', status: 503, message: 'Teacher invitation email delivery is not configured.' });
+        throw fail(503, 'Email delivery is not configured. Contact your school head.');
+      }
       const code = String(randomInt(100000, 1000000));
       const digest = inviteDigest(user, code);
       checked(await db.rpc('levelblue_invite_send', { p_user: String(user.id), p_email: user.email, p_password: user.password, p_hash: digest }));
       try { await sendEmail(user.email, code, user.role === 'developer' ? 'developer' : 'teacher'); }
-      catch {
+      catch (error) {
+        console.warn(`Teacher invite email was not sent: ${error?.name === 'TimeoutError' ? 'provider-timeout' : error?.status ? 'provider-rejected' : 'provider-unreachable'}`);
+        await logOperationalEvent(db, { category: 'api-error', code: 'invite-email-failed', route: '/api/auth/teacher-invite', status: 503, message: 'A teacher invitation code could not be emailed.' });
         // Revoke only this send, without clearing a concurrently replaced code.
         await db.from('teacher_invites').update({ code_hash: null, expires_at: null }).eq('user_id', String(user.id)).eq('code_hash', digest);
         throw fail(503, 'Your account requires email verification, but the code could not be sent. Try Resend code after 60 seconds or contact your school head.');

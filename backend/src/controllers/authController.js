@@ -295,8 +295,9 @@ export const resendTeacherInvite = async (req, res) => {
   try {
     const user = await teacherInvites.authenticate(req.body.challengeToken);
     await teacherInvites.send(user);
-    res.json({ message: 'A new code has been sent. It expires in 10 minutes.' });
+    res.json({ message: 'A new code was sent to your email and expires in 10 minutes. If it does not arrive within a few minutes, check Spam, then contact your school head.' });
   } catch (error) {
+    if (!error.status) console.error('Teacher invite resend failed:', error.code || error.name || 'unknown');
     res.status(error.status || 503).json({ error: error.status ? error.message : 'Email verification is unavailable. Please try again.' });
   }
 };

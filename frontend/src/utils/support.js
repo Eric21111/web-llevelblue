@@ -15,6 +15,16 @@ export function filterLearners(students,{section='',grade='',query='',topic='',n
   && (!topic || supportTopics(student).includes(topic))
   && (need==='support'?supportTopics(student).length>0:need==='unassessed'?recordedTopics(student).length===0:true));
 }
+export const STUDENT_GRADES = ['Grade 11','Grade 12'];
+export const sectionsForGrade = (sections,grade) => STUDENT_GRADES.includes(grade) ? sections.filter(s => s.gradeLevel===grade) : [];
+export const unconfirmedSections = sections => sections.filter(s => !STUDENT_GRADES.includes(s.gradeLevel));
+export const noSectionsMessage = grade => `No sections available for ${grade}.`;
+export const placementSection = (sections,grade,sectionId) => sectionsForGrade(sections,grade).find(s => s.id===sectionId) || null;
+export function newStudentPlacement(sections,{grade='',sectionId=''}={}) {
+ const preset=sections.find(s => s.id===sectionId && STUDENT_GRADES.includes(s.gradeLevel));
+ const gradeLevel=preset?.gradeLevel || (STUDENT_GRADES.includes(grade) ? grade : '');
+ return {gradeLevel,sectionId:preset?.id||''};
+}
 export const reviewPath = student => `/interventions?${new URLSearchParams({studentId:studentId(student),topic:supportTopics(student)[0]||''})}`;
 export function filterSupportActions(notes,students,sections,{section='',grade='',query=''}={}) {
  const search=query.trim().toLowerCase();
