@@ -60,7 +60,17 @@
 .cohort-review .support-pagination { margin:0; }
 .cohort-review .cohort-preservation { border:1px solid #e5ecf7; border-radius:10px; padding:14px; }
 .cohort-review .cohort-notice { margin:0; }
-@media(max-width:1100px){.cohort-layout{grid-template-columns:minmax(255px,285px) minmax(0,1fr);gap:16px;}.cohort-card-heading,.cohort-fields{padding:18px;}.cohort-action-footer{align-items:flex-start;flex-direction:column;}.cohort-action-footer > button{width:100%;}}
+ .cohort-transition { padding:12px; border:1px solid #dbe6f7; border-radius:9px; background:#f5f8ff; }
+ .cohort-transition strong { display:block; color:#1e3a8a; font-size:15px; margin:4px 0 2px; }
+ .cohort-transition .cohort-field-hint { margin-top:0 !important; }
+ .cohort-schedule { display:grid; gap:12px; padding-top:14px; border-top:1px solid #e5ecf6; }
+ .cohort-switch { display:flex !important; align-items:center; gap:10px; min-height:44px; cursor:pointer; font-weight:600; }
+ .cohort-switch input { appearance:none; width:42px; height:24px; flex-shrink:0; margin:0; padding:0; border-radius:999px; background:#cbd5e1; position:relative; cursor:pointer; transition:background .15s; }
+ .cohort-switch input::after { content:''; position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:#fff; transition:transform .15s; }
+ .cohort-switch input:checked { background:#2e6bff; }
+ .cohort-switch input:checked::after { transform:translateX(18px); }
+ .cohort-switch input:focus-visible { outline:2px solid #4fe0d4; outline-offset:2px; }
+ @media(max-width:1100px){.cohort-layout{grid-template-columns:minmax(255px,285px) minmax(0,1fr);gap:16px;}.cohort-card-heading,.cohort-fields{padding:18px;}.cohort-action-footer{align-items:flex-start;flex-direction:column;}.cohort-action-footer > button{width:100%;}}
 @media(max-width:800px){.cohort-layout{grid-template-columns:1fr;}.cohort-empty{min-height:210px;padding-block:34px;}.cohort-selection-bar{align-items:flex-start;flex-wrap:wrap;}.cohort-history .cohort-card-heading{flex-wrap:wrap;}.cohort-history .cohort-card-heading > label{margin:0;width:100%;}.cohort-notice{flex-wrap:wrap;}}
 @media(max-width:480px){.cohort-review-route,.cohort-review-list{grid-template-columns:1fr;}.cohort-review .support-dialog-actions{flex-wrap:wrap;}.cohort-review .support-dialog-actions button{flex:1;}.cohort-card .support-pagination{padding-inline:14px;}}
-@media(prefers-reduced-motion:reduce){.cohort-table tbody tr{transition:none;}}
+ @media(prefers-reduced-motion:reduce){.cohort-table tbody tr,.cohort-switch input,.cohort-switch input::after{transition:none;}}
