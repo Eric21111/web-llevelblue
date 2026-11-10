@@ -1,3 +1,4 @@
+import WorkspaceSelect from './WorkspaceSelect';
 import {useState} from 'react';
 import {ManagementDialog,useDirectory,DirectoryState} from './ManagementUI';
 import {WorkspaceButton,ViewChoices} from './WorkspaceUI';
@@ -9,7 +10,7 @@ const actions=[
  {id:'cover',title:'Add co-teacher',description:'Share access to this class.'},
  {id:'remove',title:'Remove assignment',description:'End teaching or cover for this class.'}
 ];
-export default function FacultyHandoff({teacher,sections,onClose,onSaved}){
+export default function FacultyHandoff({teacher,sections,onClose,onBack,onSaved}){
  const state=useDirectory(sources);
  const [action,setAction]=useState(teacher.status==='Active'?'transfer':'replace');
  const [source,setSource]=useState(teacher.sectionIds[0]||''),[target,setTarget]=useState(''),[replacement,setReplacement]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('');
@@ -26,13 +27,13 @@ export default function FacultyHandoff({teacher,sections,onClose,onSaved}){
    onSaved();
   }catch(e){setError(e.message);}finally{setBusy(false);}
  }
- return <ManagementDialog title="Teaching assignments" onClose={onClose} busy={busy}>
+ return <ManagementDialog onBack={onBack} title="Teaching assignments" onClose={onClose} busy={busy}>
   <p><strong>{teacher.name}</strong> · {teacher.roleLabel}</p>
   <DirectoryState {...state}><form className="support-form" onSubmit={submit}><fieldset disabled={busy} className="support-form">
    <ViewChoices label="Assignment action" options={actions.filter(item=>teacher.status==='Active'||item.id!=='transfer')} value={action} onChange={changeAction}/>
-   <label>Current section<select required value={source} onChange={event=>{setSource(event.target.value);setTarget('');setReplacement('');setError('');}}>{sections.filter(section=>teacher.sectionIds.includes(section.id)).map(section=><option key={section.id} value={section.id}>{section.gradeLevel||'Grade unconfirmed'} · {section.name}</option>)}</select></label>
-   {action==='transfer'&&<label>Move to<select required value={target} onChange={event=>setTarget(event.target.value)}><option value="">Choose a section</option>{sections.filter(section=>!teacher.sectionIds.includes(section.id)).map(section=><option key={section.id} value={section.id}>{section.gradeLevel||'Grade unconfirmed'} · {section.name}</option>)}</select></label>}
-   {action!=='remove'&&<label>{action==='cover'?'Co-teacher':'Replacement in the current section'}<select required={action!=='transfer'} value={replacement} onChange={event=>setReplacement(event.target.value)}><option value="">{action==='transfer'?'Keep existing active co-teachers':'Choose active staff'}</option>{choices.map(person=><option key={person.id} value={person.id}>{person.name} · {person.roleLabel}</option>)}</select></label>}
+   <label>Current section<WorkspaceSelect required value={source} onChange={event=>{setSource(event.target.value);setTarget('');setReplacement('');setError('');}}>{sections.filter(section=>teacher.sectionIds.includes(section.id)).map(section=><option key={section.id} value={section.id}>{section.gradeLevel||'Grade unconfirmed'} · {section.name}</option>)}</WorkspaceSelect></label>
+   {action==='transfer'&&<label>Move to<WorkspaceSelect required value={target} onChange={event=>setTarget(event.target.value)}><option value="">Choose a section</option>{sections.filter(section=>!teacher.sectionIds.includes(section.id)).map(section=><option key={section.id} value={section.id}>{section.gradeLevel||'Grade unconfirmed'} · {section.name}</option>)}</WorkspaceSelect></label>}
+   {action!=='remove'&&<label>{action==='cover'?'Co-teacher':'Replacement in the current section'}<WorkspaceSelect required={action!=='transfer'} value={replacement} onChange={event=>setReplacement(event.target.value)}><option value="">{action==='transfer'?'Keep existing active co-teachers':'Choose active staff'}</option>{choices.map(person=><option key={person.id} value={person.id}>{person.name} · {person.roleLabel}</option>)}</WorkspaceSelect></label>}
    <div className="support-context faculty-handoff-summary" role="status"><strong>What will change</strong><p>{action==='cover'?`${replacementName} gains shared access to ${sectionName(source)}. ${teacher.name} keeps their assignment.`:`${teacher.name} loses access through their assignment to ${sectionName(source)}.${action==='transfer'?` They gain access to ${target?sectionName(target):'the destination section'}.`:''}${replacement?` ${replacementName} takes over ${sectionName(source)}.`:''}`}</p><p>{action==='cover'?'Co-teacher access continues until you remove their assignment.':'A section with active students must retain an active teacher or Head Admin.'} Student enrollment and learning history stay the same.</p></div>
    {error&&<p className="support-error" role="alert">{error}</p>}
    <footer className="support-dialog-actions"><WorkspaceButton onClick={onClose}>Cancel</WorkspaceButton><WorkspaceButton type="submit" variant="primary" disabled={!valid}>{busy?'Saving…':'Confirm assignment'}</WorkspaceButton></footer>

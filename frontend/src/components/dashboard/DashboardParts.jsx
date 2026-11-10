@@ -1,7 +1,7 @@
-import {RefreshButton} from '../WorkspaceUI';
+import Skeleton from '../Skeleton';
 import {useState} from 'react';
 import {DashboardPeriodActivity,localDate} from './DashboardPeriod';
-import { RefreshCw, AlertCircle, Inbox, CheckCircle2, Users, Activity, GraduationCap, ShieldAlert } from "lucide-react";
+import { AlertCircle, Inbox, CheckCircle2, Users, Activity, GraduationCap, ShieldAlert, School } from "lucide-react";
 import DashboardExports from './DashboardExports';
 import { formatLastActive } from "../../utils/time";
 import { initials, formatPercent, masteryPercent, studentId } from "../../utils/dashboard";
@@ -9,24 +9,26 @@ import { initials, formatPercent, masteryPercent, studentId } from "../../utils/
 export function DashboardCard({ icon: Icon, title, description, action, onAction, children, className = "" }) {
   return <section className={`dash-card ${className}`}><header className="dash-card-header"><div><h2>{Icon && <Icon size={18} aria-hidden="true" />}{title}</h2>{description && <p>{description}</p>}</div>{action && <button className="dash-text-button" onClick={onAction}>{action}</button>}</header>{children}</section>;
 }
-export function DashboardHero({ user, school = false, stats, sectionName='', refreshKey }) {
+export function DashboardHero({ user, school = false, stats, sectionName='' }) {
   const [date,setDate]=useState(localDate),[period,setPeriod]=useState('day');
   const now = new Date();
   const hour = now.getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const name = user?.firstName || user?.name?.split(" ")[0];
-  const icons = school ? [GraduationCap, Users, Activity, ShieldAlert] : [Users, Activity, ShieldAlert, GraduationCap];
+  const metrics = school
+    ? [[GraduationCap,'faculty'],[Users,'learners'],[School,'sections'],[ShieldAlert,'support']]
+    : [[Users,'learners'],[Activity,'faculty'],[ShieldAlert,'support'],[School,'sections']];
   return <section className={`dash-welcome ${school ? "is-school" : ""}`}>
-    <div className="dash-overview-heading"><div><span className="dash-eyebrow">{school ? 'Principal workspace' : user?.is_head_admin ? 'Head Admin workspace' : 'Teacher workspace'}</span><h1>Dashboard</h1><p>{greeting}{name ? ', ' + name : ''}. {school ? 'Here’s how learning is progressing across your school.' : 'Here’s where your classroom needs you today.'}</p></div><DashboardExports sectionName={sectionName} date={date} period={period} onDate={setDate} onPeriod={setPeriod}/></div>
-    <div className="dash-overview-metrics">{stats.map((stat,index) => { const Icon=icons[index]; return <article key={stat.label}><div className="dash-overview-metric-label"><span>{stat.label}</span><Icon size={18} aria-hidden="true"/></div><strong>{stat.value ?? '—'}</strong><small>{stat.note}</small></article>; })}</div>
-    <DashboardPeriodActivity date={date} period={period} sectionName={sectionName} refreshKey={refreshKey}/>
+    <div className="dash-overview-heading"><div><h1>Dashboard</h1><p>{greeting}{name ? ', ' + name : ''}. {school ? 'Here’s how learning is progressing across your school.' : 'Here’s where your classroom needs you today.'}</p></div><DashboardExports sectionName={sectionName} date={date} period={period} onDate={setDate} onPeriod={setPeriod}/></div>
+    <div className="dash-overview-metrics">{stats.map((stat,index) => { const [Icon,tone]=metrics[index]; return <article className={"metric-"+tone} key={stat.label}><div className="dash-overview-metric-label"><span>{stat.label}</span><Icon size={18} aria-hidden="true"/></div><strong>{stat.value ?? '—'}</strong><small>{stat.note}</small></article>; })}</div>
+    <DashboardPeriodActivity date={date} period={period} sectionName={sectionName}/>
   </section>;
 }
 export function DashboardToolbar({ title = "Your overview", state, children }) {
-  return <div className="dash-toolbar"><div><h2>{title}</h2><span className={Object.keys(state.errors).length ? "dash-sync-error" : "dash-sync"}>{Object.keys(state.errors).length ? "Some information is unavailable" : state.loading ? "Loading your information…" : `Updated ${state.updatedAt?.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · refreshes every 30s`}</span></div><div className="dash-toolbar-actions">{children}<RefreshButton loading={state.refreshing} onClick={state.refresh}/></div></div>;
+  return <div className="dash-toolbar"><div><h2>{title}</h2><span className={Object.keys(state.errors).length ? "dash-sync-error" : "dash-sync"}>{Object.keys(state.errors).length ? "Some information is unavailable" : state.loading ? "Loading your information…" : `Updated ${state.updatedAt?.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}</span></div><div className="dash-toolbar-actions">{children}</div></div>;
 }
 export function DataState({ state, sources, children }) {
-  if (state.loading) return <div className="dash-empty" role="status"><RefreshCw size={22} className="dash-spin" /><strong>Loading your information…</strong></div>;
+  if (state.loading) return <Skeleton label="Loading dashboard information"/>;
   if (sources.some(key => state.errors[key])) return <div className="dash-empty dash-data-error" role="status"><AlertCircle size={24} /><strong>Information unavailable</strong><p>We couldn’t load this panel. Try refreshing.</p><button className="dash-button" onClick={state.refresh} disabled={state.refreshing}>Try again</button></div>;
   return children;
 }
@@ -44,8 +46,31 @@ export function SkillBars({ skills }) {
 }
 export function Participation({ summary }) {
   if (!summary.total) return <EmptyState title="No students yet" text="Participation will appear once students are added to a section." />;
-  const groups = [{ label: "Learning in progress", value: summary.progressing, color: "#2563eb" }, { label: "Needs support", value: summary.needsSupport.length, color: "#eda545" }, { label: "Not started", value: summary.notStarted.length, color: "#d9e0ec" }];
-  return <div className="dash-distribution"><div className="dash-distribution-total"><strong>{summary.total}</strong><span>students in this view</span></div><div className="dash-distribution-track" role="img" aria-label={`${summary.total} students: ${groups.map(group => `${group.value} ${group.label}`).join(", ")}`}>{groups.filter(group => group.value > 0).map(group => <span key={group.label} style={{ flex: group.value, background: group.color }} />)}</div><div className="dash-legend">{groups.map(group => <div key={group.label}><i style={{ background: group.color }} /><span>{group.label}</span><strong>{group.value}</strong></div>)}</div></div>;
+  const groups = [{ label: "Learning in progress", value: summary.progressing, color: "var(--chart-blue)" }, { label: "Needs support", value: summary.needsSupport.length, color: "var(--chart-amber)" }, { label: "Not started", value: summary.notStarted.length, color: "var(--chart-muted)" }];
+  return <DistributionChart groups={groups} total={summary.total} unit="Students"/>;
+}
+
+export function DistributionChart({groups, total, unit}) {
+  let offset = 0;
+  const segments = groups.map(group => {
+    const length = total ? group.value / total * 100 : 0;
+    const start = offset;
+    offset += length;
+    return {...group, start, length};
+  });
+  return <div className="distribution-chart">
+    <div className="dash-donut">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <circle className="ring-track" cx="50" cy="50" r="42"/>
+        {segments.filter(segment=>segment.length>0).map(segment=>
+          <circle key={segment.label} cx="50" cy="50" r="42" pathLength="100"
+            stroke={segment.color} strokeDasharray={segment.length+' '+(100-segment.length)} strokeDashoffset={-segment.start}/>
+        )}
+      </svg>
+      <span><strong>{total}</strong>{unit}</span>
+    </div>
+    <dl>{groups.map(group=><div key={group.label}><dt><i style={{background:group.color}}/>{group.label}</dt><dd>{group.value}</dd></div>)}</dl>
+  </div>;
 }
 export function StudentActivity({ students }) {
   const recent = students.filter(student => student.lastActive && Number.isFinite(Date.parse(student.lastActive))).sort((a, b) => Date.parse(b.lastActive) - Date.parse(a.lastActive)).slice(0, 5);

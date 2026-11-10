@@ -1,139 +1,220 @@
-import { useState } from "react";
-import {
-  ArrowDown, ArrowRight, Activity, BarChart3, BookOpen, Check,
-  ChevronRight, Database, GraduationCap, LayoutDashboard, LockKeyhole,
-  Mail, Menu, MessageSquare, MousePointer2, Phone, Shield, ShieldCheck,
-  Target, TrendingUp, Users, X,
-} from "lucide-react";
+import {useEffect, useRef, useState} from "react";
+import {ArrowRight, BookOpen, ChartNoAxesColumnIncreasing, GraduationCap, Shield, ShieldCheck, ArrowDown, ArrowUp, Focus, ClipboardCheck, FileDown, Smartphone, ChevronDown, Mail, MessageSquare, Phone, UserRound, Gift, Users} from "lucide-react";
 import FontImports from "../components/FontImports";
+import StudentMastery from "../components/StudentMastery";
+import ChoicePicker from "../components/ChoicePicker";
+import {SKILLS, summarizeStudents} from "../utils/dashboard";
 import "./LandingPage.css";
 
-const skills = [
-  { name: "Phishing", icon: Mail, value: 86 },
-  { name: "Smishing", icon: MessageSquare, value: 74 },
-  { name: "Vishing", icon: Phone, value: 68 },
-  { name: "Pretexting", icon: Users, value: 81 },
-  { name: "Baiting", icon: MousePointer2, value: 76 },
-];
+// Deliberately local examples. This public page never requests school records.
+const sampleSections = [
+  {grade: "Grade 11", section: "Diamond", rows: [
+    ["A. Reyes", [0.93, 0.78, 0.64, 0.32, 0.81]],
+    ["B. Cruz", [0.81, 0.91, null, 0.36, 0.75]],
+    ["C. Santos", [0.95, 0.74, 0.68, 0.58, 0.92]],
+    ["D. Torres", [0.88, 0.85, 0.72, 0.29, null]],
+  ]},
+  {grade: "Grade 12", section: "Emerald", rows: [
+    ["E. Ramos", [0.96, 0.35, 0.74, 0.82, 0.91]],
+    ["F. Lim", [0.87, 0.69, 0.93, 0.85, null]],
+    ["G. Garcia", [0.92, 0.31, null, 0.79, 0.94]],
+  ]},
+].map(({grade, section, rows}) => ({
+  label: grade + " · " + section,
+  section,
+  students: rows.map(([name, values]) => ({
+    _id: name, name, section, mastery: Object.fromEntries(SKILLS.map((skill, index) => [skill, values[index]])),
+  })),
+}));
 
-const features = [
-  { icon: Target, title: "See learning take shape", text: "Follow mastery across five social engineering threats. See where understanding is growing and where students need support.", tag: "Skill analytics" },
-  { icon: Users, title: "Keep your classes connected", text: "Organize sections, manage your class roster, and bring each student’s learning progress into one clear view.", tag: "Class management" },
-  { icon: Activity, title: "Look beyond the scores", text: "Review engagement, compare pre- and post-test results, and spot students who may benefit from a follow-up.", tag: "Engagement & progress" },
-];
-
-const audiences = {
-  teachers: {
-    eyebrow: "MORE CLARITY. MORE TIME TO TEACH.",
-    title: "Know who needs a little more guidance.",
-    text: "Turn student activity into a clearer picture of your classroom. LEVELBLUE helps you focus your next lesson on the skills that need it most.",
-    items: ["Monitor mastery for each student and section", "Identify learning gaps and at-risk students", "Review engagement and pre/post-test gains"],
-    label: "YOUR CLASSROOM, AT A GLANCE",
-    cards: [
-      { icon: GraduationCap, title: "Class roster & sections", text: "Your students, organized in one place." },
-      { icon: BarChart3, title: "Individual skill insights", text: "A clearer view of strengths and learning gaps." },
-      { icon: Target, title: "Focused follow-ups", text: "See which students need your attention." },
+const roles = [
+  {
+    icon: GraduationCap, title: "Teachers", heading: "Plan the next lesson around your learners.",
+    text: "Open your assigned sections, find topics that need practice, and keep a record of the support you provide.",
+    tasks: [
+      ["Class diagnostics", "Compare students and topics in the mastery heatmap."],
+      ["Reviews & classroom support", "Record a learning review, schedule remediation, and update its outcome."],
+      ["Individual reports", "Export recorded scores and progress for grading or parent conversations."],
     ],
   },
-  heads: {
-    eyebrow: "A CLEARER VIEW ACROSS YOUR SCHOOL.",
-    title: "Support your teachers. See the bigger picture.",
-    text: "Bring account management, learning content, and school-wide outcomes together. Give your teachers the support they need to keep awareness training moving.",
-    items: ["Manage teacher accounts and access", "Maintain the training content bank", "Compare section outcomes and review system logs"],
-    label: "YOUR SCHOOL, WORKING TOGETHER",
-    cards: [
-      { icon: Users, title: "Teacher accounts", text: "Manage the people guiding your learners." },
-      { icon: Database, title: "A shared content bank", text: "Keep training questions organized." },
-      { icon: BarChart3, title: "School-wide insights", text: "Compare learning gains across sections." },
+  {
+    icon: BookOpen, title: "Head Admins", heading: "Teach your sections and support their faculty.",
+    text: "Use the classroom tools for your own sections while checking the faculty assigned to them.",
+    tasks: [
+      ["Assigned classrooms", "Review your students’ mastery, assessment records, and feedback."],
+      ["Section faculty", "See the staff connected to your assigned sections."],
+      ["Teaching content", "Draft lessons, practice questions, and Threat Codex entries for Principal review."],
     ],
   },
-};
+  {
+    icon: ShieldCheck, title: "Principal", heading: "Connect classroom needs to school decisions.",
+    text: "Bring staff assignments, curriculum review, and school learning outcomes into one workspace.",
+    tasks: [
+      ["Staff & sections", "Create staff accounts and manage teaching assignments."],
+      ["Review & publish", "Approve curriculum revisions before publishing them to the school content feed."],
+      ["Institutional reports", "Compare Grades 11–12 and export recorded learning evidence."],
+    ],
+  },
+];
 
-function Brand() {
-  return <span className="lb-brand"><span className="lb-brand-mark"><Shield size={22} strokeWidth={2} /></span><span>LEVEL<span className="lb-teal">BLUE</span><small>LEARN. RECOGNIZE. PROTECT.</small></span></span>;
-}
+const learningSteps = [
+  {icon: Smartphone, title: "Students practice in the app", text: "Lessons, assessments, and simulations cover Phishing, Smishing, Vishing, Pretexting, and Baiting."},
+  {icon: ClipboardCheck, title: "Teachers act on the results", text: "Check recorded mastery, review a student’s learning needs, and document classroom support."},
+  {icon: FileDown, title: "Bring evidence to the discussion", text: "Review recorded pre-test and post-test scores, then export PDF or CSV reports for meetings."},
+];
 
-function DashboardPreview() {
-  return (
-    <figure className="lb-preview" aria-label="Illustrative dashboard showing sample class mastery and learning progress">
-      <div className="lb-preview-top"><span className="lb-window-dots"><i /><i /><i /></span><span><LockKeyhole size={10} /> LEVELBLUE / Teacher console</span><span className="lb-sample">DEMO</span></div>
-      <div className="lb-preview-body">
-        <div className="lb-preview-rail" aria-hidden="true"><Shield size={21} /><LayoutDashboard className="active" size={18} /><Users size={18} /><BarChart3 size={18} /><BookOpen size={18} /><Activity size={18} /></div>
-        <div className="lb-preview-content">
-          <div className="lb-preview-heading"><div><span className="lb-mini-label">THE BIG PICTURE</span><h3>Learning, made visible.</h3></div><span className="lb-avatar">T</span></div>
-          <div className="lb-preview-stats"><div><span>Class mastery</span><strong>77<span>%</span></strong><small><TrendingUp size={12} /> Growing together</small></div><div><span>Learning gain</span><strong>+24<span> pts</span></strong><small>From pre- to post-test</small></div><div><span>Threat types</span><strong>05</strong><small>One clearer picture</small></div></div>
-          <div className="lb-chart-card">
-            <div className="lb-chart-heading"><span>Mastery over time</span><span className="lb-chart-key">Class average</span></div>
-            <svg className="lb-growth-chart" viewBox="0 0 430 158" role="img" aria-label="Sample mastery increases from 32 to 77 percent across six weeks">
-              <defs><linearGradient id="lb-chart-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#60a5fa" stopOpacity=".24" /><stop offset="100%" stopColor="#60a5fa" stopOpacity="0" /></linearGradient></defs>
-              {[25, 65, 105].map((y, i) => <g key={y}><text x="0" y={y + 4}>{[100, 70, 40][i]}%</text><line x1="35" x2="425" y1={y} y2={y} /></g>)}
-              <path d="M35 117 C70 117 85 97 112 98 S167 73 190 77 S245 53 270 57 S325 40 348 43 S398 25 425 27 L425 137 L35 137Z" fill="url(#lb-chart-fill)" />
-              <path className="lb-chart-line" d="M35 117 C70 117 85 97 112 98 S167 73 190 77 S245 53 270 57 S325 40 348 43 S398 25 425 27" fill="none" stroke="#60a5fa" strokeWidth="2.5" pathLength="1" />
-              <circle cx="425" cy="27" r="4" fill="#60a5fa" stroke="#122539" strokeWidth="3" />
-              {[35, 112, 190, 270, 348, 410].map((x, i) => <text key={x} x={x} y="155" textAnchor="middle">W{i + 1}</text>)}
-            </svg>
-          </div>
-          <div className="lb-skill-heading"><span>Skills in focus</span><span>Mastery</span></div>
-          <div className="lb-skill-bars">{skills.slice(0, 3).map(({ name, value }) => <div key={name}><span>{name}</span><div><i style={{ "--progress": `${value}%` }} /></div><strong>{value}%</strong></div>)}</div>
-        </div>
-      </div>
-      <figcaption>Illustrative preview · Sample data</figcaption>
-      <div className="lb-preview-note"><span><ShieldCheck size={23} /></span><div><strong>Small insights. Safer habits.</strong><small>Help awareness become understanding.</small></div></div>
-    </figure>
-  );
+const threats = [
+  {name:"Phishing", icon:Mail, hint:"Deceptive emails", text:"Recognize emails that impersonate trusted senders and ask for sensitive information.", color:"#285bd4"},
+  {name:"Smishing", icon:MessageSquare, hint:"Misleading texts", text:"Spot suspicious text messages, urgent requests, and links that lead away from trusted services.", color:"#5361bf"},
+  {name:"Vishing", icon:Phone, hint:"Fraudulent calls", text:"Question callers who use authority or urgency to pressure you into sharing private information.", color:"#347a86"},
+  {name:"Pretexting", icon:UserRound, hint:"Invented identities", text:"Look beyond a convincing story. Verify who is asking and why they need your information.", color:"#91601e"},
+  {name:"Baiting", icon:Gift, hint:"Offers with a catch", text:"Pause before accepting a tempting download, reward, or device from an unfamiliar source.", color:"#7254a3"},
+];
+const roleTaskIcons = [[ChartNoAxesColumnIncreasing, ClipboardCheck, FileDown], [GraduationCap, Users, BookOpen], [Users, ShieldCheck, FileDown]];
+
+function returnToTop() {
+  document.getElementById("hero-title")?.focus({preventScroll:true});
+  window.scrollTo({
+    top:0,
+    behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+  });
 }
 
 export default function LandingPage() {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [audience, setAudience] = useState("teachers");
-  const selected = audiences[audience];
-
+  const [sectionIndex, setSectionIndex] = useState(0);
+  const [roleIndex, setRoleIndex] = useState(0);
+  const [threatIndex, setThreatIndex] = useState(0);
+  const pageRef = useRef(null);
+  const selectedRole = roles[roleIndex];
+  const RoleIcon = selectedRole.icon;
+  const selectedThreat = threats[threatIndex];
+  useEffect(() => {
+    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (!("IntersectionObserver" in window)) return;
+    const animations = new Set();
+    const observer = new IntersectionObserver(entries => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        observer.unobserve(entry.target);
+        if (motion.matches || !entry.target.animate) continue;
+        const animation = entry.target.animate(
+          [{opacity:0.55, transform:"translateY(18px)"}, {opacity:1, transform:"translateY(0)"}],
+          {duration:480, easing:"cubic-bezier(.2,.7,.3,1)"},
+        );
+        animations.add(animation);
+        animation.onfinish = () => animations.delete(animation);
+      }
+    }, {threshold:0.08});
+    pageRef.current.querySelectorAll("[data-reveal]").forEach(element => observer.observe(element));
+    const stopMotion = () => { if (motion.matches) animations.forEach(animation => animation.cancel()); };
+    motion.addEventListener("change",stopMotion);
+    return () => {
+      observer.disconnect();
+      animations.forEach(animation => animation.cancel());
+      motion.removeEventListener("change",stopMotion);
+    };
+  }, []);
+  const sample = sampleSections[sectionIndex];
+  const {skills} = summarizeStudents(sample.students, []);
+  const focus = skills.filter(skill => skill.value !== null).reduce((lowest, skill) => skill.value < lowest.value ? skill : lowest);
+  const assessed = sample.students.filter(student => Number.isFinite(student.mastery[focus.name]));
+  const needPractice = assessed.filter(student => student.mastery[focus.name] < 0.4).length;
   return (
-    <div className="lb-landing" id="top">
-      <FontImports />
+    <div ref={pageRef} className="lb-landing" id="top">
+      <FontImports/>
       <a className="lb-skip" href="#main">Skip to content</a>
       <header className="lb-header"><div className="lb-container lb-header-inner">
-        <a href="/" className="lb-brand-link" aria-label="LEVELBLUE home"><Brand /></a>
-        <nav className={`lb-nav ${menuOpen ? "is-open" : ""}`} aria-label="Main navigation">
-          <a href="#features" onClick={() => setMenuOpen(false)}>Features</a><a href="#for-educators" onClick={() => setMenuOpen(false)}>For educators</a><a href="#how-it-works" onClick={() => setMenuOpen(false)}>How it works</a>
+        <a href="#top" className="lb-wordmark" aria-label="LEVELBLUE home"><Shield aria-hidden="true"/><span>LEVEL<span>BLUE</span></span></a>
+        <nav aria-label="Main navigation">
+          <a href="#features">Class diagnostics</a>
+          <a href="#for-educators">Staff tools</a>
+          <a className="lb-login-link" href="/login">Log in <ArrowRight aria-hidden="true"/></a>
         </nav>
-        <div className="lb-header-actions"><a className="lb-button lb-button-small" href="/login">Log in <ArrowRight size={15} /></a><button className="lb-menu-toggle" type="button" aria-label={menuOpen ? "Close navigation" : "Open navigation"} aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X size={22} /> : <Menu size={22} />}</button></div>
       </div></header>
-
       <main id="main">
-        <section className="lb-hero lb-container" aria-labelledby="hero-title">
-          <div className="lb-hero-copy"><div className="lb-eyebrow"><span className="lb-status-dot" /> CYBER AWARENESS STARTS HERE</div>
-            <h1 id="hero-title">A safer digital world.<br /><span>One learner<br className="lb-desktop-break" /> at a time.</span></h1>
-            <p>See how your students learn to spot a threat.<br className="lb-desktop-break" /> Turn cybersecurity learning into meaningful insights for your classroom and your school.</p>
-            <div className="lb-hero-actions"><a className="lb-button" href="/login">Log in to LEVELBLUE <ArrowRight size={17} /></a><a className="lb-text-link" href="#features">Explore the features <ArrowDown size={15} /></a></div>
-            <div className="lb-hero-footnote"><GraduationCap size={16} /><span>For teachers, Head Admins, and the Principal.</span></div>
+        <section className="lb-hero-band" aria-labelledby="hero-title"><div className="lb-hero lb-container">
+          <div className="lb-hero-copy">
+            <p className="lb-hero-context"><BookOpen size={18} aria-hidden="true"/>Built for Grade 11 & 12 educators</p>
+            <h1 id="hero-title" tabIndex={-1}>See who needs support.<br/><span>Know what to teach next.</span></h1>
+            <p>Your students play, practice, and learn. LEVELBLUE helps you see their progress, spot gaps in social engineering awareness, and plan the support that matters.</p>
+            <div className="lb-hero-links">
+              <a className="lb-button" href="/login">Log in to LEVELBLUE <ArrowRight aria-hidden="true"/></a>
+              <a className="lb-explore" href="#features">Try the live preview <ArrowDown size={16} aria-hidden="true"/></a>
+            </div>
           </div>
-          <div className="lb-hero-visual"><div className="lb-orbit lb-orbit-one" aria-hidden="true" /><div className="lb-orbit lb-orbit-two" aria-hidden="true" /><DashboardPreview /></div>
-        </section>
-
-        <section className="lb-threat-strip" aria-label="Social engineering skills covered"><div className="lb-container lb-threat-inner"><span>REAL-WORLD THREATS.<br /><strong>Real learning.</strong></span><div>{skills.map(({ name, icon: Icon }) => <span key={name}><Icon size={18} />{name}</span>)}</div></div></section>
-
-        <section className="lb-section lb-container" id="features" aria-labelledby="features-title">
-          <div className="lb-section-intro"><div><span className="lb-eyebrow">FROM AWARENESS TO ACTION</span><h2 id="features-title">Less guesswork.<br />More meaningful progress.</h2></div><p>Everything you need to understand learning,<br className="lb-desktop-break" /> support your students, and move forward.</p></div>
-          <div className="lb-feature-grid">{features.map(({ icon: Icon, title, text, tag }, index) => <article className="lb-feature-card" key={title}><div className="lb-feature-top"><span className="lb-icon-box"><Icon size={23} /></span><span className="lb-feature-number">0{index + 1}</span></div><h3>{title}</h3><p>{text}</p><span className="lb-feature-tag">{tag}<ArrowRight size={14} /></span></article>)}</div>
-        </section>
-
-        <section className="lb-audience-section" id="for-educators" aria-labelledby="audience-title"><div className="lb-container">
-          <div className="lb-audience-header"><span className="lb-eyebrow">DIFFERENT ROLES. ONE SHARED PURPOSE.</span><h2 id="audience-title">Built around the work you do.</h2><div className="lb-role-switch" role="group" aria-label="Choose your role"><button type="button" aria-pressed={audience === "teachers"} onClick={() => setAudience("teachers")}><GraduationCap size={17} />For teachers</button><button type="button" aria-pressed={audience === "heads"} onClick={() => setAudience("heads")}><ShieldCheck size={17} />For school leaders</button></div></div>
-          <div className="lb-audience-content"><div className="lb-audience-copy"><span className="lb-mini-label">{selected.eyebrow}</span><h3>{selected.title}</h3><p>{selected.text}</p><ul>{selected.items.map(item => <li key={item}><Check size={16} />{item}</li>)}</ul><a className="lb-text-link lb-teal" href="/login">Go to your console <ArrowRight size={16} /></a></div><div className="lb-role-preview"><span className="lb-mini-label">{selected.label}</span>{selected.cards.map(({ icon: Icon, title, text }, index) => <div className="lb-role-card" key={title}><span className={`lb-icon-box lb-role-icon-${index}`}><Icon size={22} /></span><div><h4>{title}</h4><p>{text}</p></div><ChevronRight size={16} /></div>)}<div className="lb-role-note"><LockKeyhole size={13} />Your account opens the tools for your role.</div></div></div>
+          <div className="lb-preview" data-reveal>
+          <div className="lb-preview-heading"><span><ChartNoAxesColumnIncreasing size={17} aria-hidden="true"/>Your classroom, at a glance</span></div>
+          <figure className="lb-chart">
+            <figcaption>
+              <h2><ChartNoAxesColumnIncreasing aria-hidden="true"/>Class mastery by topic</h2>
+              <ChoicePicker className="lb-sample-filter" label="Sample section" value={sectionIndex} onChange={setSectionIndex} options={sampleSections.map((section,index)=>({value:index,label:section.label,description:section.students.length+" sample learners",icon:GraduationCap}))}/>
+            </figcaption>
+            <div className="lb-plot">
+              <div className="lb-scale" aria-hidden="true"><span>100%</span><span>50%</span><span>0%</span></div>
+              <dl className="lb-columns">{skills.map(({name,value}, index) =>
+                <div key={name} className={name===focus.name?'is-focus':''}>
+                  <dt>{name}</dt>
+                  <dd><span style={{height:(value ?? 0)+'%', '--bar-order':index}}><b>{value===null?'—':value+'%'}</b></span></dd>
+                </div>
+              )}</dl>
+            </div>
+            <div className="lb-chart-note" aria-live="polite"><Focus aria-hidden="true"/><p><span>Where to focus next</span><strong>{focus.name}</strong> has the lowest average mastery.</p><a href="#features" aria-label="Explore learners needing support"><ArrowDown aria-hidden="true"/></a></div>
+          </figure>
+          <p className="lb-preview-caption">Try switching sections. These fictional records show how your workspace works.</p>
+          </div>
         </div></section>
-
-        <section className="lb-section lb-container" id="how-it-works" aria-labelledby="how-title"><div className="lb-centered-intro"><span className="lb-eyebrow">A SIMPLE PATH FORWARD</span><h2 id="how-title">From sign-in to insight.</h2><p>Stay connected to learning in three simple steps.</p></div><div className="lb-steps">{[
-          ["01", "Make yourself at home", "Log in with your assigned account. Your role brings you straight to the right console."],
-          ["02", "See the learning unfold", "Explore student mastery and engagement, or review progress across your school."],
-          ["03", "Make your next move count", "Use what you discover to guide follow-ups, support teachers, and strengthen awareness."],
-        ].map(([number, title, text]) => <article key={number}><span className="lb-step-number">{number}</span><h3>{title}</h3><p>{text}</p></article>)}</div></section>
-
-        <section className="lb-container lb-cta-wrap"><div className="lb-cta"><div className="lb-cta-emblem" aria-hidden="true"><ShieldCheck size={42} /></div><span className="lb-eyebrow">BETTER INSIGHTS. STRONGER AWARENESS.</span><h2>Help your learners stay one step ahead.</h2><p>Your next teaching insight is waiting in LEVELBLUE.</p><a className="lb-button" href="/login">Log in to your console <ArrowRight size={17} /></a><small>For teachers and school leaders with an existing account.</small></div></section>
+        <section className="lb-topic-band" aria-labelledby="threats-title"><div className="lb-container">
+          <div className="lb-threat-heading"><h2 id="threats-title">Five threats.<br/><span>Confidence starts with recognition.</span></h2></div>
+          <div className="lb-threat-choices" role="group" aria-label="Explore social engineering threats">{threats.map(({name,icon:Icon,hint,color},index)=>
+            <button key={name} type="button" style={{'--threat-color':color}} aria-pressed={threatIndex===index} aria-controls="threat-description" onClick={()=>setThreatIndex(index)}><span className="lb-threat-icon"><Icon aria-hidden="true"/></span><strong>{name}</strong><span>{hint}</span></button>
+          )}</div>
+          <div id="threat-description" className="lb-threat-description" aria-live="polite"><p key={selectedThreat.name}><strong>{selectedThreat.name}</strong>{selectedThreat.text}</p></div>
+        </div></section>
+        <section id="features" className="lb-evidence" aria-labelledby="evidence-title"><div className="lb-container lb-evidence-inner">
+          <div className="lb-evidence-copy" data-reveal>
+            <h2 id="evidence-title">Find the learner behind the numbers.</h2>
+            <p>Know where a little extra guidance could make a difference. Explore the heatmap by topic to see individual strengths and areas for practice.</p>
+            <div className="lb-focus-summary">
+              <Focus aria-hidden="true"/>
+              <div><span>{sample.label} · Sample records</span><strong>{needPractice} of {assessed.length} assessed learners</strong><p>Below 40% mastery in {focus.name.toLowerCase()}.</p></div>
+            </div>
+            <p className="lb-evidence-hint">A dash means mastery has not been recorded for that topic.</p>
+          </div>
+          <div className="lb-heatmap-frame" data-reveal><StudentMastery students={sample.students} sectionName={sample.section}/></div>
+        </div></section>
+        <section className="lb-workflow lb-container" aria-labelledby="workflow-title">
+          <div className="lb-workflow-lead" data-reveal><h2 id="workflow-title">A path from practice <span>to progress.</span></h2><p>Learning starts in the game. Meaningful support starts with what you see next.</p><div className="lb-workflow-first"><span>01 / PRACTICE</span><h3>{learningSteps[0].title}</h3><p>{learningSteps[0].text}</p></div></div>
+          <ol className="lb-learning-steps" start={2}>{learningSteps.slice(1).map(({icon:Icon,title,text},index) =>
+            <li key={title} data-reveal><Icon aria-hidden="true"/><div><span className="lb-step-number">0{index+2} / {index===0?'SUPPORT':'REFLECT'}</span><h3>{title}</h3><p>{text}</p></div></li>
+          )}</ol>
+        </section>
+        <section id="for-educators" className="lb-roles lb-container" aria-labelledby="roles-title">
+          <div className="lb-section-heading" data-reveal><h2 id="roles-title">Made for the way your school works.</h2></div>
+          <div className="lb-role-workspace" data-reveal>
+            <div className="lb-role-choices" role="group" aria-label="Explore staff roles">
+              {roles.map(({icon:Icon,title},index) => <button key={title} type="button" aria-pressed={roleIndex===index} aria-controls="role-details" onClick={()=>setRoleIndex(index)}><Icon aria-hidden="true"/><span>{title}</span></button>)}
+            </div>
+            <div id="role-details" className="lb-role-details">
+              <div className="lb-role-intro" key={selectedRole.title}><span className="lb-role-emblem"><RoleIcon aria-hidden="true"/></span><h3>{selectedRole.heading}</h3><p>{selectedRole.text}</p><a href="/login">Go to your workspace <ArrowRight size={17} aria-hidden="true"/></a></div>
+              <ul key={roleIndex}>{selectedRole.tasks.map(([title,text],index)=>{const Icon=roleTaskIcons[roleIndex][index];return <li key={title}><span className="lb-role-task-icon"><Icon aria-hidden="true"/></span><div><h4>{title}</h4><p>{text}</p></div></li>;})}</ul>
+            </div>
+          </div>
+        </section>
+        <section className="lb-questions lb-container" aria-labelledby="questions-title">
+          <div data-reveal><h2 id="questions-title">A little clarity before you begin.</h2><p>A few things to know before opening your workspace.</p></div>
+          <div className="lb-question-list" data-reveal>
+            <details><summary>What does a mastery percentage mean?<ChevronDown aria-hidden="true"/></summary><p>LEVELBLUE uses Bayesian Knowledge Tracing (BKT) to estimate a learner’s understanding from recorded answers. Teachers can use the estimate alongside assessment scores and classroom observations.</p></details>
+            <details><summary>How are learning gains reported?<ChevronDown aria-hidden="true"/></summary><p>Reports calculate a gain when a learner has a confirmed pre-test and post-test on a comparable scale. Incomplete or missing assessments are identified in the records.</p></details>
+            <details><summary>Can I review student feedback?<ChevronDown aria-hidden="true"/></summary><p>Student Feedback shows ratings and comments submitted through the mobile app. Filter by section or module to see where students report difficulty or usability problems.</p></details>
+            <details><summary>How do I get an account?<ChevronDown aria-hidden="true"/></summary><p>Use the staff account provided by your school. When activating an invited account, sign in with your temporary password, verify the emailed code, and choose a new password.</p></details>
+          </div>
+        </section>
+        <section className="lb-start lb-container" data-reveal aria-labelledby="start-title">
+          <div><h2 id="start-title">Bring your next lesson into focus.</h2><p>Open your workspace to review your school’s recorded learning results.</p></div>
+          <a className="lb-button" href="/login">Open your workspace<ArrowRight aria-hidden="true"/></a>
+        </section>
       </main>
-      <footer className="lb-container lb-footer"><a href="#top" className="lb-brand-link" aria-label="LEVELBLUE, back to top"><Brand /></a><p>Building awareness. Empowering educators.</p><a href="/login">Log in <ArrowUpRightIcon /></a></footer>
+      <footer className="lb-container lb-footer"><div><span>LEVELBLUE</span><p>Better insight. More purposeful teaching.</p></div><button type="button" className="lb-back-top" aria-label="Back to top" title="Back to top" onClick={returnToTop}><ArrowUp aria-hidden="true"/></button></footer>
     </div>
   );
 }
-
-function ArrowUpRightIcon() { return <ArrowRight size={14} style={{ transform: "rotate(-45deg)" }} />; }

@@ -22,7 +22,9 @@ export async function apiFetch(url, options = {}) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  return fetch(`${BASE_URL}${url}`, { cache: "no-store", ...options, headers });
+  const response = await fetch(`${BASE_URL}${url}`, { cache: "no-store", ...options, headers });
+  if(response.ok && !["GET","HEAD"].includes((options.method || "GET").toUpperCase())) window.dispatchEvent(new Event("levelblue-data-changed"));
+  return response;
 }
 
 /**

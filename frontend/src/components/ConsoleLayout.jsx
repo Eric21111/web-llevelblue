@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Search, Menu, HelpCircle, ChevronRight, X, Settings, LogOut } from "lucide-react";
+import { Search, Menu, HelpCircle, ChevronRight, X, Settings, LogOut, Moon, Sun } from "lucide-react";
 import Sidebar from "./Sidebar";
 import { useWorkspaceData } from "../context/WorkspaceDataContext";
 import LogoutDialog from "./LogoutDialog";
@@ -14,6 +14,11 @@ export default function ConsoleLayout({ user, role, pages, pageIndex, currentPat
   const [menuOpen, setMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => { try { return localStorage.getItem('levelblue-sidebar-collapsed') === 'true'; } catch { return false; } });
   const toggleSidebar = () => setCollapsed(previous => { try { localStorage.setItem('levelblue-sidebar-collapsed', String(!previous)); } catch { /* Navigation still works when storage is unavailable. */ } return !previous; });
+  const [theme,setTheme]=useState(()=>{try{return localStorage.getItem('levelblue-theme')==='light'?'light':'dark';}catch{return 'dark';}});
+  function chooseTheme(value){
+    setTheme(value);
+    try{localStorage.setItem('levelblue-theme',value);}catch{/* Still apply the preference for this visit. */}
+  }
   const [search, setSearch] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef(null);
@@ -55,7 +60,7 @@ export default function ConsoleLayout({ user, role, pages, pageIndex, currentPat
     return () => { document.removeEventListener("keydown", onKey); document.removeEventListener("pointerdown", onOutside); };
   }, [menuOpen, logoutOpen, profileOpen]);
   const matches = pages.filter(item => item.label.toLowerCase().includes(search.trim().toLowerCase()));
-  return <div className={`console-shell ${collapsed ? 'sidebar-collapsed' : ''}`}>
+  return <div data-theme={theme} className={`console-shell ${collapsed ? 'sidebar-collapsed' : ''}`}>
     <a className="console-skip" href="#console-main">Skip to main content</a>
     <Sidebar collapsed={collapsed} onToggle={toggleSidebar} role={role} user={user} pages={pages} page={pageIndex} setPage={index => onNavigate(pages[index].path)} open={menuOpen} onClose={() => { setMenuOpen(false); requestAnimationFrame(() => menuRef.current?.focus()); }} />
     <div className="console-workarea" inert={menuOpen ? true : undefined}><header className="console-topbar">
@@ -71,12 +76,16 @@ export default function ConsoleLayout({ user, role, pages, pageIndex, currentPat
           {profileOpen && <div id="account-options" className="console-account-options" role="group" aria-label="Account actions">
             <strong>{user?.name || user?.firstName || 'Your account'}</strong>
             <small>{workspace.account}</small>
+            <div className="console-theme-choice" role="group" aria-label="Appearance">
+              <button type="button" aria-pressed={theme==='dark'} onClick={()=>chooseTheme('dark')}><Moon size={14}/>Dark</button>
+              <button type="button" aria-pressed={theme==='light'} onClick={()=>chooseTheme('light')}><Sun size={14}/>Light</button>
+            </div>
             <button onClick={() => { setProfileOpen(false); onNavigate('/settings'); }}><Settings size={16} aria-hidden="true" />Account settings</button>
             <button onClick={() => { logoutTriggerRef.current = profileButton.current; setProfileOpen(false); setLogoutOpen(true); }}><LogOut size={16} aria-hidden="true" />Sign out</button>
           </div>}
         </div>
       </div>
-    </header><main id="console-main" ref={mainRef} tabIndex={-1} className="console-main">{!["/dashboard", "/follow-ups", "/school-progress", "/analytics", "/engagement", "/reports", "/interventions", "/sections", "/roster", "/teachers", "/developers", "/password-assistance", "/enrollment", "/logs", "/teacher-activity", "/content", "/answers", "/bkt", "/monitoring"].includes(page.path) && <div className="dash-page-intro"><span className="dash-eyebrow">{page.group}</span><h1>{page.label}</h1><p>{page.description}</p></div>}{children}</main></div>
+    </header><main id="console-main" ref={mainRef} tabIndex={-1} className="console-main">{!["/dashboard", "/follow-ups", "/school-progress", "/analytics", "/engagement", "/reports", "/interventions", "/sections", "/roster", "/teachers", "/developers", "/password-assistance", "/enrollment", "/logs", "/teacher-activity", "/content", "/answers", "/bkt", "/monitoring"].includes(page.path) && <div className="dash-page-intro"><h1>{page.label}</h1><p>{page.description}</p></div>}{children}</main></div>
     {logoutOpen && <LogoutDialog onCancel={() => setLogoutOpen(false)} onConfirm={() => { setLogoutOpen(false); onLogout(); }} />}
   </div>;
 }

@@ -1,5 +1,6 @@
+import WorkspaceSelect from '../../components/WorkspaceSelect';
 import { useMemo, useState } from 'react';
-import { DeveloperFilters, DeveloperState, EmptyNote, ReadOnlyNote, useDeveloperData } from '../../components/developer/DeveloperChrome';
+import { DeveloperFilters, DeveloperState, EmptyNote, useDeveloperData } from '../../components/developer/DeveloperChrome';
 import { NOT_RECORDED, answerState, compareAttempts, showMetric } from '../../utils/developerConsole';
 
 const empty = { grade: '', sectionId: '', topic: '', from: '', to: '' };
@@ -28,7 +29,6 @@ export default function DeveloperAnswers() {
   const compared = compareAttempts(left, right);
   return <div className="dashboard support-workspace">
     <header className="support-page-heading"><div><h1>Assessment answers</h1><p>Responses appear only when the learning record stored them.</p></div></header>
-    <ReadOnlyNote />
     <DeveloperFilters filters={filters} setFilters={setFilters} sections={directory.data?.sections || []} />
     <DeveloperState {...directory}>
       <div className="support-filters"><label className="support-search">Find a student<input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Name" /></label></div>
@@ -39,8 +39,8 @@ export default function DeveloperAnswers() {
       <p>{report.note}</p>
       {!attempts.length ? <EmptyNote>No assessment attempts are recorded for these filters.</EmptyNote> : <>
         <div className="developer-compare">
-          <label>First attempt<select value={leftId} onChange={event => setLeftId(event.target.value)}><option value="">Select an attempt</option>{attempts.map(attempt => <option key={attempt.id} value={attempt.id}>{attempt.kind} {attempt.attemptNumber} · {attempt.topic} · {attempt.occurredAt?.slice(0, 10) || 'undated'}</option>)}</select></label>
-          <label>Compare with<select value={rightId} onChange={event => setRightId(event.target.value)}><option value="">Select an attempt</option>{attempts.map(attempt => <option key={attempt.id} value={attempt.id}>{attempt.kind} {attempt.attemptNumber} · {attempt.topic} · {attempt.occurredAt?.slice(0, 10) || 'undated'}</option>)}</select></label>
+          <label>First attempt<WorkspaceSelect value={leftId} onChange={event => setLeftId(event.target.value)}><option value="">Select an attempt</option>{attempts.map(attempt => <option key={attempt.id} value={attempt.id}>{attempt.kind} {attempt.attemptNumber} · {attempt.topic} · {attempt.occurredAt?.slice(0, 10) || 'undated'}</option>)}</WorkspaceSelect></label>
+          <label>Compare with<WorkspaceSelect value={rightId} onChange={event => setRightId(event.target.value)}><option value="">Select an attempt</option>{attempts.map(attempt => <option key={attempt.id} value={attempt.id}>{attempt.kind} {attempt.attemptNumber} · {attempt.topic} · {attempt.occurredAt?.slice(0, 10) || 'undated'}</option>)}</WorkspaceSelect></label>
         </div>
         <div className="support-table-scroll" tabIndex={0} aria-label="Assessment attempts"><table className="support-table"><thead><tr><th>Attempt</th><th>Topic</th><th>Score</th><th>Instrument</th><th>Completed</th><th>Answers</th></tr></thead><tbody>{attempts.map(attempt => <tr key={attempt.id}><th>{attempt.kind} {attempt.attemptNumber}</th><td>{attempt.topic || NOT_RECORDED}</td><td>{attempt.score === null ? NOT_RECORDED : `${showMetric(attempt.score)}%`}</td><td>{attempt.instrument || NOT_RECORDED}</td><td>{attempt.occurredAt ? attempt.occurredAt.slice(0, 10) : NOT_RECORDED}</td><td>{answerState(attempt)}</td></tr>)}</tbody></table></div>
         {left && <div className="developer-answer"><h3>{left.kind} {left.attemptNumber} answers</h3>{left.answersStatus !== 'recorded' ? <p>{NOT_RECORDED}</p> : <div className="support-table-scroll" tabIndex={0}><table className="support-table"><thead><tr><th>Question</th><th>Selected answer</th><th>Correct answer</th><th>Result</th></tr></thead><tbody>{left.answers.map(answer => <tr key={answer.questionId || answer.prompt}><AnswerCells answer={answer} /></tr>)}</tbody></table></div>}</div>}

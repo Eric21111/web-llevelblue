@@ -1,3 +1,18 @@
+/* Shared type, color and control geometry for the public site and staff workspaces. */
+:root {
+  --lb-font: Inter, system-ui, sans-serif;
+  --lb-accent: #275cca;
+  --lb-accent-on-dark: #a7c7ff;
+  --lb-accent-ink: #102747;
+  --lb-radius: 16px;
+  --lb-inset: 6px;
+  --lb-inner-radius: calc(var(--lb-radius) - var(--lb-inset));
+  --lb-control-radius: 9px;
+  --lb-icon-size: 18px;
+  --lb-icon-weight: 1.8;
+  --lb-fast: 150ms;
+}
+
 *,
 *::before,
 *::after {
@@ -12,7 +27,8 @@ body,
 }
 
 body {
-  font-family: Inter, sans-serif;
+  font-family: var(--lb-font);
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -69,4 +85,13 @@ html {
   ::-webkit-scrollbar-thumb:hover {
     background: Highlight;
   }
+}
+
+:where(h1,h2,h3) { text-wrap:balance; overflow-wrap:break-word; }
+:where(button,input,select,textarea,table,time) { font-variant-numeric:tabular-nums; }
+.lucide { stroke-width:var(--lb-icon-weight); flex-shrink:0; vertical-align:middle; }
+:where(button,a) > .lucide:only-child { display:block; }
+@media(prefers-reduced-motion:no-preference) {
+  :where(button,a[href]) { transition:color var(--lb-fast), background-color var(--lb-fast), border-color var(--lb-fast); }
+  :where(button:enabled,a[href]):active:not([aria-disabled=true]) { translate:0 1px; }
 }

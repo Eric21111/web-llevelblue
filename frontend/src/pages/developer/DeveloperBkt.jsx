@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Details, DeveloperFilters, DeveloperState, EmptyNote, ReadOnlyNote, recorded, useDeveloperData } from '../../components/developer/DeveloperChrome';
+import { Details, DeveloperFilters, DeveloperState, EmptyNote, recorded, useDeveloperData } from '../../components/developer/DeveloperChrome';
 import { NOT_RECORDED, showMetric } from '../../utils/developerConsole';
 import Term from '../../components/Term';
 
@@ -15,7 +15,6 @@ export default function DeveloperBkt() {
   const students = useMemo(() => (data?.students || []).filter(student => student.name.toLowerCase().includes(query.trim().toLowerCase())), [data, query]);
   return <div className="dashboard support-workspace">
     <header className="support-page-heading"><div><h1><Term name="bkt">BKT</Term></h1><p>Recorded probabilities and dated mastery events.</p></div></header>
-    <ReadOnlyNote />
     <DeveloperFilters filters={filters} setFilters={setFilters} sections={data?.sections || []} />
     <DeveloperState {...state}>{data && <>
       {!data.available && <p className="support-error" role="alert">BKT records are not available yet.</p>}

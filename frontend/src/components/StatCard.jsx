@@ -13,9 +13,9 @@ export default function StatCard({ icon: Icon, label, value, delta, deltaUp, acc
         <Icon size={16} color={accent} strokeWidth={2.2} />
       </div>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 28, fontWeight: 700, color: COLORS.text }}>{value}{suffix}</span>
+        <span style={{ fontVariantNumeric: "tabular-nums", fontSize: 28, fontWeight: 700, color: COLORS.text }}>{value}{suffix}</span>
         {delta && (
-          <span style={{ display: "flex", alignItems: "center", gap: 2, fontSize: 12.5, fontWeight: 600, color: deltaUp ? COLORS.teal : COLORS.coral, fontFamily: "'JetBrains Mono', monospace" }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 2, fontSize: 12.5, fontWeight: 600, color: deltaUp ? COLORS.teal : COLORS.coral, fontVariantNumeric: "tabular-nums" }}>
             {deltaUp ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}{delta}
           </span>
         )}

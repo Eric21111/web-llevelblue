@@ -1,3 +1,4 @@
+import WorkspaceSelect from '../../components/WorkspaceSelect';
 import { useState, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { Plus, X } from "lucide-react";
@@ -110,7 +111,7 @@ export default function ContentBankManagement() {
                 <div key={i}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                     <span style={{ fontFamily: "Inter", fontSize: 13, color: COLORS.text }}>{c.skill}</span>
-                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12.5, color: COLORS.sub }}>{c.validated}/{c.target} validated ({pct}%)</span>
+                    <span style={{ fontVariantNumeric: "tabular-nums", fontSize: 12.5, color: COLORS.sub }}>{c.validated}/{c.target} validated ({pct}%)</span>
                   </div>
                   <div style={{ height: 8, background: COLORS.panelAlt, borderRadius: 5, overflow: "hidden" }}>
                     <div style={{
@@ -146,7 +147,7 @@ export default function ContentBankManagement() {
             <form onSubmit={handleUpdateContent} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: COLORS.sub, display: "block", marginBottom: 5 }}>Select Skill Category *</label>
-                <select
+                <WorkspaceSelect
                   value={selectedSkill} onChange={e => setSelectedSkill(e.target.value)}
                   style={{ width: "100%", padding: "10px 12px", background: COLORS.panelAlt, border: `1px solid ${COLORS.border}`, borderRadius: 8, color: COLORS.text, fontSize: 13, outline: "none" }}
                 >
@@ -155,7 +156,7 @@ export default function ContentBankManagement() {
                   <option value="Vishing">Vishing</option>
                   <option value="Pretexting">Pretexting</option>
                   <option value="Baiting">Baiting</option>
-                </select>
+                </WorkspaceSelect>
               </div>
 
               <div>

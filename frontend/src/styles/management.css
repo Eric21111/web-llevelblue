@@ -40,8 +40,9 @@
 
 .faculty-contact-fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,175px),1fr)); gap:12px; }
 
-.faculty-action > svg { padding:9px; box-sizing:content-box; border-radius:10px; background:#edf4ff; }
-.faculty-action-caution > svg { background:#fff0ee; }
+.faculty-action > svg { padding:9px; box-sizing:content-box; flex-shrink:0; border-radius:10px; background:var(--raised); color:var(--accent); }
+.faculty-action-caution > svg { background:#fff0ee; color:#923b36; }
+.console-shell[data-theme=dark] .faculty-action-caution > svg { background:#492f39; color:#ffc8cf; }
 .faculty-action:hover { box-shadow:0 3px 12px #2339510b; }
 .faculty-manage-summary { display:flex; align-items:center; gap:14px; margin:4px 0 24px; padding:18px; background:#f5f8fd; border:1px solid #e0e8f4; border-radius:14px; }
 .faculty-manage-summary > div { min-width:0; }

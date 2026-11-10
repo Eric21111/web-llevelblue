@@ -25,8 +25,8 @@ export default function StudentReset() {
     } catch (e) { setError(e.name === 'TimeoutError' ? 'The request timed out. Try signing in to the game with your new password before retrying this link.' : e.message); }
     finally { setBusy(false); }
   }
-  return <main className="student-reset"><section className="student-reset-card"><div className="student-reset-mark"><ShieldCheck size={36}/><span>LEVELBLUE<br/><small>SECURE ACCOUNT RECOVERY</small></span></div>
-    <h1>{success ? 'Ready for your next mission' : 'Choose a new password'}</h1>
+  return <main className="student-reset"><section className="student-reset-card"><div className="student-reset-mark"><ShieldCheck size={36}/><span>LEVELBLUE</span></div>
+    <h1>{success ? 'Password updated' : 'Choose a new password'}</h1>
     {success ? <p role="status" className="reset-success">{success}</p> : !/^[A-Za-z0-9_-]{43}$/.test(token) ? <p role="alert">Open the reset link from your email. If it has expired, request password assistance from the game’s login screen. If you refreshed this page, reopen the original email link.</p> : <><p>Your teacher approved your request. Set a password only you know. Your lessons, mastery and game progress stay with you.</p>
       <form onSubmit={submit}><fieldset disabled={busy}><legend>Student password</legend><label htmlFor="reset-password">New password</label><input id="reset-password" type={show ? 'text' : 'password'} autoComplete="new-password" required value={password} onChange={e => setPassword(e.target.value)}/><button className="reset-show" type="button" aria-pressed={show} onClick={() => setShow(v => !v)}>{show ? 'Hide passwords' : 'Show passwords'}</button>
       <ul className="reset-rules">{['8 or more characters', 'An uppercase letter', 'A lowercase letter', 'A number', 'A symbol', 'Maximum 72 UTF-8 bytes'].map((label, index) => <li key={label} className={rules[index] ? 'met' : ''}>{rules[index] ? '✓' : '○'} {label}</li>)}</ul>

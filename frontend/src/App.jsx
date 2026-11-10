@@ -1,7 +1,7 @@
 import { useState, useEffect, Suspense, lazy } from "react";
 import {
   LayoutDashboard, Users, BookOpen, Activity, ClipboardList,
-  UserCog, Database, ServerCog, Settings, GraduationCap, ShieldAlert, BarChart3, FileText
+  UserCog, Database, ServerCog, Settings, GraduationCap, ShieldAlert, BarChart3, FileText, ListChecks, Code2, KeyRound, MessageSquare
 } from "lucide-react";
 import FontImports from "./components/FontImports";
 import ConsoleLayout from "./components/ConsoleLayout";
@@ -10,7 +10,8 @@ import LoginPage from "./pages/LoginPage";
 import LandingPage from "./pages/LandingPage";
 import SuperAdminSignupPage from "./pages/super/SuperAdminSignupPage";
 import ForcePasswordChangeModal from "./components/ForcePasswordChangeModal";
-import { COLORS } from "./constants/colors";
+import Skeleton from "./components/Skeleton";
+import "./styles/appearance.css";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { DEVELOPER_NAV } from "./utils/developerConsole";
@@ -57,14 +58,6 @@ function AppContent() {
     return () => window.removeEventListener("popstate", handleLocationChange);
   }, []);
 
-  useEffect(() => {
-    if (!authed || role !== "developer") return;
-    if (DEVELOPER_NAV.some(item => item.path === currentPath)) return;
-    window.history.replaceState({}, "", "/dashboard");
-    setCurrentPath("/dashboard");
-    setCurrentSearch("");
-  }, [authed, role, currentPath]);
-
   const handleLogin = (r, loginResponse) => {
     login(loginResponse);
     if (currentPath === "/" || currentPath === "/login") {
@@ -80,14 +73,10 @@ function AppContent() {
     setCurrentPath("/");
   };
 
-  if (currentPath === '/student-reset') return <Suspense fallback={<p role="status">Loading secure recovery…</p>}><StudentReset /></Suspense>;
+  if (currentPath === '/student-reset') return <Suspense fallback={<Skeleton label="Loading recovery"/>}><StudentReset /></Suspense>;
 
   if (loadingSession) {
-    return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", background: COLORS.bg, color: COLORS.sub, fontFamily: "Inter, sans-serif" }}>
-        Restoring secure session...
-      </div>
-    );
+    return <Skeleton label="Restoring your session"/>;
   }
 
   if (currentPath === "/create-super-admin") {
@@ -101,13 +90,8 @@ function AppContent() {
     );
   }
 
-  if (!authed) {
-    if (currentPath === "/") return <LandingPage />;
-    return <LoginPage onLogin={handleLogin} />;
-  }
-
   // Force password change on first login
-  if (user?.status === "Invited") {
+  if (authed && user?.status === "Invited") {
     return (
       <ForcePasswordChangeModal 
         user={user} 
@@ -121,11 +105,11 @@ function AppContent() {
     { label: "Student Follow-ups", path: "/follow-ups", group: "Students", icon: ShieldAlert, component: StudentFollowUps },
     { label: "Reviews", path: "/interventions", group: "Students", icon: ClipboardList, component: ReviewsRemediation },
     { label: "Student Roster", path: "/roster", group: "Students", icon: Users, component: ClassRoster },
-    { label: "Student Feedback", path: "/survey", group: "Students", icon: ClipboardList, component: UsabilityFeedback, description: "Ratings and comments from the mobile app." },
+    { label: "Student Feedback", path: "/survey", group: "Students", icon: MessageSquare, component: UsabilityFeedback, description: "Ratings and comments from the mobile app." },
     { label: "Sections", path: "/sections", group: "Classes", icon: GraduationCap, component: SectionsManagement },
-    { label: "Enrollment", path: "/enrollment", group: "Classes", icon: GraduationCap, component: CohortChecklist },
+    { label: "Enrollment", path: "/enrollment", group: "Classes", icon: ListChecks, component: CohortChecklist },
     { label: "Teaching Content", path: "/content", group: "Classes", icon: Database, component: CurriculumWorkspace },
-    { label: "Password Help", path: "/password-assistance", group: "Classes", icon: ShieldAlert, component: PasswordAssistance },
+    { label: "Password Recovery", path: "/password-assistance", group: "Classes", icon: KeyRound, component: PasswordAssistance },
     { label: "Diagnostics", path: "/analytics", group: "Insights", icon: BookOpen, component: LearningWorkspace },
     { label: "Learning Reports", path: "/engagement", group: "Insights", icon: Activity, component: LearningWorkspace, mode: "reports" },
     { label: "Account Settings", path: "/settings", group: "Workspace", icon: Settings, component: TeacherSettings, description: "Profile and sign-in." },
@@ -133,13 +117,13 @@ function AppContent() {
   const schoolPages = [
     { label: "Dashboard", path: "/dashboard", group: "Overview", icon: LayoutDashboard, component: SuperAdminHome },
     { label: "Staff Accounts", path: "/teachers", group: "People", icon: UserCog, component: TeacherManagement },
-    { label: "Developer Accounts", path: "/developers", group: "People", icon: UserCog, component: DeveloperAccounts },
+    { label: "Developer Accounts", path: "/developers", group: "People", icon: Code2, component: DeveloperAccounts },
     { label: "Sections", path: "/sections", group: "People", icon: GraduationCap, component: SectionsManagement },
-    { label: "Enrollment", path: "/enrollment", group: "People", icon: GraduationCap, component: CohortChecklist },
-    { label: "Password Help", path: "/password-assistance", group: "People", icon: ShieldAlert, component: PasswordAssistance },
+    { label: "Enrollment", path: "/enrollment", group: "People", icon: ListChecks, component: CohortChecklist },
+    { label: "Password Recovery", path: "/password-assistance", group: "People", icon: KeyRound, component: PasswordAssistance },
     { label: "School Progress", path: "/school-progress", group: "Insights", icon: BarChart3, component: LearningWorkspace },
     { label: "Teacher Activity", path: "/teacher-activity", group: "Insights", icon: UserCog, component: TeacherActivity },
-    { label: "Student Feedback", path: "/survey", group: "Insights", icon: ClipboardList, component: UsabilityFeedback, description: "Student experience by section and module." },
+    { label: "Student Feedback", path: "/survey", group: "Insights", icon: MessageSquare, component: UsabilityFeedback, description: "Student experience by section and module." },
     { label: "Institutional Reports", path: "/reports", group: "Insights", icon: ClipboardList, component: LearningWorkspace, mode: "reports" },
     { label: "Review & Publish", path: "/content", group: "Operations", icon: Database, component: CurriculumWorkspace },
     { label: "Activity Log", path: "/logs", group: "Operations", icon: ServerCog, component: SystemLogs },
@@ -150,7 +134,12 @@ function AppContent() {
   const developerPages = DEVELOPER_NAV.map(item => ({ ...item, icon: developerIcons[item.path], component: developerComponents[item.path], description: item.path === '/settings' ? 'Profile and sign-in.' : '' }));
   const facultyPage = schoolPages.find(item=>item.path==='/teachers');
   const pages = role === "admin" ? (user?.is_head_admin ? [...teacherPages,{...facultyPage,group:'Classes',label:'Section faculty'}] : teacherPages) : role === "developer" ? developerPages : schoolPages;
-  const pageIndex = Math.max(0, pages.findIndex(page => page.path === currentPath));
+  const home = currentPath === "/" || currentPath === "/login";
+  const known = [...teacherPages,...schoolPages,...developerPages].some(item=>item.path===currentPath);
+  if (!authed && currentPath === "/") return <LandingPage/>;
+  if (!authed && (known || currentPath === "/login")) return <LoginPage onLogin={handleLogin}/>;
+  const pageIndex = home ? 0 : pages.findIndex(item=>item.path===currentPath);
+  if (!authed || pageIndex<0) return <main className="lb-not-found"><div><span>LEVELBLUE / 404</span><h1>Page not found</h1><p>Check the address or return to {authed?'your dashboard':'the home page'}.</p><a href={authed?'/dashboard':'/'}>{authed?'Back to dashboard':'Back to home'}</a></div></main>;
   const page = pages[pageIndex];
   const Active = page.component;
   const navigate = target => {
@@ -163,7 +152,7 @@ function AppContent() {
 
   return <WorkspaceDataProvider key={`${role}:${user?._id ?? user?.id ?? user?.email ?? "session"}`} role={role}><ConsoleLayout user={user} role={role} pages={pages} pageIndex={pageIndex} currentPath={`${currentPath}${currentSearch}`} onNavigate={navigate} onLogout={handleLogout}>
     <FontImports />
-    <Suspense fallback={<div className="dash-empty" role="status">Loading your workspace…</div>}>
+    <Suspense fallback={<Skeleton/>}>
       <ErrorBoundary key={currentPath}>
         <Active key={`${currentPath}${currentSearch}`} user={user} setUser={setUser} onNavigate={navigate} followUps={page.followUps} progress={page.progress} mode={page.mode} />
       </ErrorBoundary>

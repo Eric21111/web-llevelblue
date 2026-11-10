@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Details, DeveloperFilters, DeveloperState, EmptyNote, ReadOnlyNote, recorded, useDeveloperData } from '../../components/developer/DeveloperChrome';
+import { Details, DeveloperFilters, DeveloperState, EmptyNote, recorded, useDeveloperData } from '../../components/developer/DeveloperChrome';
 import { NOT_RECORDED, showMetric, showPercent } from '../../utils/developerConsole';
 import Term from '../../components/Term';
 
@@ -13,7 +13,6 @@ export default function DeveloperAnalytics() {
   const sections = (data?.sections || []).filter(section => section.students > 0);
   return <div className="dashboard support-workspace">
     <header className="support-page-heading"><div><h1>Learning analytics</h1><p>Stored scores and comparable pairs only.</p></div></header>
-    <ReadOnlyNote />
     <DeveloperFilters filters={filters} setFilters={setFilters} sections={data?.sections || []} />
     <DeveloperState {...state}>{data && <>
       <p><Term name="learning-gain">Learning gain</Term>: {data.comparablePairs} comparable pair{data.comparablePairs === 1 ? '' : 's'} · average {data.averageGain === null ? NOT_RECORDED : `${showMetric(data.averageGain)} points`}.</p>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { DeveloperFilters, DeveloperState, ReadOnlyNote, useDeveloperData } from '../../components/developer/DeveloperChrome';
+import { DeveloperFilters, DeveloperState, useDeveloperData } from '../../components/developer/DeveloperChrome';
 import { apiFetch } from '../../utils/api';
 
 const empty = { grade: '', sectionId: '', topic: '', from: '', to: '' };
@@ -30,7 +30,6 @@ export default function DeveloperReports() {
   }
   return <div className="dashboard support-workspace">
     <header className="support-page-heading"><div><h1>Reports</h1><p>CSV of the rows you can view. No passwords, tokens, or email addresses.</p></div><button className="dash-primary-action" disabled={busy || state.loading} onClick={download}>{busy ? 'Preparing…' : 'Download CSV'}</button></header>
-    <ReadOnlyNote />
     <DeveloperFilters filters={filters} setFilters={setFilters} sections={state.data?.sections || []} />
     <DeveloperState {...state}>{state.data && <p>{state.data.exportRows} row{state.data.exportRows === 1 ? '' : 's'} match these filters. Missing answers are marked “Not recorded”.</p>}</DeveloperState>
     {error && <p className="support-error" role="alert">{error}</p>}

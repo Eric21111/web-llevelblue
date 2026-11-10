@@ -473,11 +473,11 @@
 .learning-table th,.learning-table td { padding: 13px 10px; border-bottom: 1px solid #e8eaee; vertical-align: middle; }
 .learning-table thead th { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #606978; }
 .learning-table small { display: block; font-size: 10px; font-weight: 400; margin-top: 5px; }
-.mastery-cell { display: block; min-width: 94px; padding: 12px; border-radius: 8px; font-weight: 700; }
-.mastery-cell.unknown { background: #f1f2f3; color: #666c75; }
-.mastery-cell.support { background: #fbebd9; color: #80501b; }
-.mastery-cell.developing { background: #eaecf0; color: #3e4d68; }
-.mastery-cell.strong { background: #dce2eb; color: #283b5b; }
+
+
+
+
+
 .learning-two-col { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.3fr); align-items: start; gap: 22px; }
 .learning-form { display: grid; gap: 18px; }
 .learning-form fieldset { border: 1px solid #dfe2e7; border-radius: 10px; padding: 16px; }

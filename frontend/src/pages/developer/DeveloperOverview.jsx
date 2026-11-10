@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Details, DeveloperFilters, DeveloperState, EmptyNote, Metric, ReadOnlyNote, useDeveloperData } from '../../components/developer/DeveloperChrome';
+import { Details, DeveloperFilters, DeveloperState, EmptyNote, Metric, useDeveloperData } from '../../components/developer/DeveloperChrome';
 import { NOT_RECORDED, showMetric } from '../../utils/developerConsole';
 import Term from '../../components/Term';
 
@@ -10,7 +10,6 @@ export default function DeveloperOverview() {
   const overview = state.data?.overview;
   return <div className="dashboard support-workspace">
     <header className="support-page-heading"><div><h1>Overview</h1><p>Stored counts and averages for the current filters.</p></div></header>
-    <ReadOnlyNote />
     <DeveloperFilters filters={filters} setFilters={setFilters} sections={state.data?.sections || []} />
     <DeveloperState {...state}>{overview && <>
       <section className="support-summary" aria-label="Recorded overview">

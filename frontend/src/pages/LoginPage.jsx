@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
-  ArrowLeft, ArrowRight, AlertCircle, BarChart3, Check, Eye, EyeOff,
-  GraduationCap, LoaderCircle, LockKeyhole, Mail, Shield, ShieldCheck, Users,
+  X, ArrowRight, BookOpen, AlertCircle, Eye, EyeOff,
+  LoaderCircle, LockKeyhole, Mail, Shield, KeyRound, ShieldCheck,
 } from "lucide-react";
 import FontImports from "../components/FontImports";
 import TeacherInviteForm from "../components/TeacherInviteForm";
@@ -60,41 +60,35 @@ export default function LoginPage({ onLogin }) {
   return (
     <div className="lb-login">
       <FontImports />
-      <header className="lb-login-header">
-        <a className="lb-login-brand" href="/" aria-label="LEVELBLUE home">
-          <span className="lb-login-brand-icon"><Shield size={23} aria-hidden="true" /></span>
-          <span>LEVEL<span>BLUE</span><small>LEARN. RECOGNIZE. PROTECT.</small></span>
-        </a>
-        <a className="lb-login-back" href="/"><ArrowLeft size={15} aria-hidden="true" />Back to home</a>
-      </header>
-
+      <a className="lb-login-back" href="/" aria-label="Back to home" title="Back to home"><X size={20} aria-hidden="true" /></a>
       <main className="lb-login-main">
         <div className="lb-login-card">
           <aside className="lb-login-story" aria-labelledby="login-story-title">
-            <span className="lb-login-eyebrow"><span />AWARENESS STARTS WITH UNDERSTANDING</span>
-            <h2 id="login-story-title">Better insights.<br /><em>Safer digital habits.</em></h2>
-            <p>A clearer view of learning. A more confident next step for your classroom and your school.</p>
-
-            <div className="lb-login-illustration" aria-hidden="true">
-              <div className="lb-login-orbit lb-login-orbit-outer" />
-              <div className="lb-login-orbit lb-login-orbit-inner" />
-              <div className="lb-login-orbit-path" />
-              <div className="lb-login-shield"><ShieldCheck size={70} strokeWidth={1.2} /></div>
-              <span className="lb-login-satellite lb-login-satellite-chart"><BarChart3 size={21} /></span>
-              <span className="lb-login-satellite lb-login-satellite-users"><Users size={20} /></span>
-              <span className="lb-login-satellite lb-login-satellite-learn"><GraduationCap size={23} /></span>
-              <span className="lb-login-orbit-dot" />
-              <div className="lb-login-insight"><span><Check size={15} /></span><div>Small insights. Meaningful progress.<small>Every learner’s journey matters.</small></div></div>
+            <div className="lb-login-art" aria-hidden="true">
+              <div className="lb-login-art-grid" />
+              <div className="lb-login-book"><BookOpen strokeWidth={1.3} /></div>
+              <div className="lb-login-art-bars"><i /><i /><i /><i /></div>
+              <span className="lb-login-art-shield"><ShieldCheck strokeWidth={1.5} /></span>
             </div>
-
-            <div className="lb-login-story-footer"><GraduationCap size={18} aria-hidden="true" /><span>For teachers, Head Admins, the Principal, and authorized developers.</span></div>
+            <div className="lb-login-story-copy">
+              <h2 id="login-story-title">See learning.<br /><span>Guide progress.</span></h2>
+              <p>Turn students’ cybersecurity learning into a clearer picture of who needs your support.</p>
+              {invitation && <ol className="lb-invite-guide">
+                <li><KeyRound aria-hidden="true" /><span>Temporary password entered</span></li>
+                <li aria-current={!inviteVerified ? 'step' : undefined}><Mail aria-hidden="true" /><span>Verify your email</span></li>
+                <li aria-current={inviteVerified ? 'step' : undefined}><ShieldCheck aria-hidden="true" /><span>Choose your password</span></li>
+              </ol>}
+              {!invitation && <div className="lb-login-story-footer">Your classroom. Your insights. Your next step.</div>}
+            </div>
           </aside>
 
           <section className="lb-login-form-panel" aria-labelledby="login-title">
-            <span className="lb-login-form-icon"><LockKeyhole size={21} aria-hidden="true" /></span>
-            <span className="lb-login-eyebrow">YOUR LEVELBLUE CONSOLE</span>
+            <div className="lb-login-form-content">
+            <a className="lb-login-brand" href="/" aria-label="LEVELBLUE home">
+              <Shield size={29} aria-hidden="true" /><span>LEVEL<span>BLUE</span></span>
+            </a>
             <h1 id="login-title">{invitation ? (inviteVerified ? 'Choose a password.' : 'Verify your email.') : 'Welcome back.'}</h1>
-            <p className="lb-login-intro">{invitation ? (inviteVerified ? 'Replace your temporary password to finish setting up your account.' : 'Confirm your email before setting up your password.') : 'Sign in to see how learning is moving forward.'}</p>
+            <p className="lb-login-intro">{invitation ? (inviteVerified ? 'Replace your temporary password to finish setting up your account.' : 'Confirm your email before setting up your password.') : 'Use the account provided by your school.'}</p>
 
             {invitation ? <TeacherInviteForm invitation={invitation} onComplete={onLogin} onVerified={() => setInviteVerified(true)} onBack={() => { setInviteVerified(false); setInvitation(null); setError(''); }} /> : <form onSubmit={handleSubmit} aria-busy={loading}>
               <div className="lb-login-field">
@@ -116,15 +110,16 @@ export default function LoginPage({ onLogin }) {
               {error && <div className="lb-login-error" id="login-error" role="alert"><AlertCircle size={17} aria-hidden="true" /><span>{error}</span></div>}
 
               <button className="lb-login-submit" type="submit" disabled={loading}>{loading ? <><LoaderCircle className="lb-login-spinner" size={18} aria-hidden="true" />Signing in…</> : <>Sign in<ArrowRight size={18} aria-hidden="true" /></>}</button>
-              <p className="lb-login-role-hint"><ShieldCheck size={15} aria-hidden="true" />Your account opens the right console for your role.</p>
             </form>}
 
-            {!invitation && <div className="lb-login-help"><span>Need help signing in?</span><p>Use the account provided by your school. For access or password assistance, contact your school administrator.</p></div>}
+            {!invitation && <div className="lb-login-help">
+              <details><summary>First time signing in?</summary><p>Use your school email and temporary password. Next, verify the code sent to your email and choose a new password.</p></details>
+              <p>Need password recovery? <span>Contact your school administrator.</span></p>
+            </div>}
+            </div>
           </section>
         </div>
-        <p className="lb-login-bottom-note"><LockKeyhole size={12} aria-hidden="true" />A dedicated space for your school’s learning insights.</p>
       </main>
-      <footer className="lb-login-footer"><span>LEVELBLUE · Cybersecurity awareness</span><span>Building awareness. Empowering educators.</span></footer>
     </div>
   );
 }

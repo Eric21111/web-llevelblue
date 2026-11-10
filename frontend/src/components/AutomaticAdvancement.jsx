@@ -1,3 +1,5 @@
+import WorkspaceSelect from './WorkspaceSelect';
+import {useWorkspaceQuery} from '../hooks/useWorkspaceQuery';
 import {useEffect,useState} from 'react';
 import {CalendarClock,Check,Info,History,ArrowRight} from 'lucide-react';
 import {WorkspaceButton} from './WorkspaceUI';
@@ -22,14 +24,11 @@ function Exclusions({items,label}){
 
 // The pending plan in the database is the switch's only persisted state; there is no client-side timer.
 export default function AutomaticAdvancement(){
- const [status,setStatus]=useState(null),[loadError,setLoadError]=useState(''),[revision,setRevision]=useState(0);
+ const [revision,setRevision]=useState(0);
  const [enabling,setEnabling]=useState(false),[year,setYear]=useState(''),[runOn,setRunOn]=useState(''),[destinations,setDestinations]=useState({});
  const [preview,setPreview]=useState(null),[previewError,setPreviewError]=useState(''),[previewLoading,setPreviewLoading]=useState(false);
  const [dialog,setDialog]=useState(null),[busy,setBusy]=useState(false),[actionError,setActionError]=useState(''),[message,setMessage]=useState('');
- useEffect(()=>{const controller=new AbortController();setLoadError('');
-  apiRequest('/api/enrollment/advancement',{signal:controller.signal}).then(setStatus).catch(e=>{if(e.name!=='AbortError')setLoadError(e.message);});
-  return()=>controller.abort();
- },[revision]);
+ const {data:{status},errors:{status:loadError},refresh}=useWorkspaceQuery({status:'/api/enrollment/advancement'});
  const requestedYear=validAcademicYear(year)?year:'';
  useEffect(()=>{
   if(!enabling||(year&&!requestedYear))return;
@@ -53,7 +52,7 @@ export default function AutomaticAdvancement(){
 
  function closeSetup(){setEnabling(false);setPreview(null);setYear('');setRunOn('');setDestinations({});setPreviewError('');}
  function toggle(on){setMessage('');setActionError('');if(on){setEnabling(true);return;}if(pending)setDialog({type:'cancel-plan',plan:pending});else closeSetup();}
- async function act(work){if(busy)return;setBusy(true);setActionError('');try{await work();setDialog(null);setRevision(v=>v+1);}catch(e){setActionError(e.message);}finally{setBusy(false);}}
+ async function act(work){if(busy)return;setBusy(true);setActionError('');try{await work();setDialog(null);setRevision(v=>v+1);refresh();}catch(e){setActionError(e.message);}finally{setBusy(false);}}
  const confirmPlan=()=>act(async()=>{
   const plan=await apiRequest('/api/enrollment/advancement',{method:'POST',body:JSON.stringify(advancementRequest(current,{runOn,destinations}))});
   closeSetup();setMessage(`Automatic advancement scheduled for ${formatScheduleDate(plan.runOn)} (${SCHEDULE_TIMEZONE}): ${plan.promote} to promote and ${plan.graduate} to graduate. Nothing changes before then.`);
@@ -61,7 +60,7 @@ export default function AutomaticAdvancement(){
  const cancelPlan=plan=>act(async()=>{await apiRequest(`/api/enrollment/advancement/${encodeURIComponent(plan.id)}/cancel`,{method:'POST'});closeSetup();setMessage('Automatic advancement is off. The pending plan was cancelled and no student was moved.');});
  const cancelLegacy=schedule=>act(async()=>{await apiRequest(`/api/enrollment/schedules/${encodeURIComponent(schedule.id)}/cancel`,{method:'POST'});setMessage(`Individual schedule for ${schedule.sourceName} cancelled. No enrollment changed.`);});
 
- if(!status)return <section className="cohort-card cohort-history">{loadError?<div className="cohort-notice is-error" role="alert"><p>{loadError}</p><WorkspaceButton onClick={()=>setRevision(v=>v+1)}>Try again</WorkspaceButton></div>:<div className="cohort-empty" role="status">Loading automatic advancement...</div>}</section>;
+ if(!status)return <section className="cohort-card cohort-history">{loadError?<div className="cohort-notice is-error" role="alert"><p>{loadError}</p><WorkspaceButton onClick={refresh}>Try again</WorkspaceButton></div>:<div className="cohort-empty" role="status">Loading automatic advancement...</div>}</section>;
  const switchOn=!!pending||enabling;
  return <div className="advancement">
   <section className="cohort-card" aria-labelledby="advancement-title">
@@ -103,9 +102,9 @@ export default function AutomaticAdvancement(){
     <section className="cohort-card" aria-labelledby="advancement-destinations-title">
      <div className="cohort-card-heading"><span className="cohort-step" aria-hidden="true">3</span><div><h2 id="advancement-destinations-title">Grade 12 destinations</h2><p>Choose where each Grade 11 section moves. Nothing is chosen for you.</p></div></div>
      {!overview.promoting.length?<p className="advancement-body cohort-field-hint">No Grade 11 students to promote this school year.</p>
-     :!current.destinations.length?<div className="advancement-body"><div className="cohort-inline-notice" role="alert"><strong>Create a Grade 12 section first</strong><p>Promotion needs an existing Grade 12 section. Add one under Sections, then refresh this tab.</p></div></div>
+     :!current.destinations.length?<div className="advancement-body"><div className="cohort-inline-notice" role="alert"><strong>Create a Grade 12 section first</strong><p>Promotion needs an existing Grade 12 section. Add one under Sections, then return to setup.</p></div></div>
      :<fieldset className="advancement-mapping" disabled={busy}>{overview.promoting.map(s=><label key={s.id}><span><strong>{s.name}</strong><small>Grade 11 · {s.students.length} student(s)</small></span><ArrowRight size={16} aria-hidden="true"/>
-      <select value={destinations[s.id]||''} aria-invalid={!current.destinations.some(d=>d.id===destinations[s.id])} onChange={e=>setDestinations(v=>({...v,[s.id]:e.target.value}))}><option value="">Choose a Grade 12 section</option>{current.destinations.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}</select></label>)}</fieldset>}
+      <WorkspaceSelect value={destinations[s.id]||''} aria-invalid={!current.destinations.some(d=>d.id===destinations[s.id])} onChange={e=>setDestinations(v=>({...v,[s.id]:e.target.value}))}><option value="">Choose a Grade 12 section</option>{current.destinations.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}</WorkspaceSelect></label>)}</fieldset>}
     </section>
 
     <section className="cohort-card" aria-labelledby="advancement-review-title">
@@ -137,7 +136,7 @@ export default function AutomaticAdvancement(){
     {overview.promoting.length>0&&<><h3>Section assignments</h3><ul className="advancement-list">{overview.promoting.map(s=><li key={s.id}><div><strong>{s.name}</strong><small>{s.students.length} student(s)</small></div><span>→ {nameOf(destinations[s.id])}</span></li>)}</ul></>}
     <p><strong>{overview.excluded.length}</strong> student(s) are excluded and stay where they are.</p>
     <div className="cohort-preservation"><Info size={16} aria-hidden="true"/><p>Nothing changes until the date. Only these students are processed; anyone whose enrollment changes before then is skipped. Accounts, learning progress, mastery records and history are preserved.</p></div>
-    {actionError&&<div role="alert" className="cohort-notice is-error"><p>{actionError}</p><WorkspaceButton disabled={busy} onClick={()=>{setDialog(null);setActionError('');setRevision(v=>v+1);}}>Refresh preview</WorkspaceButton></div>}
+    {actionError&&<div role="alert" className="cohort-notice is-error"><p>{actionError}</p><WorkspaceButton disabled={busy} onClick={()=>{setDialog(null);setActionError('');setRevision(v=>v+1);refresh();}}>Review setup</WorkspaceButton></div>}
     <footer className="support-dialog-actions"><WorkspaceButton disabled={busy} onClick={()=>{setDialog(null);setActionError('');}}>Back</WorkspaceButton><WorkspaceButton variant="primary" disabled={busy} onClick={confirmPlan}>{busy?'Scheduling...':'Confirm school-wide schedule'}</WorkspaceButton></footer>
    </div>
   </SupportDialog>}

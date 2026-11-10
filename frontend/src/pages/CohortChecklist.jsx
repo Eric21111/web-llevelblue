@@ -1,4 +1,7 @@
-import {WorkspaceButton,RefreshButton,SegmentedControl} from '../components/WorkspaceUI';
+import WorkspaceSelect from '../components/WorkspaceSelect';
+import Skeleton from '../components/Skeleton';
+import {useWorkspaceQuery} from '../hooks/useWorkspaceQuery';
+import {WorkspaceButton,SegmentedControl} from '../components/WorkspaceUI';
 import {SupportDialog,SupportPagination,useSupportPage} from '../components/SupportUI';
 import '../styles/support.css';
 import {useEffect,useRef,useState} from 'react';
@@ -15,11 +18,10 @@ export default function CohortChecklist(){
  const workspace=useWorkspaceData();
  const principal=useAuth().role==='super';
  const [historySection,setHistorySection]=useState('');
- const [data,setData]=useState(null),[source,setSource]=useState(''),[target,setTarget]=useState(''),[year,setYear]=useState(''),[selected,setSelected]=useState([]),[review,setReview]=useState(null),[error,setError]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(false),[revision,setRevision]=useState(0);
- useEffect(()=>{const controller=new AbortController();setData(null);setError('');setSelected([]);setReview(null);
-  apiRequest('/api/enrollment',{signal:controller.signal}).then(setData).catch(e=>{if(e.name!=='AbortError')setError(e.message);});
-  return()=>controller.abort();
- },[revision]);
+ const [source,setSource]=useState(''),[target,setTarget]=useState(''),[year,setYear]=useState(''),[selected,setSelected]=useState([]),[review,setReview]=useState(null),[actionError,setError]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(false),[revision,setRevision]=useState(0);
+ const {data:{enrollment:data},errors,refresh}=useWorkspaceQuery({enrollment:'/api/enrollment'},{paused:!!review||busy});
+ const error=actionError||errors.enrollment;
+ function reload(){setError('');setSelected([]);setReview(null);setRevision(v=>v+1);refresh();}
  const sourceSection=data?.sections.find(section=>section.scope_id===source);
  const action=transitionForGrade(sourceSection?.grade_level);
  const cohortPage=useSupportPage((data?.students||[]).filter(s=>s.sectionId===source&&s.enrollmentStatus==='active'),source);
@@ -36,7 +38,7 @@ export default function CohortChecklist(){
  function reset(){setSelected([]);setReview(null);setMessage('');setError('');}
  async function apply(){if(busy||!review)return;setBusy(true);setError('');try{
   const response=await apiRequest('/api/enrollment',{method:'POST',body:JSON.stringify(review)});setMessage(`${response.count} learner(s) ${review.action==='promote'?'promoted':'archived as graduated'}. Accounts and learning progress preserved.`);
-  setRevision(v=>v+1);workspace.refresh();}catch(e){setError(e.message);}finally{setBusy(false);}}
+  reload();workspace.refresh();}catch(e){setError(e.message);}finally{setBusy(false);}}
  const sourceOptions=(data?.sections||[]).filter(section=>transitionForGrade(section.grade_level));
  const setupHint=!source?'Choose a current section to begin.':!validAcademicYear(year)?'Enter the current academic year.':action==='promote'&&!nextYear?'Enter a supported academic year.':action==='promote'&&!destinations.length?'A Grade 12 destination section is required.':action==='promote'&&!target?'Choose a Grade 12 destination.':!selected.length?'Select students to continue.':selected.length+' students selected. Review before confirming.';
  useEffect(()=>{if(bulkRef.current)bulkRef.current.indeterminate=selected.length>0&&selected.length<Math.min(ready.length,500);},[selected.length,ready.length,view]);
@@ -44,21 +46,21 @@ export default function CohortChecklist(){
  const summary=review&&reviewSummary(review,{sourceName:data?.sections.find(s=>s.scope_id===review.sourceId)?.name,targetName:destinations.find(s=>s.scope_id===review.targetId)?.name});
  const views=[{value:'cohort',label:'Update enrollment'},{value:'history',label:'History'},...(principal?[{value:'advancement',label:'Automatic Advancement'}]:[])];
  return <div className="dashboard support-workspace cohort-workspace">
-  <header className="support-page-heading"><div><h1>Section checklist</h1><p>Move students to their next year, with their progress intact.</p></div><RefreshButton loading={!data&&!error} disabled={busy||!!review} onClick={()=>setRevision(v=>v+1)}/></header>
+  <header className="support-page-heading"><div><h1>Section checklist</h1><p>Move students to their next year, with their progress intact.</p></div></header>
   <div className="cohort-navigation"><SegmentedControl label="Enrollment views" value={view} disabled={busy||!!review} onChange={setView} options={views}/></div>
-  {error&&!review&&<div className="cohort-notice is-error" role="alert"><p>{error}</p><WorkspaceButton disabled={busy} onClick={()=>setRevision(v=>v+1)}>Reload checklist</WorkspaceButton></div>}
+  {error&&!review&&<div className="cohort-notice is-error" role="alert"><p>{error}</p><WorkspaceButton disabled={busy} onClick={reload}>Reload checklist</WorkspaceButton></div>}
   {message&&<div className="cohort-notice is-success" role="status"><Check size={18} aria-hidden="true"/><p>{message}</p></div>}
-  {!data&&!error?<div className="cohort-empty" role="status">Loading enrollment...</div>:data&&<>
+  {!data&&!error?<Skeleton label="Loading enrollment"/>:data&&<>
    {view==='cohort'?<div className="cohort-layout">
     <section className="cohort-card cohort-setup" aria-labelledby="cohort-setup-title">
      <div className="cohort-card-heading"><span className="cohort-step" aria-hidden="true">1</span><div><h2 id="cohort-setup-title">Set up the change</h2><p>The section’s confirmed grade decides the next step.</p></div></div>
      <fieldset disabled={busy||!!review} className="cohort-fields">
-      <label>Current section<select value={source} disabled={!sourceOptions.length} onChange={e=>chooseSource(e.target.value)}><option value="">{sourceOptions.length?'Choose a section':'No sections available'}</option>{sourceOptions.map(s=><option value={s.scope_id} key={s.scope_id}>{s.name} · {s.grade_level}</option>)}</select></label>
+      <label>Current section<WorkspaceSelect value={source} disabled={!sourceOptions.length} onChange={e=>chooseSource(e.target.value)}><option value="">{sourceOptions.length?'Choose a section':'No sections available'}</option>{sourceOptions.map(s=><option value={s.scope_id} key={s.scope_id}>{s.name} · {s.grade_level}</option>)}</WorkspaceSelect></label>
       {!sourceOptions.length&&<p className="cohort-inline-notice">No assigned sections with a confirmed Grade 11 or Grade 12 are available. Check your section assignments.</p>}
       {action&&<div className="cohort-transition" role="status"><span className="workspace-control-label">Transition</span><strong>{transitionLabel(action)}</strong><p className="cohort-field-hint">{action==='promote'?'Grade 11 students move to a Grade 12 section in the next school year.':'Grade 12 students complete senior high school and leave active class lists.'}</p></div>}
       <label>Current school year<input value={year} maxLength={9} placeholder="e.g. 2026-2027" aria-invalid={!!year&&!validAcademicYear(year)} aria-describedby="cohort-year-hint" onChange={e=>{setYear(e.target.value);setSelected([]);setReview(null);setError('');}}/></label>
       <p id="cohort-year-hint" className={year&&!validAcademicYear(year)?'cohort-inline-notice':'cohort-field-hint'}>{year&&!validAcademicYear(year)?'Use consecutive years, e.g. 2026-2027.':action==='promote'&&nextYear?'Next school year: '+nextYear:action==='graduate'&&validAcademicYear(year)?'Completion year: '+year:'Use the school year students are currently enrolled in.'}</p>
-      {action==='promote'&&<><label>New Grade 12 section<select value={target} disabled={!destinations.length} onChange={e=>{setTarget(e.target.value);reset();}}><option value="">{destinations.length?'Choose a destination':'No Grade 12 sections'}</option>{destinations.map(s=><option value={s.scope_id} key={s.scope_id}>{s.name}</option>)}</select></label>{!destinations.length&&<div className="cohort-inline-notice" role="alert"><strong>A destination is needed</strong><p>Promotion is unavailable until the Principal adds a Grade 12 section.</p></div>}</>}
+      {action==='promote'&&<><label>New Grade 12 section<WorkspaceSelect value={target} disabled={!destinations.length} onChange={e=>{setTarget(e.target.value);reset();}}><option value="">{destinations.length?'Choose a destination':'No Grade 12 sections'}</option>{destinations.map(s=><option value={s.scope_id} key={s.scope_id}>{s.name}</option>)}</WorkspaceSelect></label>{!destinations.length&&<div className="cohort-inline-notice" role="alert"><strong>A destination is needed</strong><p>Promotion is unavailable until the Principal adds a Grade 12 section.</p></div>}</>}
      </fieldset>
      <div className="cohort-preservation"><Info size={16} aria-hidden="true"/><p>{action==='graduate'?'Graduates leave active class lists. Their records and mobile access are kept.':'Student accounts and learning progress are kept. Teaching assignments stay the same.'}</p></div>
     </section>
@@ -76,7 +78,7 @@ export default function CohortChecklist(){
      <footer className="cohort-action-footer"><div><strong>{selected.length?selected.length+' students selected':'Review before making changes'}</strong><p>{setupComplete&&selected.length?'You can check the details before confirming.':setupHint}</p></div><WorkspaceButton variant="primary" disabled={busy||!canReview} onClick={openReview}>Review selection<ArrowRight size={16} aria-hidden="true"/></WorkspaceButton></footer>
     </section>
    </div>:view==='advancement'&&principal?<AutomaticAdvancement/>:<section className="cohort-card cohort-history" aria-labelledby="cohort-history-title">
-    <div className="cohort-card-heading"><History size={20} aria-hidden="true"/><div><h2 id="cohort-history-title">Enrollment history</h2><p>Recorded promotions and graduations for your sections.</p></div><label>Section<select value={historySection} onChange={e=>setHistorySection(e.target.value)}><option value="">All authorized sections</option>{data.sections.map(s=><option key={s.scope_id} value={s.scope_id}>{s.name}</option>)}</select></label></div>
+    <div className="cohort-card-heading"><History size={20} aria-hidden="true"/><div><h2 id="cohort-history-title">Enrollment history</h2><p>Recorded promotions and graduations for your sections.</p></div><label>Section<WorkspaceSelect value={historySection} onChange={e=>setHistorySection(e.target.value)}><option value="">All authorized sections</option>{data.sections.map(s=><option key={s.scope_id} value={s.scope_id}>{s.name}</option>)}</WorkspaceSelect></label></div>
     {!historyPage.total?<div className="cohort-empty"><History size={30} strokeWidth={1.5} aria-hidden="true"/><h3>No changes recorded</h3><p>{historySection?'No enrollment changes match this section.':'Completed promotions and graduations will appear here.'}</p></div>:<div className="support-table-scroll" tabIndex={0} aria-label="Enrollment history"><table className="support-table cohort-table"><thead><tr><th scope="col">Student</th><th scope="col">Change</th><th scope="col">Sections</th><th scope="col">School years</th><th scope="col">Recorded</th></tr></thead><tbody>{historyPage.items.map(h=><tr key={h.id}><th scope="row">{h.studentName||'Learner'}</th><td><span className="cohort-readiness">{h.action==='promote'?'Promoted':'Graduated'}</span></td><td>{h.sourceName}<small>{h.targetName?'To '+h.targetName:'Archived'}</small></td><td>{h.from_year}<small>{h.to_year&&'To '+h.to_year}</small></td><td>{new Date(h.created_at).toLocaleString()}</td></tr>)}</tbody></table></div>}
     <SupportPagination state={historyPage}/><p className="cohort-list-note">Outgoing students remain in this history. Access to their new section stays restricted to assigned staff.</p>
    </section>}
@@ -86,7 +88,7 @@ export default function CohortChecklist(){
     <dl className="cohort-review-route"><div><dt>Current enrollment</dt><dd>{summary.from}</dd></div><div><dt>{review.action==='promote'?'New enrollment':'After graduation'}</dt><dd>{summary.to}</dd></div><div><dt>When</dt><dd>Applies immediately when you confirm</dd></div></dl>
     <h3>Selected students</h3><ul className="cohort-review-list">{reviewPage.items.map(s=><li key={s._id}>{s.name}</li>)}</ul><SupportPagination state={reviewPage}/>
     <div className="cohort-preservation"><Info size={16} aria-hidden="true"/><p>{review.action==='promote'?'These students will leave the active Grade 11 roster.':'Mobile access stays available.'} Accounts, learning progress, and past records are preserved.</p></div>
-    {error&&<div role="alert" className="cohort-notice is-error"><p>{error}</p><WorkspaceButton disabled={busy} onClick={()=>setRevision(v=>v+1)}>Reload checklist</WorkspaceButton></div>}
+    {error&&<div role="alert" className="cohort-notice is-error"><p>{error}</p><WorkspaceButton disabled={busy} onClick={reload}>Reload checklist</WorkspaceButton></div>}
     <footer className="support-dialog-actions"><WorkspaceButton disabled={busy} onClick={()=>{setReview(null);setError('');}}>Back to selection</WorkspaceButton><WorkspaceButton variant="primary" disabled={busy} onClick={apply}>{busy?'Applying...':summary.confirm}</WorkspaceButton></footer>
    </div>
   </SupportDialog>}

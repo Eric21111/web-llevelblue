@@ -1,5 +1,8 @@
+import WorkspaceSelect from '../components/WorkspaceSelect';
+import {useWorkspaceQuery} from '../hooks/useWorkspaceQuery';
+import Skeleton from '../components/Skeleton';
 import {useEffect,useState} from 'react';
-import {BookOpen,Plus,RefreshCw,Send,CheckCircle,History} from 'lucide-react';
+import {BookOpen,Plus,Send,CheckCircle,History,LibraryBig} from 'lucide-react';
 import {useAuth} from '../context/AuthContext';
 import {apiRequest} from '../utils/api';
 import '../styles/curriculum.css';
@@ -17,21 +20,21 @@ function ContentPreview({item}){
 }
 export default function CurriculumWorkspace(){
  const {role}=useAuth(),head=role==='super';
- const [items,setItems]=useState([]),[selected,setSelected]=useState(null),[form,setForm]=useState(null);
- const [loadFailed,setLoadFailed]=useState(false);
- const [filter,setFilter]=useState('all'),[topic,setTopic]=useState('all'),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false);
- const [error,setError]=useState(''),[notice,setNotice]=useState(''),[note,setNote]=useState(''),[history,setHistory]=useState(null),[historyBusy,setHistoryBusy]=useState(false);
+ const [selected,setSelected]=useState(null),[form,setForm]=useState(null);
+
+ const [filter,setFilter]=useState('all'),[topic,setTopic]=useState('all'),[busy,setBusy]=useState(false);
+ const [actionError,setError]=useState(''),[notice,setNotice]=useState(''),[note,setNote]=useState(''),[history,setHistory]=useState(null),[historyBusy,setHistoryBusy]=useState(false);
  const [publishConfirm,setPublishConfirm]=useState(false);
  const dirty=!!form&&(!selected||JSON.stringify(form)!==JSON.stringify({kind:selected.kind,topic:selected.topic,title:selected.title,content:selected.content}));
  useEffect(()=>{const warn=e=>{if(dirty){e.preventDefault();e.returnValue='';}};window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn);},[dirty]);
- const load=async()=>{setLoading(true);setError('');try{setItems(await apiRequest('/api/curriculum'));setLoadFailed(false);}catch(e){setLoadFailed(true);setError(e.message);}finally{setLoading(false);}};
- useEffect(()=>{load();},[]);
+ const {data:{items=[]},errors:{items:loadFailed},loading,refresh:load}=useWorkspaceQuery({items:'/api/curriculum'});
+ const error=actionError||loadFailed;
  const choose=item=>{
   if(dirty&&!window.confirm('Discard your unsaved edits?'))return;
   setSelected(item);setForm(item?{kind:item.kind,topic:item.topic,title:item.title,content:structuredClone(item.content)}:null);setNote('');setHistory(null);setPublishConfirm(false);setError('');setNotice('');
  };
  const create=()=>{if(dirty&&!window.confirm('Discard your unsaved edits?'))return;setSelected(null);setForm({kind:'lesson',topic:TOPICS[0],title:'',content:emptyContent('lesson')});setHistory(null);setPublishConfirm(false);setError('');setNotice('');};
- const accept=updated=>{const row={...items.find(item=>item.id===updated.id),...updated};setItems(previous=>[row,...previous.filter(r=>r.id!==row.id)]);setSelected(row);setForm({kind:row.kind,topic:row.topic,title:row.title,content:structuredClone(row.content)});setHistory(null);setNote('');setPublishConfirm(false);};
+ const accept=updated=>{const row={...items.find(item=>item.id===updated.id),...updated};setSelected(row);setForm({kind:row.kind,topic:row.topic,title:row.title,content:structuredClone(row.content)});setHistory(null);setNote('');setPublishConfirm(false);void load();};
  const save=async e=>{e.preventDefault();setBusy(true);setError('');setNotice('');try{const row=await apiRequest(`/api/curriculum${selected?`/${selected.id}`:''}`,{method:selected?'PATCH':'POST',body:JSON.stringify({...form,version:selected?.version})});accept(row);setNotice('Draft saved. Submit it when it is ready for review.');}catch(e){setError(e.message);}finally{setBusy(false);}};
  const act=async action=>{setBusy(true);setError('');setNotice('');try{accept(await apiRequest(`/api/curriculum/${selected.id}/actions`,{method:'POST',body:JSON.stringify({action,version:selected.version,note})}));setNotice({submit:'Submitted to the Principal.',request_changes:'Returned to the teacher with your note.',approve:'Approved. This revision is ready to publish.',publish:'Published to the school content feed. Connected apps can retrieve it on refresh.',revise:'New draft revision created. The previous publication remains available.'}[action]);}catch(e){setError(e.message);}finally{setBusy(false);}};
  const showHistory=async()=>{setHistoryBusy(true);setError('');try{setHistory(await apiRequest(`/api/curriculum/${selected.id}/history`));}catch(e){setError(e.message);}finally{setHistoryBusy(false);}};
@@ -40,23 +43,27 @@ export default function CurriculumWorkspace(){
  const setContent=(key,value)=>setForm(prev=>({...prev,content:{...prev.content,[key]:value}}));
  const textField=(key,label,max,rows=5)=><label>{label}<textarea rows={rows} maxLength={max} value={form.content[key]} onChange={e=>setContent(key,e.target.value)} /></label>;
  return <div className="learning-workspace curriculum-workspace">
-  <header className="curriculum-header"><div><span className="curriculum-eyebrow">Curriculum workspace</span><h1>{head?'Review & Publish':'Teaching Content'}</h1><p>{head?'Review submissions before learners can use them.':'Lessons, questions, and notes for school-head review.'}</p></div>{!head&&<button className="learning-button" onClick={create} disabled={busy}><Plus size={17}/> New draft</button>}</header>
-  <div className="curriculum-summary">{['submitted','changes_requested','approved','published'].map(status=><div key={status}><strong>{loading||loadFailed?'—':items.filter(r=>r.status===status).length}</strong><span>{status==='published'?'Published revisions':STATES[status]}</span></div>)}</div>
-  <p className="learning-note">Published school content supplements the mobile learning journey. Campaign stages, mastery, and Codex unlocks stay tied to existing gameplay records.</p>
+  <header className="curriculum-header insight-header"><span className="insight-symbol"><LibraryBig aria-hidden="true"/></span><div><h1>{head?'Review & Publish':'Teaching Content'}</h1><p>{head?'Review submissions before learners can use them.':'Lessons, questions, and notes for school-head review.'}</p></div>{!head&&<button className="learning-button" onClick={create} disabled={busy}><Plus size={17}/> New draft</button>}</header>
+  <div className="review-stages" role="group" aria-label="Filter revisions by review stage">
+    {['submitted','changes_requested','approved','published'].map(status=><button type="button" key={status} aria-pressed={filter===status} onClick={()=>setFilter(filter===status?'all':status)}>
+      <span className={'review-dot '+status}/><span>{status==='published'?'Published revisions':STATES[status]}</span>
+      <strong>{loading||loadFailed?'—':items.filter(item=>item.status===status).length}</strong>
+    </button>)}
+  </div>
   {error&&<div className="learning-alert" role="alert">{error} <button onClick={load} disabled={busy||loading}>Reload list</button></div>}
   {notice&&<div className="curriculum-success" role="status">{notice}</div>}
   <div className="curriculum-layout"><section className="learning-card curriculum-list" aria-label="Content library">
-   <div className="curriculum-list-heading"><h2>{head?'School content':'Your revisions'}</h2><button aria-label="Refresh content list" className="curriculum-icon" disabled={loading||busy} onClick={load}><RefreshCw size={17}/></button></div>
-   <div className="learning-form"><label>Status<select value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">All statuses</option>{Object.entries(STATES).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label><label>Topic<select value={topic} onChange={e=>setTopic(e.target.value)}><option value="all">All topics</option>{TOPICS.map(t=><option key={t}>{t}</option>)}</select></label></div>
-   {loading?<p role="status">Loading content…</p>:loadFailed?<p role="status">The content list is unavailable. Use Reload list to try again.</p>:visible.length?visible.map(row=><button key={row.id} className={`curriculum-item ${selected?.id===row.id?'is-selected':''}`} onClick={()=>choose(row)} disabled={busy} aria-pressed={selected?.id===row.id}><span>{KINDS[row.kind]} · {row.topic}</span><strong>{row.title}</strong><span><em className={`curriculum-badge ${row.status}`}>{STATES[row.status]}</em> Revision {row.revision}</span><small>{head?`${row.author_name || "Teacher"} · `:""}Updated {stamp(row.updated_at)}</small></button>):<p className="learning-note">{items.length?'No content matches these filters.':head?'Teacher submissions will appear here.':'Create your first draft to share a learning resource.'}</p>}
+   <div className="curriculum-list-heading"><h2>{head?'Review queue':'Your revisions'}</h2></div>
+   <div className="learning-form"><label>Status<WorkspaceSelect value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">All statuses</option>{Object.entries(STATES).map(([key,label])=><option key={key} value={key}>{label}</option>)}</WorkspaceSelect></label><label>Topic<WorkspaceSelect value={topic} onChange={e=>setTopic(e.target.value)}><option value="all">All topics</option>{TOPICS.map(t=><option key={t}>{t}</option>)}</WorkspaceSelect></label></div>
+   {loading?<Skeleton label="Loading content"/>:loadFailed?<p role="status">The content list is unavailable. Use Reload list to try again.</p>:visible.length?visible.map(row=><button key={row.id} className={`curriculum-item ${selected?.id===row.id?'is-selected':''}`} onClick={()=>choose(row)} disabled={busy} aria-pressed={selected?.id===row.id}><span>{KINDS[row.kind]} · {row.topic}</span><strong>{row.title}</strong><span><span className={`curriculum-badge ${row.status}`}>{STATES[row.status]}</span> Revision {row.revision}</span><small>{head?`${row.author_name || "Teacher"} · `:""}Updated {stamp(row.updated_at)}</small></button>):<p className="learning-note">{items.length?'No content matches these filters.':head?'Teacher submissions will appear here.':'Create your first draft to share a learning resource.'}</p>}
   </section><section className="learning-card curriculum-editor" aria-label="Selected content">
    {!form?<div className="curriculum-placeholder"><BookOpen size={34}/><h2>{head?'Choose a submission':'Make knowledge useful'}</h2><p>{head?'Open a revision to review its content and history.':'Select an existing revision or start a new draft.'}</p></div>:<>
     <div className="curriculum-list-heading"><h2>{editable?selected?'Edit draft':'New draft':'Content preview'}</h2>{selected&&<span className={`curriculum-badge ${selected.status}`}>{STATES[selected.status]} · v{selected.revision}</span>}</div>
     {selected?.review_note&&<aside className="curriculum-review"><strong>School-head review</strong><p>{selected.review_note}</p></aside>}
     {editable?<form className="learning-form" onSubmit={save}><fieldset disabled={busy}>
-     {!selected&&<div className="curriculum-fields"><label>Content type<select value={form.kind} onChange={e=>setForm({...form,kind:e.target.value,content:emptyContent(e.target.value)})}>{Object.entries(KINDS).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label><label>Topic<select value={form.topic} onChange={e=>setForm({...form,topic:e.target.value})}>{TOPICS.map(t=><option key={t}>{t}</option>)}</select></label></div>}
+     {!selected&&<div className="curriculum-fields"><label>Content type<WorkspaceSelect value={form.kind} onChange={e=>setForm({...form,kind:e.target.value,content:emptyContent(e.target.value)})}>{Object.entries(KINDS).map(([k,v])=><option key={k} value={k}>{v}</option>)}</WorkspaceSelect></label><label>Topic<WorkspaceSelect value={form.topic} onChange={e=>setForm({...form,topic:e.target.value})}>{TOPICS.map(t=><option key={t}>{t}</option>)}</WorkspaceSelect></label></div>}
      <label>Title<input required maxLength={180} value={form.title} onChange={e=>setForm({...form,title:e.target.value})}/></label>
-     {form.kind==='lesson'?<>{textField('body','Lesson text',20000,10)}<label>Learning objectives (one per line)<textarea rows={3} value={form.content.objectives.join('\n')} onChange={e=>setContent('objectives',e.target.value.split('\n'))}/></label></>:form.kind==='codex'?<>{textField('definition','Threat definition',10000)}<label>Warning signs (one per line)<textarea rows={3} value={form.content.warningSigns.join('\n')} onChange={e=>setContent('warningSigns',e.target.value.split('\n'))}/></label>{textField('safeResponse','Safe response',10000)}</>:<>{textField('prompt','Question',5000,3)}{form.content.options.map((option,i)=><label key={i}>Answer choice {i+1}<input maxLength={1000} value={option} onChange={e=>setContent('options',form.content.options.map((v,j)=>j===i?e.target.value:v))}/></label>)}<label>Correct answer<select value={form.content.correctOption??''} onChange={e=>setContent('correctOption',e.target.value===''?null:Number(e.target.value))}><option value="">Choose an answer</option>{form.content.options.map((_,i)=><option key={i} value={i}>Answer choice {i+1}</option>)}</select></label>{textField('explanation','Answer explanation',10000,3)}</>}
+     {form.kind==='lesson'?<>{textField('body','Lesson text',20000,10)}<label>Learning objectives (one per line)<textarea rows={3} value={form.content.objectives.join('\n')} onChange={e=>setContent('objectives',e.target.value.split('\n'))}/></label></>:form.kind==='codex'?<>{textField('definition','Threat definition',10000)}<label>Warning signs (one per line)<textarea rows={3} value={form.content.warningSigns.join('\n')} onChange={e=>setContent('warningSigns',e.target.value.split('\n'))}/></label>{textField('safeResponse','Safe response',10000)}</>:<>{textField('prompt','Question',5000,3)}{form.content.options.map((option,i)=><label key={i}>Answer choice {i+1}<input maxLength={1000} value={option} onChange={e=>setContent('options',form.content.options.map((v,j)=>j===i?e.target.value:v))}/></label>)}<label>Correct answer<WorkspaceSelect value={form.content.correctOption??''} onChange={e=>setContent('correctOption',e.target.value===''?null:Number(e.target.value))}><option value="">Choose an answer</option>{form.content.options.map((_,i)=><option key={i} value={i}>Answer choice {i+1}</option>)}</WorkspaceSelect></label>{textField('explanation','Answer explanation',10000,3)}</>}
      <button className="learning-button" type="submit" disabled={!dirty}>{busy?'Saving…':'Save draft'}</button>{dirty&&<span className="learning-note"> Unsaved changes</span>}
     </fieldset></form>:<ContentPreview item={form}/>}
     {selected&&<div className="curriculum-actions">

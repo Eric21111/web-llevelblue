@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { DeveloperFilters, DeveloperState, EmptyNote, ReadOnlyNote, useDeveloperData } from '../../components/developer/DeveloperChrome';
+import { DeveloperFilters, DeveloperState, EmptyNote, useDeveloperData } from '../../components/developer/DeveloperChrome';
 
 const empty = { grade: '', sectionId: '', topic: '', from: '', to: '' };
 function EventList({ title, rows, empty }) {
@@ -11,7 +11,6 @@ export default function DeveloperMonitoring() {
   const data = state.data;
   return <div className="dashboard support-workspace">
     <header className="support-page-heading"><div><h1>Data monitoring</h1><p>Gaps and logged failures from stored records.</p></div></header>
-    <ReadOnlyNote />
     <DeveloperFilters filters={filters} setFilters={setFilters} sections={data?.sections || []} />
     <DeveloperState {...state}>{data && <>
       <p>{data.note}</p>

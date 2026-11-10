@@ -37,6 +37,14 @@ export function createWorkspaceRoutes(db) {
   }));
   router.get('/teacher-activity',headOnly,handler(async(req,res)=>res.json(await teacherOversight(db,req.query))));
   router.get('/sections',handler(async(req,res)=>res.json((await sectionScope(db,req.user)).map(s=>({...s,id:s.scope_id,gradeLevel:s.grade_level,createdAt:s.created_at})))));
+  router.get('/sections/:id/faculty',handler(async(req,res)=>{
+    const sectionId = req.params.id;
+    await sectionScope(db, req.user, {sectionId});
+    const assignments = await allRows(db.from('teacher_sections').select('teacher_id').eq('section_id', sectionId).order('teacher_id'));
+    const faculty = await rowsForIds(db, 'users', 'id', assignments.map(row => row.teacher_id), 'id,name,is_head_admin');
+    res.json(faculty.map(person => ({id:person.id, name:person.name?.trim() || "Unnamed staff member", role:person.is_head_admin ? 'Head Admin' : 'Teacher'}))
+      .sort((a,b) => a.name.localeCompare(b.name)));
+  }));
   router.post('/sections',handler(async(req,res)=>{
     const {name,subject='General Cybersecurity',gradeLevel}=req.body;
     if(typeof name!=='string' || !name.trim() || name.length>100 || !['Grade 11','Grade 12'].includes(gradeLevel)) throw fail(400,'Section name and Grade 11 or Grade 12 are required.');

@@ -62,10 +62,10 @@ export default function EngagementReports() {
                 <div style={{
                   width: 24, height: 24, borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center",
                   background: i === 0 ? COLORS.amber : COLORS.border, color: i === 0 ? "#0B1220" : COLORS.sub,
-                  fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, fontSize: 12,
+                  fontVariantNumeric: "tabular-nums", fontWeight: 700, fontSize: 12,
                 }}>{i + 1}</div>
                 <div style={{ flex: 1, fontFamily: "Inter", fontWeight: 600, fontSize: 13, color: COLORS.text }}>{s.name}</div>
-                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, fontSize: 13, color: COLORS.teal }}>{s.points || 0} pts</div>
+                <div style={{ fontVariantNumeric: "tabular-nums", fontWeight: 700, fontSize: 13, color: COLORS.teal }}>{s.points || 0} pts</div>
               </div>
             ))
           )}

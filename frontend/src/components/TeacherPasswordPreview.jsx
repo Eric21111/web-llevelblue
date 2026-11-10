@@ -3,7 +3,7 @@ import {ManagementDialog} from './ManagementUI';
 import {WorkspaceButton} from './WorkspaceUI';
 import {apiRequest} from '../utils/api';
 
-export default function TeacherPasswordPreview({teacher,onClose,endpoint,audience='teacher'}){
+export default function TeacherPasswordPreview({teacher,onClose,onBack,endpoint,audience='teacher'}){
  const [credential,setCredential]=useState(null),[error,setError]=useState(''),[revealed,setRevealed]=useState(false),[message,setMessage]=useState('');
  useEffect(()=>{
   let stopped=false,timer,controller;
@@ -31,7 +31,7 @@ export default function TeacherPasswordPreview({teacher,onClose,endpoint,audienc
    await navigator.clipboard.writeText(data.password);setMessage('Temporary password copied.');
   }catch{setMessage('Could not copy. Reveal the password and copy it manually.');}
  }
- return <ManagementDialog title={`Temporary password · ${teacher.name}`} onClose={onClose}>
+ return <ManagementDialog onBack={onBack} title={`Temporary password · ${teacher.name}`} onClose={onClose}>
   <div className="support-form"><p>Share this temporary password with the {audience}. Their email code is sent separately through Brevo.</p>
    <div className="support-context"><strong>{teacher.email}</strong></div>
    {typeof teacher.invitationEmailSent==='boolean'&&<p role="status" className={teacher.invitationEmailSent?'':'support-error'}>{teacher.invitationEmailSent?'Activation code sent to the teacher’s email.':'Account created, but the activation email could not be sent. The teacher can use Resend code after signing in with this temporary password.'}</p>}

@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { resetWorkspaceCache } from "../hooks/useWorkspaceQuery";
 import { apiFetch } from "../utils/api";
 import { consoleRole } from "../utils/developerConsole";
 
@@ -16,6 +17,17 @@ export function AuthProvider({ children }) {
   const [authed, setAuthed] = useState(false);
   const [role, setRole] = useState("admin");
   const [loadingSession, setLoadingSession] = useState(true);
+
+  useEffect(() => {
+    const syncSession = event => {
+      if (event.storageArea === localStorage && (event.key === 'token' || event.key === null)) {
+        resetWorkspaceCache();
+        window.location.reload();
+      }
+    };
+    window.addEventListener('storage', syncSession);
+    return () => window.removeEventListener('storage', syncSession);
+  }, []);
 
   // Restore authenticated session on mount
   useEffect(() => {
@@ -47,6 +59,7 @@ export function AuthProvider({ children }) {
 
   const login = useCallback((loginResponse) => {
     const { token, user: userData } = loginResponse;
+    resetWorkspaceCache();
     localStorage.setItem("token", token);
     setRole(consoleRole(userData.role));
     setUser(userData);
@@ -54,6 +67,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logout = useCallback(() => {
+    resetWorkspaceCache();
     localStorage.removeItem("token");
     setAuthed(false);
     setUser(null);

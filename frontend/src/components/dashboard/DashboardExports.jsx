@@ -38,7 +38,6 @@ export default function DashboardExports({sectionName='',date,period,onDate,onPe
         {open&&<div id="dashboard-export-options" className="dash-export-options" role="group" aria-label="Download dashboard"><strong>Download dashboard</strong><small>{periodLabel(date,period)} · {sectionName||'All authorized sections'}</small><button ref={first} onClick={()=>download('csv')}><FileSpreadsheet size={17}/><span>CSV spreadsheet<small>Open in Excel or Sheets</small></span></button><button onClick={()=>download('pdf')}><FileText size={17}/><span>PDF for printing<small>A4 report with page numbers</small></span></button></div>}
       </div>
     </div>
-    <p id="dashboard-export-basis" className="dash-export-note">Selected-period activity + current overview</p>
     {error&&<p className="dash-export-error" role="alert">{error}</p>}
     {message&&<p className="dash-export-status" role="status">{message}</p>}
   </div>;
