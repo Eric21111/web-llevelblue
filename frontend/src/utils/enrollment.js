@@ -12,6 +12,22 @@ export function enrollmentIssue(student,{year,grade,blockedIds=[]}){
  return '';
 }
 
+// Readiness is computed by the server. Until the database enforces it, it informs staff but never blocks selection.
+export const READINESS_LABELS={ready:'Ready for Promotion','not-ready':'Not Yet Ready for Promotion',promoted:'Promoted'};
+export const MODULE_STATUS_LABELS={complete:'Complete',incomplete:'Incomplete','not-verified':'Completion Not Verified'};
+export function readinessIssue(student,{action,enforced=false}={}){
+ if(action!=='promote'||!enforced)return '';
+ return student.readiness?.status==='ready'?'':READINESS_LABELS['not-ready'];
+}
+export function moduleProgressLabel(readiness){
+ if(!readiness?.modules?.length)return '';
+ return readiness.modules.every(m=>m.status==='not-verified')?MODULE_STATUS_LABELS['not-verified']:`${readiness.completedModules}/${readiness.modules.length} modules`;
+}
+export function readinessCounts(students){
+ const count=status=>students.filter(s=>s.readiness?.status===status).length;
+ return {ready:count('ready'),notReady:count('not-ready'),assisted:students.filter(s=>s.readiness?.assisted).length};
+}
+
 // The confirmed section grade decides the transition. Grade 12 graduates; there is no Grade 13.
 export const transitionForGrade=grade=>grade==='Grade 11'?'promote':grade==='Grade 12'?'graduate':null;
 export const transitionLabel=action=>action==='promote'?'Promote to Grade 12':action==='graduate'?'Graduate':'';
@@ -53,7 +69,7 @@ export function reviewSummary(review,{sourceName='',targetName=''}={}){
 
 export const SCHEDULE_STATUS={pending:'Pending',completed:'Completed',failed:'Failed',cancelled:'Cancelled'};
 export const PLAN_STATUS={pending:'Scheduled',completed:'Completed',partial:'Completed with failures',failed:'Failed',cancelled:'Cancelled'};
-const SKIP_REASONS={'not-found':'Student record not found',moved:'Moved to another section','enrollment-changed':'Enlistment changed after scheduling','grade-mismatch':'Student grade differs from the section grade','year-mismatch':'Recorded in a different school year','active-mentor-bounty':'Active mentor bounty','unconfirmed-grade':'Section grade not confirmed','no-section':'No section assigned'};
+const SKIP_REASONS={'not-found':'Student record not found',moved:'Moved to another section','enrollment-changed':'Enlistment changed after scheduling','grade-mismatch':'Student grade differs from the section grade','year-mismatch':'Recorded in a different school year','active-mentor-bounty':'Active mentor bounty','unconfirmed-grade':'Section grade not confirmed','no-section':'No section assigned','not-ready-for-promotion':'Not yet ready for promotion'};
 export const skipReasonLabel=code=>SKIP_REASONS[code]||(typeof code==='string'&&code.startsWith('already-')?`Already ${code.slice(8)}`:'Not eligible');
 
 // The server preview groups learners by authoritative section grade; these helpers only summarise it.

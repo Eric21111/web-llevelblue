@@ -11,7 +11,18 @@ import {apiRequest} from '../utils/api';
 import {useAuth} from '../context/AuthContext';
 import {useWorkspaceData} from '../context/WorkspaceDataContext';
 import AutomaticAdvancement from '../components/AutomaticAdvancement';
-import {validAcademicYear,nextAcademicYear,enrollmentIssue,transitionForGrade,transitionLabel,sourceGrade,reviewSummary} from '../utils/enrollment';
+import {validAcademicYear,nextAcademicYear,enrollmentIssue,transitionForGrade,transitionLabel,sourceGrade,reviewSummary,readinessIssue,readinessCounts,moduleProgressLabel,READINESS_LABELS,MODULE_STATUS_LABELS} from '../utils/enrollment';
+function Readiness({readiness}){
+ if(!readiness)return null;
+ const ready=readiness.status!=='not-ready';
+ return <><span className={ready?'cohort-readiness':'cohort-readiness needs-review'}>{READINESS_LABELS[readiness.status]}</span>
+  {readiness.status!=='promoted'&&<><small>{moduleProgressLabel(readiness)}{readiness.assisted?' · Includes assisted chapters':''}{ready?' · School approval required':''}</small>
+  <details className="cohort-readiness-details"><summary>Module details</summary><ul className="advancement-reasons">
+   {readiness.modules.map(m=><li key={m.moduleId}>{m.title}: {MODULE_STATUS_LABELS[m.status]}{m.status==='incomplete'?` · missing chapter ${m.missingChapters.join(', ')}`:''}{m.assistedChapters.length?` · assisted chapter ${m.assistedChapters.join(', ')}`:''}</li>)}
+   {readiness.reasons.filter(r=>!readiness.modules.some(m=>r.startsWith(m.title+':'))).map(r=><li key={r}>{r}</li>)}
+  </ul></details></>}
+ </>;
+}
 export default function CohortChecklist(){
  const [view,setView]=useState('cohort');
  const bulkRef=useRef(null);
@@ -26,10 +37,13 @@ export default function CohortChecklist(){
  const action=transitionForGrade(sourceSection?.grade_level);
  const cohortPage=useSupportPage((data?.students||[]).filter(s=>s.sectionId===source&&s.enrollmentStatus==='active'),source);
  const historyPage=useSupportPage((data?.history||[]).filter(h=>!historySection||h.from_section===historySection||h.to_section===historySection),revision+'|'+historySection);
- const reviewPage=useSupportPage((data?.students||[]).filter(s=>review?.students.some(r=>r.id===s._id)),review?.requestId);
+ const reviewStudents=(data?.students||[]).filter(s=>review?.students.some(r=>r.id===s._id));
+ const reviewPage=useSupportPage(reviewStudents,review?.requestId);
+ const reviewCounts=review?.action==='promote'?readinessCounts(reviewStudents):null;
  const nextYear=nextAcademicYear(year);
  const eligible=(data?.students||[]).filter(s=>s.sectionId===source&&s.enrollmentStatus==='active');
- const issue=student=>enrollmentIssue(student,{year,grade:sourceGrade(action),blockedIds:data?.blockedStudentIds||[]});
+ const enforced=data?.promotionReadiness?.enforced===true;
+ const issue=student=>enrollmentIssue(student,{year,grade:sourceGrade(action),blockedIds:data?.blockedStudentIds||[]})||readinessIssue(student,{action,enforced});
  const ready=eligible.filter(student=>!issue(student));
  const destinations=(data?.destinations||[]).filter(section=>section.scope_id!==source);
  const setupComplete=!!action&&validAcademicYear(year)&&(action==='graduate'||!!nextYear&&destinations.some(section=>section.scope_id===target));
@@ -70,7 +84,8 @@ export default function CohortChecklist(){
       <fieldset className="cohort-student-controls" disabled={busy||!!review}>
        <div className="cohort-selection-bar"><label className="cohort-check"><input ref={bulkRef} type="checkbox" disabled={!setupComplete||!ready.length} checked={ready.length>0&&selected.length===Math.min(ready.length,500)} onChange={e=>setSelected(e.target.checked?ready.slice(0,500).map(s=>s._id):[])}/>{ready.length>500?'Select first 500 ready students':'Select all ready students'}</label><span aria-live="polite">{setupComplete?selected.length+' selected':'Complete setup first'}</span></div>
        {eligible.length>ready.length&&<p className="cohort-attention">{eligible.length-ready.length} student(s) need attention. Check the status beside their name.</p>}
-       <div className="support-table-scroll" tabIndex={0} aria-label="Student enlistment checklist"><table className="support-table cohort-table"><thead><tr><th scope="col">Student</th><th scope="col">School year</th><th scope="col">Status</th></tr></thead><tbody>{cohortPage.items.map(s=>{const reason=issue(s);return <tr key={s._id} className={selected.includes(s._id)?'is-selected':undefined}><th scope="row"><label className="cohort-check"><input type="checkbox" disabled={!setupComplete||!!reason||(!selected.includes(s._id)&&selected.length>=500)} checked={selected.includes(s._id)} onChange={e=>setSelected(v=>e.target.checked?[...v,s._id]:v.filter(id=>id!==s._id))}/>{s.name}</label></th><td>{s.academicYear||'Not recorded'}</td><td><span className={reason?'cohort-readiness needs-review':'cohort-readiness'}>{reason||'Ready'}</span></td></tr>;})}</tbody></table></div>
+       {action==='promote'&&!enforced&&<p className="cohort-attention">Promotion readiness is shown for review. It is not yet required by the school database, so it does not limit selection.</p>}
+       <div className="support-table-scroll" tabIndex={0} aria-label="Student enlistment checklist"><table className="support-table cohort-table"><thead><tr><th scope="col">Student</th><th scope="col">School year</th><th scope="col">Status</th>{action==='promote'&&<th scope="col">Promotion readiness</th>}</tr></thead><tbody>{cohortPage.items.map(s=>{const reason=issue(s);return <tr key={s._id} className={selected.includes(s._id)?'is-selected':undefined}><th scope="row"><label className="cohort-check"><input type="checkbox" disabled={!setupComplete||!!reason||(!selected.includes(s._id)&&selected.length>=500)} checked={selected.includes(s._id)} onChange={e=>setSelected(v=>e.target.checked?[...v,s._id]:v.filter(id=>id!==s._id))}/>{s.name}</label></th><td>{s.academicYear||'Not recorded'}</td><td><span className={reason?'cohort-readiness needs-review':'cohort-readiness'}>{reason||'Ready'}</span></td>{action==='promote'&&<td><Readiness readiness={s.readiness}/></td>}</tr>;})}</tbody></table></div>
        <SupportPagination state={cohortPage}/>
       </fieldset>
       <p className="cohort-list-note">Selection includes all pages. Unselected students stay in this section.</p>
@@ -86,6 +101,7 @@ export default function CohortChecklist(){
   {review&&summary&&<SupportDialog title={summary.title} busy={busy} onClose={()=>{setReview(null);setError('');}}>
    <div className="cohort-review"><p><strong>{review.students.length} students</strong> · {summary.transition}</p>
     <dl className="cohort-review-route"><div><dt>Current enlistment</dt><dd>{summary.from}</dd></div><div><dt>{review.action==='promote'?'New enlistment':'After graduation'}</dt><dd>{summary.to}</dd></div><div><dt>When</dt><dd>Applies immediately when you confirm</dd></div></dl>
+    {reviewCounts&&<p className={reviewCounts.notReady?'cohort-attention':'cohort-list-note'}>{reviewCounts.ready} of {review.students.length} verified ready for promotion.{reviewCounts.notReady?` ${reviewCounts.notReady} not yet ready; ${enforced?'the school database will reject this promotion.':'readiness is not yet required.'}`:''}{reviewCounts.assisted?` ${reviewCounts.assisted} completed some chapters with assistance.`:''} Confirming records your school’s approval.</p>}
     <h3>Selected students</h3><ul className="cohort-review-list">{reviewPage.items.map(s=><li key={s._id}>{s.name}</li>)}</ul><SupportPagination state={reviewPage}/>
     <div className="cohort-preservation"><Info size={16} aria-hidden="true"/><p>{review.action==='promote'?'These students will leave the active Grade 11 roster.':'Mobile access stays available.'} Accounts, learning progress, and past records are preserved.</p></div>
     {error&&<div role="alert" className="cohort-notice is-error"><p>{error}</p><WorkspaceButton disabled={busy} onClick={reload}>Reload checklist</WorkspaceButton></div>}

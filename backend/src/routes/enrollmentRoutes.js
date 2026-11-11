@@ -1,5 +1,6 @@
 import express from 'express';
 import {fail,handler,learners,result,allRows,rowsForIds,sectionScope,staffOnly,headOnly} from '../services/access.js';
+import {attachReadiness} from '../services/promotionReadiness.js';
 const academicYear=value=>typeof value==='string'&&/^20\d{2}-20\d{2}$/.test(value)&&Number(value.slice(5))===Number(value.slice(0,4))+1;
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const validPlanStudents=students=>Array.isArray(students)&&students.length>0&&students.length<=20000&&new Set(students.map(s=>s?.id)).size===students.length&&students.every(s=>typeof s?.id==='string'&&s.id&&Number.isInteger(s.version)&&s.version>=0);
@@ -53,7 +54,8 @@ export function createEnrollmentRoutes(db) {
   ]);
   const nameMap=new Map(names.map(row=>[String(row.id),row.name])),sectionMap=new Map(sectionNames.map(row=>[row.scope_id,row.name]));
   const blocked=new Set([...menteeBounties,...mentorBounties].filter(row=>!row.cancelled_at&&['PENDING','AWAITING_LINK','ACCEPTED'].includes(row.status)).flatMap(row=>[String(row.mentor_id),String(row.mentee_id)]));
-  res.json({...data,destinations:destinations.map(row=>({scope_id:row.scope_id,name:row.name,grade_level:row.grade_level})),blockedStudentIds:ids.filter(id=>blocked.has(id)),history:history.map(row=>({...row,studentName:nameMap.get(String(row.student_id))||'Learner',sourceName:sectionMap.get(row.from_section)||'Previous section',targetName:sectionMap.get(row.to_section)||null}))});
+  const readiness=await attachReadiness(db,data.students,{history:currentHistory,blockedIds:ids.filter(id=>blocked.has(id))});
+  res.json({...data,students:readiness.students,promotionReadiness:{enforced:readiness.enforced},destinations:destinations.map(row=>({scope_id:row.scope_id,name:row.name,grade_level:row.grade_level})),blockedStudentIds:ids.filter(id=>blocked.has(id)),history:history.map(row=>({...row,studentName:nameMap.get(String(row.student_id))||'Learner',sourceName:sectionMap.get(row.from_section)||'Previous section',targetName:sectionMap.get(row.to_section)||null}))});
  }));
  router.post('/',handler(async(req,res)=>{
   const {requestId,action,sourceId,targetId,fromYear,toYear,students}=req.body;
