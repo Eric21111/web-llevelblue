@@ -67,6 +67,29 @@ export function reviewSummary(review,{sourceName='',targetName=''}={}){
  };
 }
 
+// Semester rosters record who belongs to a section each period. They never move, promote or graduate anyone.
+export const periodLabel=period=>period?`${period.academicYear} · Semester ${period.semester}`:'';
+export function periodEnlistmentIssue(candidate,{period,grade}){
+ if(candidate.enlisted==='here')return 'Already enlisted';
+ if(candidate.enlisted)return `Enlisted in ${candidate.enlisted}`;
+ if(!grade)return 'Confirm the section grade';
+ if(candidate.gradeLevel!==grade)return 'Confirm the recorded grade';
+ if(!Number.isInteger(candidate.version)||candidate.version<0)return 'Reload enlistment details';
+ if(candidate.academicYear&&period&&candidate.academicYear!==period.academicYear)return 'Academic year does not match';
+ return '';
+}
+// Past members have a recorded link to the section. Recording them is explicit and flagged as recorded later.
+export const PAST_MEMBER_STATUS={current:'In this section now',graduated:'Graduated',moved:'Moved to another section'};
+export function pastMemberIssue(member){
+ if(member.enlisted==='here')return 'Already enlisted';
+ if(member.enlisted)return `Enlisted in ${member.enlisted}`;
+ return '';
+}
+export function rosterCounts(roster=[]){
+ const active=roster.filter(entry=>!entry.withdrawnAt).length;
+ return {active,withdrawn:roster.length-active};
+}
+
 export const SCHEDULE_STATUS={pending:'Pending',completed:'Completed',failed:'Failed',cancelled:'Cancelled'};
 export const PLAN_STATUS={pending:'Scheduled',completed:'Completed',partial:'Completed with failures',failed:'Failed',cancelled:'Cancelled'};
 const SKIP_REASONS={'not-found':'Student record not found',moved:'Moved to another section','enrollment-changed':'Enlistment changed after scheduling','grade-mismatch':'Student grade differs from the section grade','year-mismatch':'Recorded in a different school year','active-mentor-bounty':'Active mentor bounty','unconfirmed-grade':'Section grade not confirmed','no-section':'No section assigned','not-ready-for-promotion':'Not yet ready for promotion'};

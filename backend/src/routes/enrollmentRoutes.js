@@ -17,6 +17,9 @@ async function enrollmentResult(query,migration='20261106_cohort_promotion.sql',
 }
 const SCHEDULE_MIGRATION='20261107_enrollment_schedules.sql';
 const ADVANCEMENT_MIGRATION='20261108_school_advancement.sql';
+const PERIOD_MIGRATION='20261112_semester_enlistment.sql';
+const PERIOD_ID=/^20\d{2}-20\d{2}-S[12]$/;
+const periodView=row=>({id:row.id,academicYear:row.academic_year,semester:row.semester});
 const PLAN_PENDING='An automatic advancement plan is already pending. Cancel it before creating another.';
 function scheduleView(row,sectionNames){
  const result=row.result||{};
@@ -108,6 +111,71 @@ export function createEnrollmentRoutes(db) {
   if(!UUID.test(req.params.id))throw fail(404,'Schedule not found');
   const row=await enrollmentResult(db.rpc('levelblue_cancel_enrollment_schedule',{p_actor:String(req.user.id),p_schedule:req.params.id}),SCHEDULE_MIGRATION);
   res.json({id:row.id,status:row.status,cancelledAt:row.cancelled_at});
+ }));
+ // Semester rosters record period membership only; they never change a student's section, grade or year.
+ router.get('/periods',handler(async(_req,res)=>{
+  const rows=await enrollmentResult(db.from('academic_periods').select('id,academic_year,semester').order('academic_year',{ascending:false}).order('semester',{ascending:false}),PERIOD_MIGRATION);
+  res.setHeader('Cache-Control','no-store');
+  res.json({periods:rows.map(periodView)});
+ }));
+ router.post('/periods',headOnly,handler(async(req,res)=>{
+  const {academicYear:year,semester}=req.body||{};
+  if(!academicYear(year))throw fail(400,'Use an academic year such as 2026-2027.');
+  if(![1,2].includes(semester))throw fail(400,'Choose Semester 1 or Semester 2.');
+  const row=await enrollmentResult(db.rpc('levelblue_create_academic_period',{p_actor:String(req.user.id),p_year:year,p_semester:semester}),PERIOD_MIGRATION);
+  res.status(201).json(periodView(row));
+ }));
+ router.get('/periods/:periodId/sections/:sectionId',handler(async(req,res)=>{
+  if(!PERIOD_ID.test(req.params.periodId))throw fail(404,'Enlistment period not found');
+  const [section]=await sectionScope(db,req.user,{sectionId:req.params.sectionId});
+  const period=await enrollmentResult(db.from('academic_periods').select('id,academic_year,semester').eq('id',req.params.periodId).maybeSingle(),PERIOD_MIGRATION);
+  if(!period)throw fail(404,'Enlistment period not found');
+  const [entries,current,movedOut,movedIn]=await Promise.all([
+   enrollmentResult(db.from('section_enlistments').select('*').eq('period_id',period.id).eq('section_id',section.scope_id).order('enlisted_at').order('id'),PERIOD_MIGRATION),
+   allRows(db.from('students').select('id,name,grade_level,academic_year,enrollment_status,enrollment_version').eq('section_id',section.scope_id).order('id')),
+   rowsForIds(db,'enrollment_history','from_section',[section.scope_id],'id,student_id'),
+   rowsForIds(db,'enrollment_history','to_section',[section.scope_id],'id,student_id')
+  ]);
+  const candidates=current.filter(s=>(s.enrollment_status||'active')==='active');
+  // Past members are students with a recorded link to this section: current members or a recorded move.
+  const currentIds=new Set(current.map(s=>String(s.id)));
+  const formerIds=[...new Set([...movedOut,...movedIn].map(h=>String(h.student_id)))].filter(id=>!currentIds.has(id));
+  const memberIds=[...currentIds,...formerIds];
+  // Other sections are named only, so a past or parallel roster never exposes another section's details.
+  const periodRows=(await rowsForIds(db,'section_enlistments','student_id',memberIds,'student_id,period_id,section_id,withdrawn_at')).filter(e=>e.period_id===period.id&&!e.withdrawn_at);
+  const [names,sectionNames]=await Promise.all([
+   rowsForIds(db,'students','id',[...new Set([...entries.map(e=>String(e.student_id)),...formerIds])],'id,name'),
+   rowsForIds(db,'sections','scope_id',[...new Set(periodRows.map(e=>e.section_id).filter(id=>id!==section.scope_id))],'id,scope_id,name')
+  ]);
+  const nameMap=new Map([...current,...names].map(s=>[String(s.id),s.name])),sectionMap=new Map(sectionNames.map(s=>[s.scope_id,s.name])),placement=new Map(periodRows.map(e=>[String(e.student_id),e.section_id]));
+  const enlisted=id=>{const placed=placement.get(id);return !placed?null:placed===section.scope_id?'here':sectionMap.get(placed)||'Another section';};
+  const statusOf=new Map(current.map(s=>[String(s.id),(s.enrollment_status||'active')==='graduated'?'graduated':'current']));
+  res.setHeader('Cache-Control','no-store');
+  res.json({period:periodView(period),section:{scope_id:section.scope_id,name:section.name,grade_level:section.grade_level},
+   roster:entries.map(e=>({id:e.id,studentId:e.student_id,name:nameMap.get(String(e.student_id))||'Learner',gradeLevel:e.grade_level,enlistedAt:e.enlisted_at,
+    recordedLater:e.recorded_retroactively===true,note:e.note||null,withdrawnAt:e.withdrawn_at,withdrawalReason:e.withdrawal_reason})),
+   candidates:candidates.map(s=>({id:String(s.id),name:s.name,version:s.enrollment_version??0,academicYear:s.academic_year||null,gradeLevel:s.grade_level?.trim()||section.grade_level||null,enlisted:enlisted(String(s.id))})),
+   pastMembers:memberIds.filter(id=>nameMap.has(id)).map(id=>({id,name:nameMap.get(id),status:statusOf.get(id)||'moved',enlisted:enlisted(id)})).sort((a,b)=>a.name.localeCompare(b.name))});
+ }));
+ router.post('/periods/:periodId/record',handler(async(req,res)=>{
+  const {requestId,sectionId,students}=req.body||{},periodId=req.params.periodId,note=typeof req.body?.note==='string'?req.body.note.trim():'';
+  if(!PERIOD_ID.test(periodId)||!UUID.test(requestId||'')||typeof sectionId!=='string'||!sectionId||!Array.isArray(students)||!students.length||students.length>500||new Set(students).size!==students.length||students.some(id=>typeof id!=='string'||!id))throw fail(400,'Choose students and reload the roster.');
+  if(note.length<3||note.length>300)throw fail(400,'Explain the past membership in 3 to 300 characters.');
+  await sectionScope(db,req.user,{sectionId});
+  res.json(await enrollmentResult(db.rpc('levelblue_record_past_enlistment',{p_actor:String(req.user.id),p_batch:requestId,p_request:{periodId,sectionId,note,students}}),PERIOD_MIGRATION,'A selected student was enlisted for this period by someone else. Reload and review.'));
+ }));
+ router.post('/periods/:periodId/enlist',handler(async(req,res)=>{
+  const {requestId,sectionId,students}=req.body||{},periodId=req.params.periodId;
+  if(!PERIOD_ID.test(periodId)||!UUID.test(requestId||'')||typeof sectionId!=='string'||!sectionId||!Array.isArray(students)||!students.length||students.length>500||new Set(students.map(s=>s?.id)).size!==students.length||students.some(s=>typeof s?.id!=='string'||!s.id||!Number.isInteger(s.version)||s.version<0))throw fail(400,'Choose students and reload their enlistment details.');
+  await sectionScope(db,req.user,{sectionId});
+  res.json(await enrollmentResult(db.rpc('levelblue_enlist_students',{p_actor:String(req.user.id),p_batch:requestId,p_request:{periodId,sectionId,students:students.map(s=>({id:s.id,version:s.version}))}}),PERIOD_MIGRATION,'A selected student was enlisted for this period by someone else. Reload and review.'));
+ }));
+ router.post('/enlistments/:id/withdraw',handler(async(req,res)=>{
+  if(!UUID.test(req.params.id))throw fail(404,'Enlistment not found');
+  const reason=typeof req.body?.reason==='string'?req.body.reason.trim():'';
+  if(reason.length<3||reason.length>300)throw fail(400,'Give a reason of 3 to 300 characters.');
+  const row=await enrollmentResult(db.rpc('levelblue_withdraw_enlistment',{p_actor:String(req.user.id),p_enlistment:req.params.id,p_reason:reason}),PERIOD_MIGRATION);
+  res.json({id:row.id,withdrawnAt:row.withdrawn_at});
  }));
  return router;
 }

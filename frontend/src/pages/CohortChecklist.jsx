@@ -11,6 +11,7 @@ import {apiRequest} from '../utils/api';
 import {useAuth} from '../context/AuthContext';
 import {useWorkspaceData} from '../context/WorkspaceDataContext';
 import AutomaticAdvancement from '../components/AutomaticAdvancement';
+import SemesterRosters from '../components/SemesterRosters';
 import {validAcademicYear,nextAcademicYear,enrollmentIssue,transitionForGrade,transitionLabel,sourceGrade,reviewSummary,readinessIssue,readinessCounts,moduleProgressLabel,READINESS_LABELS,MODULE_STATUS_LABELS} from '../utils/enrollment';
 function Readiness({readiness}){
  if(!readiness)return null;
@@ -58,7 +59,7 @@ export default function CohortChecklist(){
  useEffect(()=>{if(bulkRef.current)bulkRef.current.indeterminate=selected.length>0&&selected.length<Math.min(ready.length,500);},[selected.length,ready.length,view]);
  function openReview(){if(!canReview)return;setError('');setReview({requestId:crypto.randomUUID(),sourceId:source,targetId:action==='promote'?target:null,action,fromYear:year,toYear:action==='promote'?nextYear:null,students:eligible.filter(s=>selected.includes(s._id)).map(s=>({id:s._id,version:s.enrollmentVersion}))});}
  const summary=review&&reviewSummary(review,{sourceName:data?.sections.find(s=>s.scope_id===review.sourceId)?.name,targetName:destinations.find(s=>s.scope_id===review.targetId)?.name});
- const views=[{value:'cohort',label:'Update enlistment'},{value:'history',label:'History'},...(principal?[{value:'advancement',label:'Automatic Advancement'}]:[])];
+ const views=[{value:'cohort',label:'Update enlistment'},{value:'semester',label:'Semester rosters'},{value:'history',label:'History'},...(principal?[{value:'advancement',label:'Automatic Advancement'}]:[])];
  return <div className="dashboard support-workspace cohort-workspace">
   <header className="support-page-heading"><div><h1>Student Enlistment</h1><p>Move students to their next year, with their progress intact.</p></div></header>
   <div className="cohort-navigation"><SegmentedControl label="Enlistment views" value={view} disabled={busy||!!review} onChange={setView} options={views}/></div>
@@ -92,7 +93,7 @@ export default function CohortChecklist(){
      </>}
      <footer className="cohort-action-footer"><div><strong>{selected.length?selected.length+' students selected':'Review before making changes'}</strong><p>{setupComplete&&selected.length?'You can check the details before confirming.':setupHint}</p></div><WorkspaceButton variant="primary" disabled={busy||!canReview} onClick={openReview}>Review selection<ArrowRight size={16} aria-hidden="true"/></WorkspaceButton></footer>
     </section>
-   </div>:view==='advancement'&&principal?<AutomaticAdvancement/>:<section className="cohort-card cohort-history" aria-labelledby="cohort-history-title">
+   </div>:view==='advancement'&&principal?<AutomaticAdvancement/>:view==='semester'?<SemesterRosters sections={data.sections} principal={principal}/>:<section className="cohort-card cohort-history" aria-labelledby="cohort-history-title">
     <div className="cohort-card-heading"><History size={20} aria-hidden="true"/><div><h2 id="cohort-history-title">Enlistment history</h2><p>Recorded promotions and graduations for your sections.</p></div><label>Section<WorkspaceSelect value={historySection} onChange={e=>setHistorySection(e.target.value)}><option value="">All authorized sections</option>{data.sections.map(s=><option key={s.scope_id} value={s.scope_id}>{s.name}</option>)}</WorkspaceSelect></label></div>
     {!historyPage.total?<div className="cohort-empty"><History size={30} strokeWidth={1.5} aria-hidden="true"/><h3>No changes recorded</h3><p>{historySection?'No enlistment changes match this section.':'Completed promotions and graduations will appear here.'}</p></div>:<div className="support-table-scroll" tabIndex={0} aria-label="Enlistment history"><table className="support-table cohort-table"><thead><tr><th scope="col">Student</th><th scope="col">Change</th><th scope="col">Sections</th><th scope="col">School years</th><th scope="col">Recorded</th></tr></thead><tbody>{historyPage.items.map(h=><tr key={h.id}><th scope="row">{h.studentName||'Learner'}</th><td><span className="cohort-readiness">{h.action==='promote'?'Promoted':'Graduated'}</span></td><td>{h.sourceName}<small>{h.targetName?'To '+h.targetName:'Archived'}</small></td><td>{h.from_year}<small>{h.to_year&&'To '+h.to_year}</small></td><td>{new Date(h.created_at).toLocaleString()}</td></tr>)}</tbody></table></div>}
     <SupportPagination state={historyPage}/><p className="cohort-list-note">Outgoing students remain in this history. Access to their new section stays restricted to assigned staff.</p>
