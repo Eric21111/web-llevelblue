@@ -92,7 +92,7 @@ export default function TeacherManagement({user}){
   </section>
  </ManagementDialog>}
 
- {handoff&&<FacultyHandoff onBack={backToAccount} teacher={handoff} sections={sections} onClose={()=>setHandoff(null)} onSaved={()=>{setHandoff(null);setMessage('Teaching assignments updated. Student enrollment and learning history are unchanged.');state.refresh();workspace.refresh();}}/>}
+ {handoff&&<FacultyHandoff onBack={backToAccount} teacher={handoff} sections={sections} onClose={()=>setHandoff(null)} onSaved={()=>{setHandoff(null);setMessage('Teaching assignments updated. Student enlistment and learning history are unchanged.');state.refresh();workspace.refresh();}}/>}
  {tierChange&&<ManagementDialog onBack={backToAccount} title={`Change ${tierChange.name}’s role?`} busy={busy} onClose={()=>setTierChange(null)}>
   <form className="support-form" onSubmit={saveTier}>
    <dl className="faculty-role-change"><div><dt>Current role</dt><dd><RoleBadge role={tierChange.roleLabel}/></dd></div><div><dt>New role</dt><dd><RoleBadge role={nextRole}/></dd></div></dl>

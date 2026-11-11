@@ -105,7 +105,7 @@ app.use((error, req, res, next) => {
   const setup=['42P01','42703','PGRST204','PGRST202','PGRST205'].includes(error.code);
   const status = error.status || (setup ? 503 : error.code==='23505' || error.code==='P0001' ? 409 : 500);
   if (status >= 500) logOperationalEvent(supabase, { category: 'api-error', status, code: String(error.code || 'server-error'), route: safeRoute(req), message: 'The request could not be completed.' });
-  if(setup&&(req.originalUrl.startsWith('/api/enrollment')||req.originalUrl.startsWith('/api/teacher-activity')))return res.status(503).json({error:'Apply backend/migrations/20261011_enrollment.sql to enable the enrollment checklist and current enrollment counts.'});
+  if(setup&&(req.originalUrl.startsWith('/api/enrollment')||req.originalUrl.startsWith('/api/teacher-activity')))return res.status(503).json({error:'Apply backend/migrations/20261011_enrollment.sql to enable Student Enlistment and current enlistment counts.'});
   res.status(status).json({error: setup ? (req.originalUrl.startsWith('/api/curriculum') || req.originalUrl.startsWith('/api/mobile/content') ? 'Curriculum publishing is not configured yet. Apply backend/migrations/20261008_curriculum.sql.' : 'Web foundations are not configured yet. Apply the database migrations and assign faculty sections.') : error.status || error.code==='P0001' ? error.message : 'This request could not be completed. Please retry.'});
 });
 

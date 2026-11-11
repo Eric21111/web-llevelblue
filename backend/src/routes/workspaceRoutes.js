@@ -63,7 +63,7 @@ export function createWorkspaceRoutes(db) {
     if(section.grade_level && section.grade_level!==gradeLevel) throw fail(409,`This section is already confirmed as ${section.grade_level}. Changing its grade requires cohort promotion.`);
     const rows=await allRows(db.from('students').select('grade_level').eq('section_id',req.params.id).order('id'));
     const conflicts=rows.filter(s=>s.grade_level?.trim() && s.grade_level.trim()!==gradeLevel);
-    if(conflicts.length) throw fail(409,`Cannot confirm ${gradeLevel}: ${conflicts.length} enrolled student(s) have a different recorded grade (${[...new Set(conflicts.map(s=>s.grade_level.trim()))].join(', ')}). Check their enrollment before confirming the section.`);
+    if(conflicts.length) throw fail(409,`Cannot confirm ${gradeLevel}: ${conflicts.length} enlisted student(s) have a different recorded grade (${[...new Set(conflicts.map(s=>s.grade_level.trim()))].join(', ')}). Check their enlistment before confirming the section.`);
     const data=await result(db.from('sections').update({grade_level:gradeLevel}).eq('scope_id',req.params.id).select().single());
     res.json(data);
   }));

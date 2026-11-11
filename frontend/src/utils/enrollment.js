@@ -6,7 +6,7 @@ export function nextAcademicYear(value){
 }
 export function enrollmentIssue(student,{year,grade,blockedIds=[]}){
  if(student.gradeLevel!==grade)return 'Confirm the recorded grade';
- if(!Number.isInteger(student.enrollmentVersion)||student.enrollmentVersion<0)return 'Reload enrollment details';
+ if(!Number.isInteger(student.enrollmentVersion)||student.enrollmentVersion<0)return 'Reload enlistment details';
  if(blockedIds.includes(String(student._id)))return 'Resolve the active mentor bounty';
  if(student.academicYear&&year&&student.academicYear!==year)return 'Academic year does not match';
  return '';
@@ -53,7 +53,7 @@ export function reviewSummary(review,{sourceName='',targetName=''}={}){
 
 export const SCHEDULE_STATUS={pending:'Pending',completed:'Completed',failed:'Failed',cancelled:'Cancelled'};
 export const PLAN_STATUS={pending:'Scheduled',completed:'Completed',partial:'Completed with failures',failed:'Failed',cancelled:'Cancelled'};
-const SKIP_REASONS={'not-found':'Student record not found',moved:'Moved to another section','enrollment-changed':'Enrollment changed after scheduling','grade-mismatch':'Student grade differs from the section grade','year-mismatch':'Recorded in a different school year','active-mentor-bounty':'Active mentor bounty','unconfirmed-grade':'Section grade not confirmed','no-section':'No section assigned'};
+const SKIP_REASONS={'not-found':'Student record not found',moved:'Moved to another section','enrollment-changed':'Enlistment changed after scheduling','grade-mismatch':'Student grade differs from the section grade','year-mismatch':'Recorded in a different school year','active-mentor-bounty':'Active mentor bounty','unconfirmed-grade':'Section grade not confirmed','no-section':'No section assigned'};
 export const skipReasonLabel=code=>SKIP_REASONS[code]||(typeof code==='string'&&code.startsWith('already-')?`Already ${code.slice(8)}`:'Not eligible');
 
 // The server preview groups learners by authoritative section grade; these helpers only summarise it.

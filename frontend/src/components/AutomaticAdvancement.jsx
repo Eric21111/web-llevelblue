@@ -58,7 +58,7 @@ export default function AutomaticAdvancement(){
   closeSetup();setMessage(`Automatic advancement scheduled for ${formatScheduleDate(plan.runOn)} (${SCHEDULE_TIMEZONE}): ${plan.promote} to promote and ${plan.graduate} to graduate. Nothing changes before then.`);
  });
  const cancelPlan=plan=>act(async()=>{await apiRequest(`/api/enrollment/advancement/${encodeURIComponent(plan.id)}/cancel`,{method:'POST'});closeSetup();setMessage('Automatic advancement is off. The pending plan was cancelled and no student was moved.');});
- const cancelLegacy=schedule=>act(async()=>{await apiRequest(`/api/enrollment/schedules/${encodeURIComponent(schedule.id)}/cancel`,{method:'POST'});setMessage(`Individual schedule for ${schedule.sourceName} cancelled. No enrollment changed.`);});
+ const cancelLegacy=schedule=>act(async()=>{await apiRequest(`/api/enrollment/schedules/${encodeURIComponent(schedule.id)}/cancel`,{method:'POST'});setMessage(`Individual schedule for ${schedule.sourceName} cancelled. No enlistment changed.`);});
 
  if(!status)return <section className="cohort-card cohort-history">{loadError?<div className="cohort-notice is-error" role="alert"><p>{loadError}</p><WorkspaceButton onClick={refresh}>Try again</WorkspaceButton></div>:<div className="cohort-empty" role="status">Loading automatic advancement...</div>}</section>;
  const switchOn=!!pending||enabling;
@@ -82,7 +82,7 @@ export default function AutomaticAdvancement(){
    <dl className="advancement-stats"><div><dt>School year</dt><dd>{pending.fromYear}<small>Next: {pending.toYear}</small></dd></div><div><dt>Grade 11 → Grade 12</dt><dd>{pending.promote}<small>students to promote</small></dd></div><div><dt>Grade 12 graduating</dt><dd>{pending.graduate}<small>students to graduate</small></dd></div><div><dt>Excluded</dt><dd>{pending.exclusions.length}<small>at confirmation</small></dd></div></dl>
    <SectionResults plan={pending}/>
    {pending.exclusions.length>0&&<details className="advancement-details"><summary>Excluded students ({pending.exclusions.length})</summary><Exclusions items={pending.exclusions} label="Excluded students"/></details>}
-   <footer className="cohort-action-footer"><div><strong>Only the students captured at confirmation are processed</strong><p>Anyone whose enrollment changes before the date is skipped with a recorded reason. Students added later are not included.</p></div><WorkspaceButton disabled={busy} onClick={()=>setDialog({type:'cancel-plan',plan:pending})}>Cancel pending schedule</WorkspaceButton></footer>
+   <footer className="cohort-action-footer"><div><strong>Only the students captured at confirmation are processed</strong><p>Anyone whose enlistment changes before the date is skipped with a recorded reason. Students added later are not included.</p></div><WorkspaceButton disabled={busy} onClick={()=>setDialog({type:'cancel-plan',plan:pending})}>Cancel pending schedule</WorkspaceButton></footer>
   </section>}
 
   {enabling&&!pending&&<>
@@ -90,7 +90,7 @@ export default function AutomaticAdvancement(){
     <div className="cohort-card-heading"><span className="cohort-step" aria-hidden="true">2</span><div><h2 id="advancement-date-title">School year and date</h2><p>The plan runs once. A later school year needs a new plan.</p></div></div>
     <fieldset className="cohort-fields advancement-fields" disabled={busy}>
      <div><label>Current school year<input value={year} maxLength={9} placeholder="e.g. 2026-2027" aria-invalid={!!year&&!requestedYear} aria-describedby="advancement-year-hint" onChange={e=>setYear(e.target.value)}/></label>
-      <p id="advancement-year-hint" className={year&&!requestedYear?'cohort-inline-notice':'cohort-field-hint'}>{year&&!requestedYear?'Use consecutive years, e.g. 2026-2027.':requestedYear?`Promoted students move to ${nextAcademicYear(year)}; graduates complete ${year}.`:'Use the school year students are currently enrolled in.'}</p></div>
+      <p id="advancement-year-hint" className={year&&!requestedYear?'cohort-inline-notice':'cohort-field-hint'}>{year&&!requestedYear?'Use consecutive years, e.g. 2026-2027.':requestedYear?`Promoted students move to ${nextAcademicYear(year)}; graduates complete ${year}.`:'Use the school year students are currently enlisted in.'}</p></div>
      <div><label>Advancement date<input type="date" required value={runOn} min={addDays(today,1)} max={addDays(today,SCHEDULE_MAX_DAYS)} aria-invalid={!!dateIssue} aria-describedby="advancement-date-hint" onChange={e=>setRunOn(e.target.value)}/></label>
       <p id="advancement-date-hint" className={dateIssue?'cohort-inline-notice':'cohort-field-hint'}>{dateIssue||`Date in ${SCHEDULE_TIMEZONE}. Nothing moves before 00:00 on this date.`}</p></div>
     </fieldset>
@@ -135,7 +135,7 @@ export default function AutomaticAdvancement(){
      <div><dt>Promote to Grade 12</dt><dd>{overview.promoteCount} students</dd></div><div><dt>Graduate</dt><dd>{overview.graduateCount} students</dd></div></dl>
     {overview.promoting.length>0&&<><h3>Section assignments</h3><ul className="advancement-list">{overview.promoting.map(s=><li key={s.id}><div><strong>{s.name}</strong><small>{s.students.length} student(s)</small></div><span>→ {nameOf(destinations[s.id])}</span></li>)}</ul></>}
     <p><strong>{overview.excluded.length}</strong> student(s) are excluded and stay where they are.</p>
-    <div className="cohort-preservation"><Info size={16} aria-hidden="true"/><p>Nothing changes until the date. Only these students are processed; anyone whose enrollment changes before then is skipped. Accounts, learning progress, mastery records and history are preserved.</p></div>
+    <div className="cohort-preservation"><Info size={16} aria-hidden="true"/><p>Nothing changes until the date. Only these students are processed; anyone whose enlistment changes before then is skipped. Accounts, learning progress, mastery records and history are preserved.</p></div>
     {actionError&&<div role="alert" className="cohort-notice is-error"><p>{actionError}</p><WorkspaceButton disabled={busy} onClick={()=>{setDialog(null);setActionError('');setRevision(v=>v+1);refresh();}}>Review setup</WorkspaceButton></div>}
     <footer className="support-dialog-actions"><WorkspaceButton disabled={busy} onClick={()=>{setDialog(null);setActionError('');}}>Back</WorkspaceButton><WorkspaceButton variant="primary" disabled={busy} onClick={confirmPlan}>{busy?'Scheduling...':'Confirm school-wide schedule'}</WorkspaceButton></footer>
    </div>
@@ -147,7 +147,7 @@ export default function AutomaticAdvancement(){
    </div>
   </SupportDialog>}
   {dialog?.type==='cancel-legacy'&&<SupportDialog title="Cancel section schedule" busy={busy} onClose={()=>{setDialog(null);setActionError('');}}>
-   <div className="cohort-review"><p>Cancel “{transitionLabel(dialog.schedule.action)}” for <strong>{dialog.schedule.sourceName}</strong> on {formatScheduleDate(dialog.schedule.runOn)}? No enrollment will change.</p>
+   <div className="cohort-review"><p>Cancel “{transitionLabel(dialog.schedule.action)}” for <strong>{dialog.schedule.sourceName}</strong> on {formatScheduleDate(dialog.schedule.runOn)}? No enlistment will change.</p>
     {actionError&&<div role="alert" className="cohort-notice is-error"><p>{actionError}</p></div>}
     <footer className="support-dialog-actions"><WorkspaceButton disabled={busy} onClick={()=>{setDialog(null);setActionError('');}}>Keep schedule</WorkspaceButton><WorkspaceButton variant="primary" disabled={busy} onClick={()=>cancelLegacy(dialog.schedule)}>{busy?'Cancelling...':'Cancel schedule'}</WorkspaceButton></footer>
    </div>

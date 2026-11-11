@@ -45,7 +45,7 @@ export async function learners(db,user,filters = {}) {
     query = query.in('section_id',sections.map(s=>s.scope_id));
   }
   const enrollment=filters.enrollment||'active';
-  if(!['active','graduated','all'].includes(enrollment))throw fail(400,'Invalid enrollment filter.');
+  if(!['active','graduated','all'].includes(enrollment))throw fail(400,'Invalid enlistment filter.');
   const rows = (await allRows(query.order('id'))).filter(s=>enrollment==='all'||(s.enrollment_status||'active')===enrollment);
   const records = await rowsForIds(db,'bkt_records','student_id',rows.map(s=>s.id));
   const sectionGrades=new Map(sections.map(s=>[s.scope_id,s.grade_level]));

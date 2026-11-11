@@ -10,7 +10,7 @@ async function enrollmentResult(query,migration='20261106_cohort_promotion.sql',
   if(e.code==='P0001')throw fail(409,e.message);
   if(e.code==='P0002')throw fail(404,e.message);
   if(e.code==='23505')throw fail(409,duplicate);
-  if(e.code==='42501')throw fail(403,'This enrollment change is outside your permissions.');
+  if(e.code==='42501')throw fail(403,'This enlistment change is outside your permissions.');
   throw e;
  }
 }
